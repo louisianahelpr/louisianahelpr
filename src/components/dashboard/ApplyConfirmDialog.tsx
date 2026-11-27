@@ -1,33 +1,6 @@
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import type { ApplyConfirmDialogProps } from "@/components/dashboard/applyConfirmDialog/types";
 import { ApplyBody } from "@/components/dashboard/applyConfirmDialog/ApplyBody";
-import { jobStartTimeLabel } from "@/lib/jobDate";
-import { getCity } from "@/lib/locationUtils";
-import type { EnrichedJob } from "@/components/dashboard/types";
-import { jobDayLabel } from "@/lib/jobDateWindow";
-
-/**
- * Board 58: what you are applying to, in one card above the sheet's body:
- * the title, who posted it, the town and the day and time. Each part only when
- * the job row has it; never the street address. No price (owner 2026-11-22, "One
- * number, small label"): a Helpr sees one figure, their take-home with "after
- * fees", in the box right under this card; the posted price is the poster's.
- * Guard: src/test/noAfterFeesAnywhere1127.test.ts.
- */
-function ApplyJobSummary({ job }: { job: EnrichedJob }) {
-  const when = [job.date_needed ? jobDayLabel(job) : null, jobStartTimeLabel(job.start_time, job.is_flexible_schedule)]
-    .filter(Boolean)
-    .join(" · ");
-  const meta = [job.posterName, getCity(job.location ?? "") || null, when || null].filter(Boolean).join(" · ");
-  return (
-    <div className="flex items-start justify-between gap-3 rounded-2xl border border-border bg-card p-4" data-testid="apply-job-summary">
-      <div className="min-w-0 space-y-1">
-        <p className="font-sans text-ds-16 font-bold leading-snug line-clamp-2">{job.title}</p>
-        {meta && <p className="font-sans text-ds-13 text-muted-foreground">{meta}</p>}
-      </div>
-    </div>
-  );
-}
 
 /**
  * ApplyConfirmDialog — the STANDALONE apply surface, for the QuickApply deep
@@ -46,7 +19,7 @@ function ApplyJobSummary({ job }: { job: EnrichedJob }) {
  * same edge every other job surface in the app uses.
  */
 export function ApplyConfirmDialog(props: ApplyConfirmDialogProps) {
-  const { open, onClose, confirmApplyJob, applyLoading } = props;
+  const { open, onClose, applyLoading } = props;
 
   return (
     <Sheet
@@ -81,7 +54,8 @@ export function ApplyConfirmDialog(props: ApplyConfirmDialogProps) {
             stretch every row past the sheet's right edge. That exact failure
             is what e2e/journeys/apply-sheet.spec.ts guards. Do not remove it. */}
         <div className="min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-5 pt-3 space-y-3.5">
-          {confirmApplyJob && <ApplyJobSummary job={confirmApplyJob} />}
+          {/* Polish audit 11-27 #45: no card repeating the job's title and details here (the job page is right behind
+              the sheet, and it was a card over the money box). Guard: src/test/applySheetFlat1127.test.tsx. */}
           <ApplyBody {...props} />
         </div>
       </SheetContent>

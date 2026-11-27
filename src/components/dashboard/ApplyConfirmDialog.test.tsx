@@ -1,7 +1,5 @@
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const applyLabel = "Apply now"; |   const applyLabel = confirmApplyJob?.is_group_job ? "Apply now" : "Apply now";
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           event.preventDefault(); |           void event;
-// @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           {confirmApplyJob && <ApplyJobSummary job={confirmApplyJob} />} |
-// @mutate src/components/dashboard/ApplyConfirmDialog.tsx |         {meta && <p className="font-sans text-ds-13 text-muted-foreground">{meta}</p>} |         {meta && <p className="font-sans text-ds-13 text-muted-foreground">{meta}</p>}<span>${job.budget}</span>
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const applyLabel = "Apply now"; |   const applyLabel = `Apply at $${confirmApplyJob?.budget}`;
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |         ${formatPriceFloor(takeHome)} |         ${formatPriceFloor(takeHome)}<span>after fees</span>
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -83,7 +81,8 @@ describe("ApplyConfirmDialog", () => {
     // budget 100, 10% fee, solo job -> $90 take-home. The take-home is all the
     // sheet shows: no fee name, rate or subtraction.
     render(<ApplyConfirmDialog {...makeProps()} />);
-    expect(screen.getByText(/Fix the fence/)).toBeInTheDocument();
+    // Polish audit 11-27 #45: no job card on the sheet (the job page is right behind it).
+    expect(screen.queryByText(/Fix the fence/)).toBeNull();
     // Owner 2026-11-27 (polish audit #1): the figure alone, no "after fees" note.
     expect(screen.queryByText("after fees")).toBeNull();
     expect(screen.getByText("$90")).toBeInTheDocument();
@@ -386,12 +385,11 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
   // Board 58: what you apply to, said once at the top; the note addressed by first name. JA-55 (Jobs audit 11-01, lead
   // 11-01): the button is plain "Apply now" for every job, never board 58's "Apply at $X": a bare $ read as either the
   // budget or the take-home (the owner removed the "You take home" label 11-01); the figure stays once, on the card.
-  it("board 58: the job card, 'Say hi to <first name>', the contact rule; JA-55: the button is plain 'Apply now'", () => {
+  it("board 58: 'Say hi to <first name>', the contact rule, no job card (11-27 #45); JA-55: the button is plain 'Apply now'", () => {
     const { unmount } = render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ posterName: "Travis Boudreaux" }) })} />);
-    const card = screen.getByTestId("apply-job-summary");
-    expect(card.textContent).toMatch(/Travis Boudreaux/);
-    // Owner 2026-11-22: the posted price ($100) is the poster's; the card names none.
-    expect(card.textContent).not.toMatch(/\$/);
+    expect(screen.queryByTestId("apply-job-summary")).toBeNull();
+    // Owner 2026-11-22: the posted price ($100) is the poster's; the sheet names none.
+    expect(document.body.textContent ?? "").not.toContain("$100");
     expect(screen.getByLabelText(/Say hi to Travis/)).toBeInTheDocument();
     expect(screen.getByText(/can't be sent until you're hired/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Apply now" })).toBeInTheDocument();

@@ -1,4 +1,3 @@
-import { ShieldCheck } from "lucide-react";
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useApplyTakeHome } from "./applyTakeHome";
@@ -39,16 +38,17 @@ export function ApplyEarningsBreakdown({
   const { firstPayoutFee, takeHome } = useApplyTakeHome(confirmApplyJob, platformFee);
 
   return (
-    // Board 58: a money note, so the money tint and rust (spec §1.1, §3 "Status bubbles and money notes").
-    <div className="rounded-ds-md p-3.5" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
+    // Polish audit 11-27 #45/#22: on white, no tinted box; the price is ink like every other price (rust is for warnings).
+    // Guard: src/test/applySheetFlat1127.test.tsx.
+    <div data-apply-money="">
       {/* HEADLINE — floors, matching JobPrice and every other headline
           take-home in the app. The itemised rows below keep exact cents
           because they have to add up. */}
       {/* Owner 2026-10-30: the giveaway shows its $50 with no words. Owner 2026-11-22 ("One number, small
           label"): the figure, then the small grey "after fees" note, as on every other Helpr screen. */}
       <p
-        className="font-sans font-bold tabular-nums leading-none text-ds-32"
-        style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "-0.02em" }}
+        className="font-sans font-bold tabular-nums leading-none text-ds-24"
+        style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
       >
         ${formatPriceFloor(takeHome)}
       </p>
@@ -60,18 +60,10 @@ export function ApplyEarningsBreakdown({
         </p>
       )}
 
-      {/* Escrow reassurance at the conversion moment — a helper deciding
-          whether to apply needs to know the money is already secured, not
-          contingent on the poster paying up after the work is done. */}
-      <div
-        className="flex items-center gap-1.5 mt-2.5 pt-2"
-        style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
-      >
-        <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-        <span className="font-sans text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-          We hold the payment. You're paid {STANDARD_PAYOUT_PHRASE}.
-        </span>
-      </div>
+      {/* When the pay comes (polish audit 11-27 #45): one 13px grey line under the figure, no shield or dashed rule. */}
+      <p className="mt-1.5 font-sans text-ds-13 leading-snug text-muted-foreground" data-apply-paid-when="">
+        Paid {STANDARD_PAYOUT_PHRASE}.
+      </p>
     </div>
   );
 }

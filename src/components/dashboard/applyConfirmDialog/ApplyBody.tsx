@@ -523,14 +523,14 @@ export function ApplyBody({
             radial every other primary CTA resolves to. Assert the COMPUTED
             `background-image` if you are checking this — the class list said
             `btn-grad-primary` the whole time it was flat.
-            Geometry (`h-11 sm:h-12`) stays local and unchanged — it matches
+            Geometry: 56px (`h-14`, polish audit 11-27 #45: the main button is as tall as every other sheet's; it was 44) — it matches
             the footer CTA slot this button replaces. */}
         <Button
           size="lg"
           type="button"
           onClick={handleConfirm}
           disabled={applyLoading || underAge}
-          className="flex-1 min-w-0 h-11 sm:h-12 px-4 group disabled:opacity-60"
+          className="flex-1 min-w-0 h-14 px-4 group disabled:opacity-60"
         >
           <span>
             {applyLoading ? "Applying…" : !online ? "Try again" : applyLabel}

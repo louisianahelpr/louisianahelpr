@@ -228,7 +228,7 @@ const ResetPassword = () => {
     <AuthShell hideHeader hideBack centerColumn maxWidth="sm" noWebChrome>
       {/* role="status" on the whole card once done, so the announcement
           carries the heading ("Password updated.") as well as the detail. */}
-      <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6" role={done ? "status" : undefined} aria-live={done ? "polite" : undefined}>
+      <div className="liquid-glass auth-card p-5 sm:p-6 lg:p-8 space-y-6" role={done ? "status" : undefined} aria-live={done ? "polite" : undefined}>
         {/* Design audit r3 #47: with no usable link the page's only action is to request one, so it is titled like
             /forgot-password and that button is the primary (was "Set a new password" over an outline button). */}
         <AuthCardHead testId="reset-card-head" title={done ? "Password updated." : ready || verifying ? "Set a new password" : "Reset your password"} />

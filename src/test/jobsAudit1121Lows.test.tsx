@@ -68,8 +68,9 @@
  * @mutate src/components/profile/savedHelpersTab/SavedHelperCard.tsx |                   Last job {formatDistanceToNow( |                   Last {formatDistanceToNow(
  *
  * L30 (poster): /payment-success at 1440 sat on grey blobs (AuthShell's ambient wash); the app is white.
- * @mutate src/pages/post-job/PaymentSuccess.tsx | centerColumn maxWidth="md" plainBackground> | centerColumn maxWidth="md">
- * @mutate src/components/auth/AuthShell.tsx |       {(desktopBrandPanel \|\| centerColumn) && !plainBackground && ( |       {(desktopBrandPanel \|\| centerColumn) && (
+ * @mutate src/components/LoginRouteSkeleton.tsx |     {/* No desktop wash: AuthShell draws none | <div style={{ background: "radial-gradient(60% 55% at 12% 22%, red 0%, transparent 60%)" }} />{/* x
+ * Polish audit 11-27 #140: the wash is gone from every auth screen (Log in, Sign up and the rest grey-blotched at 1440 too).
+ * @mutate src/components/auth/AuthShell.tsx |       {/* Polish audit 11-27 #140 (owner 11-17 "white everywhere"): no ambient wash | <div style={{ background: "radial-gradient(60% 55% at 12% 22%, red 0%, transparent 60%)" }} />{/* x
  *
  * L32 (poster): the AI builder's failure toast said "or start from a blank form" with no way to.
  * @mutate src/components/postjob/AiJobBuilder.tsx |       if (onBlankForm && !busy) toast.error(message, { action: { label: "Start from a blank form", onClick: onBlankForm } }); |       if (false) toast.error(message);
@@ -323,10 +324,11 @@ describe("L25 / L27 / L36: poster-side controls", () => {
   });
 });
 
-describe("L30: /payment-success is a plain white page at every width", () => {
-  it("AuthShell's wash is off for it", () => {
-    expect(src("src/pages/post-job/PaymentSuccess.tsx")).toContain('<AuthShell hideBack hideHeader centerColumn maxWidth="md" plainBackground>');
-    expect(src("src/components/auth/AuthShell.tsx")).toContain("{(desktopBrandPanel || centerColumn) && !plainBackground && (");
+describe("L30 / polish audit 11-27 #140: every auth screen (incl. /payment-success) is plain white at every width", () => {
+  it("AuthShell draws no ambient wash", () => {
+    expect(src("src/pages/post-job/PaymentSuccess.tsx")).toContain('<AuthShell hideBack hideHeader centerColumn maxWidth="md">');
+    expect(src("src/components/auth/AuthShell.tsx")).not.toMatch(/radial-gradient/);
+    expect(src("src/components/LoginRouteSkeleton.tsx")).not.toMatch(/radial-gradient/); // the loading screen matches
   });
 });
 

@@ -194,7 +194,7 @@ const ForgotPassword = () => {
     // H mark, one sentence-case heading, the field, then "Back to log in" as a
     // text link at the foot (/login's own card has no back arrow either).
     <AuthShell hideHeader hideBack centerColumn maxWidth="sm" noWebChrome>
-      <div className="relative liquid-glass p-5 sm:p-6 lg:p-8 space-y-6">
+      <div className="relative liquid-glass auth-card p-5 sm:p-6 lg:p-8 space-y-6">
         {sent && (
           <Link
             to="/"

@@ -263,7 +263,7 @@ const SignupPending = () => {
   if (confirmLink.kind !== "none") {
     return (
       <AuthShell hideHeader hideBack centerColumn maxWidth="sm" noWebChrome>
-        <div className="liquid-glass p-card space-y-section">
+        <div className="liquid-glass auth-card p-card space-y-section">
           <AuthCardHead testId="signup-pending-confirm-head" title="Confirm your email" />
           <ConfirmLinkPanel
             token={confirmLink.kind === "token" ? { tokenHash: confirmLink.tokenHash, type: confirmLink.type } : null}
@@ -288,7 +288,7 @@ const SignupPending = () => {
        the ways out. noWebChrome like every auth sibling (a "Get Started"
        button above "your account exists" contradicted the card). */
     <AuthShell hideHeader hideBack centerColumn maxWidth="sm" noWebChrome>
-      <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6">
+      <div className="liquid-glass auth-card p-5 sm:p-6 lg:p-8 space-y-6">
         <AuthCardHead testId="signup-pending-card-head" title="Check your email" />
         {/* Name the ADDRESS. It's the one fact this screen exists to
             convey — how someone catches "jane@gmial.com" without opening

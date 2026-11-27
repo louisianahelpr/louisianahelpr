@@ -46,19 +46,7 @@ const LoginRouteSkeleton = () => (
     className="min-h-screen bg-premium-page relative overflow-hidden"
     data-testid="login-route-skeleton"
   >
-    {/* AuthShell's ambient desktop wash — rendered whenever `centerColumn`
-        is set, which Login sets. Hidden below lg, exactly as there. */}
-    <div
-      aria-hidden
-      className="hidden lg:block pointer-events-none absolute inset-0 z-0"
-      style={{
-        background: [
-          "radial-gradient(60% 55% at 12% 22%, hsl(var(--olivewood) / 0.09) 0%, transparent 60%)",
-          "radial-gradient(50% 45% at 88% 78%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)",
-          "radial-gradient(38% 32% at 92% 18%, hsl(var(--olivewood) / 0.05) 0%, transparent 65%)",
-        ].join(", "),
-      }}
-    />
+    {/* No desktop wash: AuthShell draws none since polish audit 11-27 #140, so the skeleton matches its plain white. */}
     <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-5 sm:px-8 lg:px-12 pb-10 sm:pb-8 lg:pb-6 pt-[calc(var(--safe-area-top,0px)_+_var(--shell-gap))] sm:pt-8 lg:pt-6">
       <div className="w-full max-w-sm">
         {/* Board 37 (Q2249): no row above the card. Login drops AuthShell's

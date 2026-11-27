@@ -5,7 +5,7 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { CalendarPlus, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
 import { mapsSearchUrl } from "@/lib/mapsLink";
@@ -118,23 +118,25 @@ export function HolidayCard({ item, kind, tag }: { item: HolidayItem; kind: "lig
           <span className="sr-only"> (open in Maps, a new tab)</span>
         </a>
       )}
-      <div className="flex min-w-0 flex-wrap items-center gap-x-4" data-holiday-actions="">
+      {/* Polish audit 11-27 #136: two equal text buttons, "Website" and "Add to calendar" (14px/600, 44px), not a bold word
+          beside an unlabelled calendar icon. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-5" data-holiday-actions="">
         {site && (
           <a href={site} target="_blank" rel="noopener noreferrer" data-holiday-site={item.id}
-            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))] link-standard">
+            className="inline-flex min-h-11 shrink-0 items-center text-ds-14 font-semibold text-[hsl(var(--olivewood))] link-standard">
             Website<span className="sr-only"> for {item.name} (opens in a new tab)</span>
           </a>
         )}
         {/* Holiday audit 1121 area 5 #20: a dated item goes into the visitor's calendar (an all-day .ics entry). */}
         {item.start && !item.tba && (
-          <Button type="button" variant="ghost" size="iconCompact" onClick={() => void addToCalendar(item)} aria-label={`Add ${item.name} to your calendar`} data-holiday-ics={item.id}
-            className="shrink-0 text-[hsl(var(--olivewood))] hover:text-[hsl(var(--bark))] [&_svg]:size-4">
-            <CalendarPlus aria-hidden />
-          </Button>
+          <InlineTextButton onClick={() => void addToCalendar(item)} data-holiday-ics={item.id}
+            className="inline-flex min-h-11 shrink-0 items-center text-ds-14 font-semibold text-[hsl(var(--olivewood))]">
+            Add to calendar<span className="sr-only"> for {item.name}</span>
+          </InlineTextButton>
         )}
         {item.note && item.note.length > 60 && !more && (
           <InlineTextButton onClick={() => setMore(true)} data-holiday-more={item.id}
-            className="inline-flex min-h-11 shrink-0 items-center text-ds-13 font-semibold text-[hsl(var(--olivewood))]">
+            className="inline-flex min-h-11 shrink-0 items-center text-ds-14 font-semibold text-[hsl(var(--olivewood))]">
             More details
           </InlineTextButton>
         )}

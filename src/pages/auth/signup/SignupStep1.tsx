@@ -143,7 +143,9 @@ export function SignupStep1({
   // Shared by the field border and the message below it, so a field can never
   // show one without the other.
   const emailError = (email.length > 0 && !emailValid) || (attempted && !email.trim());
-  const passwordError = (password.length > 0 && !passwordValid) || (attempted && !password) || !!serverPasswordError;
+  // Polish audit 11-27 #76: while typing, the rule checklist is the only feedback (it already ticks each part); the red
+  // sentence and border appear once "Create account" was pressed with a rule unmet, or the server refused the password.
+  const passwordError = (attempted && !passwordValid) || !!serverPasswordError;
   const firstNameError = attempted && !firstName.trim();
   const lastNameError = attempted && !lastName.trim();
 
@@ -375,7 +377,7 @@ export function SignupStep1({
       <label
         key={nudgeKey}
         htmlFor="policies"
-        className={`flex items-start gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "animate-attention-nudge" : ""}`}
+        className={`flex items-start gap-3 px-0 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer transition-colors ${nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "animate-attention-nudge" : ""}`}
         style={{
           border: nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "1px solid hsl(var(--alert) / 0.55)" : "1px solid transparent",
         }}
@@ -405,7 +407,7 @@ export function SignupStep1({
           profiles.marketing_consent so send-marketing-blast filters honestly. */}
       <label
         htmlFor="marketing-consent"
-        className="flex items-start gap-3 px-1.5 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer"
+        className="flex items-start gap-3 px-0 py-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 rounded-ds-md cursor-pointer"
       >
         <Checkbox
           id="marketing-consent"

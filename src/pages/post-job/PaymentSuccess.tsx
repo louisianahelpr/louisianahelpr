@@ -409,7 +409,7 @@ const PaymentSuccess = () => {
     // hideHeader (owner, 2026-10-05): the Helpr·LA wordmark and its
     // "PAYMENT AUTHORIZED" eyebrow repeated the card's own headline.
     // Audit 11-21 (L30): at 1440 the card sat on soft grey blobs while the phone page is white. A plain white page.
-    <AuthShell hideBack hideHeader centerColumn maxWidth="md" plainBackground>
+    <AuthShell hideBack hideHeader centerColumn maxWidth="md">
       <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center">
         {/* The badge is a claim too — it only draws its checkmark when the
             payment is confirmed held. Every other state gets an honest mark

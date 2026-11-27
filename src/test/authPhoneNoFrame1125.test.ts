@@ -29,6 +29,20 @@ describe("auth screens on a phone (phone audit 11-25 #10)", () => {
     expect(rule?.[1]).toContain("padding-left: 0;");
   });
 
+  // Polish audit 11-27 #78: Forgot password, Reset password and Check your email kept the bordered, shadowed card on a
+  // phone; they share the same no-frame card below 480px now (one auth layout).
+  // @mutate src/pages/auth/ForgotPassword.tsx | <div className="relative liquid-glass auth-card p-5 | <div className="relative liquid-glass p-5
+  // @mutate src/pages/auth/SignupPending.tsx | <div className="liquid-glass auth-card p-card space-y-section"> | <div className="liquid-glass p-card space-y-section">
+  it("Forgot, Reset and Check your email wear the same phone no-frame card as Log in", () => {
+    const files = ["src/pages/auth/ForgotPassword.tsx", "src/pages/auth/ResetPassword.tsx", "src/pages/auth/SignupPending.tsx"];
+    for (const f of files) {
+      const code = src(f);
+      const cards = code.match(/className="[^"]*\bliquid-glass\b[^"]*"/g) ?? [];
+      expect(cards.length, f).toBeGreaterThan(0);
+      for (const c of cards) expect(c, f).toMatch(/\bauth-card\b/);
+    }
+  });
+
   it("the big heading is for screen readers only (polish audit 11-27 #4: at every width), still the h1", () => {
     expect(src("src/pages/auth/Login.tsx")).toContain('<h1 className="sr-only">{t("login.title")}</h1>');
     expect(src("src/pages/auth/signup/SignupStep1.tsx")).toContain('<h1 className="sr-only">{t("signup.title")}</h1>');

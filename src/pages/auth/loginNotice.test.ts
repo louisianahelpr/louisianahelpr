@@ -92,6 +92,26 @@ describe("Login notice: one short 'Log in to …' line for every gated page (pol
     expect(step).toMatch(/<h1 className="sr-only">\{t\("signup\.title"\)\}<\/h1>/);
   });
 
+  // Polish audit 11-27 #137: the two checkboxes sat 7px in from the fields' edge (px-1.5); they line up now. The
+  // "We may email once" disclosure stays (kept by lead 11-27: it says what happens to a typed email).
+  // @mutate src/pages/auth/signup/SignupStep1.tsx |         className="flex items-start gap-3 px-0 py-2 min-h-[44px] | className="flex items-start gap-3 px-1.5 py-2 min-h-[44px]
+  // Polish audit 11-27 #76: the password rules were said 3 times while typing (a red sentence, the checklist, the meter);
+  // the red sentence and border now wait for "Create account" (or a server refusal); the checklist ticks as you type.
+  // @mutate src/pages/auth/signup/SignupStep1.tsx |   const passwordError = (attempted && !passwordValid) \|\| !!serverPasswordError; |   const passwordError = (password.length > 0 && !passwordValid) \|\| !!serverPasswordError;
+  it("Sign up's red password sentence waits for Create account; the checklist stays", () => {
+    const step = src("src/pages/auth/signup/SignupStep1.tsx");
+    expect(step).toContain("const passwordError = (attempted && !passwordValid) || !!serverPasswordError;");
+    expect(step).not.toMatch(/passwordError = \(password\.length > 0/);
+    expect(step).toContain("<PasswordRuleList password={password} />");
+  });
+
+  it("Sign up's checkboxes line up with the fields, and the may-email disclosure stays", () => {
+    const step = src("src/pages/auth/signup/SignupStep1.tsx");
+    expect(step.match(/flex items-start gap-3 px-0 py-2/g)?.length).toBe(2);
+    expect(step).not.toMatch(/flex items-start gap-3 px-1\.5 py-2/);
+    expect(step).toContain('{t("signup.mayEmailOnce")}');
+  });
+
   it("only a first-time guest opening a plain /jobs goes to the public list; members and /jobs?job= links still log in", () => {
     const pr = src("src/components/ProtectedRoute.tsx");
     expect(pr).toContain('if (!lostMidUse && location.pathname === "/jobs" && !location.search && !hadSessionOnThisBrowser()) return <Navigate to="/browse" replace />;');

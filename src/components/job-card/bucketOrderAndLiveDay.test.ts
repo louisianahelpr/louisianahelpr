@@ -42,7 +42,7 @@ describe("bucket order + the live-day rule are one change", () => {
     // F107 (owner 11-09, filters inside the tabs; lead kept Needs you): Working is Needs you · Applied · Active ·
     // Completed, Needs you first on both tabs.
     expect(APPLIED_STATUS_FILTERS.map((f) => f.key)).toEqual(["needs_you", "applied", "active", "completed"]);
-    expect(APPLIED_STATUS_FILTERS.map((f) => f.label)).toEqual(["Needs you", "Applied", "Active", "Completed"]);
+    expect(APPLIED_STATUS_FILTERS.map((f) => f.label)).toEqual(["Needs you", "Applied", "Active", "Done"]);
     // Floor: if the list ever came back empty, toEqual above would still need
     // five entries, but assert it plainly so the intent survives a refactor.
     expect(POSTED_STATUS_FILTERS).toHaveLength(5);

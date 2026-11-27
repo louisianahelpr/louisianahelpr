@@ -153,7 +153,8 @@ export const WORKING_CHIP_LABEL: Record<WorkingChip, string> = {
   needs_you: "Needs you",
   applied: "Applied",
   active: "Active",
-  completed: "Completed",
+  // Polish audit 11-27 #34: "Done" on both tabs (Posted says Done; Working said Completed). Guard: bucketOrderAndLiveDay.test.ts.
+  completed: "Done",
 };
 /** An old Working link's bucket (?filter=scheduled from a notification) as the chip it now lives under; null = All. */
 export function workingChipForFilter(filter: string): string {

@@ -40,12 +40,12 @@ const app = (status: string, job: Record<string, unknown> | null): AppliedApp =>
   ({ id: `a-${status}-${String(job?.status)}`, job_id: "j", helper_id: "h", status, created_at: "2026-11-01T00:00:00Z", job: job ? { id: "j", title: "T", description: "", location: "", helper_id: "h", ...job } : null }) as unknown as AppliedApp;
 
 describe("F107: Working's chips and Browse's Saved chip", () => {
-  it("Working: All · Needs you · Applied · Active · Completed, each filtering by its own key", () => {
+  it("Working: All · Needs you · Applied · Active · Done (11-27 #34), each filtering by its own key", () => {
     const onFilter = draw("applied", { all: 6, needs_you: 1, applied: 2, active: 2, completed: 1, cancelled: 3 });
-    expect(chips()).toEqual(["All · 6", "Needs you · 1", "Applied · 2", "Active · 2", "Completed · 1"]);
+    expect(chips()).toEqual(["All · 6", "Needs you · 1", "Applied · 2", "Active · 2", "Done · 1"]);
     fireEvent.click(screen.getByRole("button", { name: /^Applied/ }));
     fireEvent.click(screen.getByRole("button", { name: /^Active/ }));
-    fireEvent.click(screen.getByRole("button", { name: /^Completed/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Done/ }));
     expect(onFilter.mock.calls.map((c) => c[0])).toEqual(["applied", "active", "completed"]);
     expect(WORKING_CHIPS.length).toBeGreaterThan(3);
   });

@@ -49,7 +49,8 @@ export function TaxKindQuestion({
   const [open, setOpen] = useState(taxKind !== null);
   if (!open && taxKind === null) {
     return (
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border px-4 py-2" data-tax-kind-question="" data-tax-kind-collapsed="">
+      // Polish audit 11-27 #10: a flat row under a hairline, not a bordered box. Guard: src/test/postJobNoCardsInCards1127.test.ts.
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-3" data-flat-row="" data-tax-kind-question="" data-tax-kind-collapsed="">
         <p className="min-w-0 text-ds-14">
           <span className="font-semibold">Sales tax:</span> none of these jobs
           <span className="block text-ds-11 font-sans leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>

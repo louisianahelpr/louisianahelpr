@@ -34,11 +34,8 @@ export function PhotoProofToggle({
   // the explanation trailing across the middle. Tighter padding and a
   // prose-width description keep it reading as one compact control.
   return (
-    <div
-      className={`rounded-ds-md border px-3 py-2.5 space-y-1 ${
-        requirePhotoProof ? "border-primary/30 bg-primary/5" : "border-border"
-      }`}
-    >
+    // Polish audit 11-27 #10: a plain row (no green-tinted card inside the "Add photos and more" group). Guard: src/test/postJobNoCardsInCards1127.test.ts.
+    <div data-flat-row="" className="py-1 space-y-1">
       <div className="flex items-center gap-3">
         <label
           htmlFor="require-photo-proof"

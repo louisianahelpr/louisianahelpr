@@ -24,7 +24,9 @@ export function SectionCard({ title, children }: SectionCardProps) {
   // numbered chapter header that served the old one-page form is gone. The
   // title stays as the section's accessible name.
   return (
-    <section aria-label={title} className="rounded-ds-lg bg-card border border-border p-card space-y-5">
+    // Polish audit 11-27 #10 (owner rule: no cards in cards): no outer card. The fields sit on the page's white at its
+    // own gutter; the groups inside are flat sections with a hairline between them. Guard: src/test/postJobNoCardsInCards1127.test.ts.
+    <section aria-label={title} data-post-job-section="" className="space-y-5">
       {children}
     </section>
   );

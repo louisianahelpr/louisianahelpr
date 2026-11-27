@@ -5,7 +5,7 @@
  *
  * @mutate src/components/auth/PasswordStrengthMeter.tsx |   if (score === 2) return "hsl(var(--muted-foreground))"; |   if (score === 2) return "hsl(var(--burnt-sienna))";
  * @mutate src/pages/auth/ResetPassword.tsx |               <PasswordStrengthMeter password={password} /> |               {null}
- * @mutate src/components/auth/AuthShell.tsx | hsl(var(--stormy-sky) / 0.08) | hsl(var(--burnt-sienna) / 0.08)
+ * @mutate src/components/auth/AuthShell.tsx |       {/* Polish audit 11-27 #140 (owner 11-17 "white everywhere"): no ambient | <div style={{ background: "radial-gradient(50% 45% at 88% 78%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)" }} />{/* x
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

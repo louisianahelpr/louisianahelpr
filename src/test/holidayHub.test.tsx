@@ -481,6 +481,19 @@ describe("/holidays: lights and events in one list", () => {
     expect(track).toHaveBeenCalledWith("holiday_maps_click", { kind: "light", id: l.id, region: "acadiana" });
   });
 
+  // Polish audit 11-27 #136: Website and Add to calendar are two equal 14px/600 text buttons (no unlabelled icon).
+  // @mutate src/pages/info/holidays/holidayParts.tsx |             Add to calendar<span className="sr-only"> for {item.name}</span> |             <span className="sr-only">Add {item.name} to your calendar</span>
+  it("a dated card's actions read 'Website' and 'Add to calendar' in one text style", () => {
+    const l = HOLIDAY_LIGHTS.find((x) => x.url && x.start && !x.tba)!;
+    const { container } = render(<MemoryRouter><ul><HolidayCard item={l} kind="light" tag="Lights" /></ul></MemoryRouter>);
+    const site = container.querySelector("[data-holiday-site]")!;
+    const ics = container.querySelector("[data-holiday-ics]")!;
+    expect(ics.textContent).toMatch(/^Add to calendar/);
+    expect(site.textContent).toMatch(/^Website/);
+    for (const el of [site, ics]) expect(el.className).toMatch(/text-ds-14 font-semibold/);
+    expect(ics.querySelector("svg")).toBeNull();
+  });
+
   it("/holidays/hire-a-helpr: Post a job and Find work, each holiday job opens Post a job filled in, and no ID prompt", () => {
     const { container } = at("/holidays/hire-a-helpr", <HolidayHire />);
     // Audit 11-21 (P0, owner 11-20/21): a guest starts the post and signs up at the end.

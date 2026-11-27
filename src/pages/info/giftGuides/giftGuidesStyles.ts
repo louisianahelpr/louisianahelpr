@@ -702,7 +702,7 @@ article[data-gift-guide]>.gg-menuhint+section>.gg-list{margin-top:0}article[data
 .gg .gg-greet{padding:6px}
 .gg .gg-greet-in{padding:8px 12px}
 .gg .gg-greet-p{margin-top:4px;font-size:14px;line-height:1.3}
-.gg .gg-top10{grid-auto-columns:calc((100% - 16px) / 2)}
+.gg .gg-top10{grid-auto-columns:calc((100% - 72px) / 2)}
 .gg .gg-top10 .gg-nm{overflow-wrap:break-word}
 .gg .gg-top10 .gg-nm-name{font-size:15px;font-weight:600}
 }

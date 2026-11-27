@@ -29,9 +29,6 @@ interface AuthShellProps {
   /** Keep the web Navbar but drop the marketing Footer under the page
       (/account-banned: owner, 2026-10-03). */
   hideFooter?: boolean;
-  /** No ambient wash behind the column at desktop widths: a plain white page (audit 11-21 L30, /payment-success;
-      owner 11-17 "white everywhere"). */
-  plainBackground?: boolean;
   children: ReactNode;
   eyebrow?: string;
   hideBack?: boolean;
@@ -136,7 +133,6 @@ const AuthShell = ({
   title,
   backOnClick,
   noWebChrome = false,
-  plainBackground = false,
   hideFooter = false,
 }: AuthShellProps) => {
   const showCompactTopBar = compactHeader && !hideHeader;
@@ -187,31 +183,8 @@ const AuthShell = ({
 
   return withWebChrome(
     <div className="min-h-screen bg-premium-page relative overflow-hidden">
-      {/* Ambient brand-wash decoration — desktop-only, sits behind the
-          auth column. Soft radial gradients (olivewood + a neutral
-          stormy-sky) fill the empty gutters on wide
-          viewports so the page reads as intentional atmosphere rather
-          than blank whitespace. Kept `pointer-events-none` + `aria-hidden`
-          so it never intercepts input or announces to screen readers. */}
-      {/* Ambient wash is NOT tied to the brand pane. It was gated behind
-          `desktopBrandPanel &&`, so dropping that pane from Login/Signup also
-          killed the page atmosphere and left a white card on a near-white
-          field — exactly the "blank whitespace" this was written to prevent.
-          Same coupling bug as `centerColumn`. */}
-      {(desktopBrandPanel || centerColumn) && !plainBackground && (
-        <div
-          aria-hidden
-          className="hidden lg:block pointer-events-none absolute inset-0 z-0"
-          style={{
-            background: [
-              "radial-gradient(60% 55% at 12% 22%, hsl(var(--olivewood) / 0.09) 0%, transparent 60%)",
-              // Neutral, not rust (owner 2026-10-21: rust is for money).
-              "radial-gradient(50% 45% at 88% 78%, hsl(var(--stormy-sky) / 0.08) 0%, transparent 60%)",
-              "radial-gradient(38% 32% at 92% 18%, hsl(var(--olivewood) / 0.05) 0%, transparent 65%)",
-            ].join(", "),
-          }}
-        />
-      )}
+      {/* Polish audit 11-27 #140 (owner 11-17 "white everywhere"): no ambient wash behind the column at desktop widths;
+          the grey blurred patches read as smudges. The page is plain white at every width. */}
       {/* Anchor the content to the TOP on every viewport. A prior
           `sm:items-center` vertically-centered the whole block on tablet/
           desktop, leaving the heading floating in dead space well below

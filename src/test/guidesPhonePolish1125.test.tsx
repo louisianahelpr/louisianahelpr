@@ -30,6 +30,7 @@
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg>.gg-countrow,.gg>.gg-menuhint, | .gg>.gg-menuhint,
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | >.gg-deal>.gg-deal-photo{aspect-ratio:auto;height:120px} | >.gg-deal>.gg-deal-photo{aspect-ratio:1/1}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg .gg-greet-in{padding:8px 12px} | .gg .gg-greet-in{padding:22px 12px 18px}
+ * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg .gg-top10{grid-auto-columns:calc((100% - 72px) / 2)} | .gg .gg-top10{grid-auto-columns:calc((100% - 16px) / 2)}
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -203,7 +204,9 @@ describe("#48 the gift guides landing", () => {
     const line = Math.round(14 * 1.3);
     const h = outer[0] + outer[2] + inner[0] + inner[2] + heading + px(rule(".gg .gg-greet-p")["margin-top"]) + line;
     expect(h).toBeLessThanOrEqual(82);
-    expect(rule(".gg .gg-top10")["grid-auto-columns"]).toBe("calc((100% - 16px) / 2)");
+    // Polish audit 11-27 #86: exactly two cards said nothing about the 8 more; two cards plus ~40px of the third now
+    // (at 375 the column is 335px: (335 - 72) / 2 = 131.5px cards, the third starts at 295px).
+    expect(rule(".gg .gg-top10")["grid-auto-columns"]).toBe("calc((100% - 72px) / 2)");
     const name = rule(".gg .gg-top10 .gg-nm-name");
     expect([name["font-size"], name["font-weight"]]).toEqual(["15px", "600"]);
     expect(rule(".gg .gg-top10 .gg-nm")["overflow-wrap"]).toBe("break-word");

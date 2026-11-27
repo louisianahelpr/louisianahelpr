@@ -56,9 +56,8 @@ export function PhotoUpload({
             </span>
           )}
         </div>
-        <p className="text-ds-11 font-sans leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-          Posts with a photo get noticeably more applicants.
-        </p>
+        {/* Polish audit 11-27 #42: the photo pitch is said once, in the step's subtitle ("A few words and a photo help
+            Helprs say yes."); this third line and the box's "A photo helps Helprs say yes." are gone. */}
       </div>
       {/* Fixed-tile grid — 80px tiles wrap into rows. When the parent
           wired up `onReorderImages`, photos are draggable via

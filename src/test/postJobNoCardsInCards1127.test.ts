@@ -11,6 +11,9 @@
  * @mutate src/components/postjob/detailsSection/PhotoProofToggle.tsx | <div data-flat-row="" className="py-1 space-y-1"> | <div data-flat-row="" className="rounded-ds-md border border-primary/30 bg-primary/5 px-3 py-2.5 space-y-1">
  * @mutate src/components/postjob/LogisticsSection.tsx | <div data-flat-row="" className="flex items-start gap-2.5"> | <div data-flat-row="" className="flex items-start gap-2.5 rounded-2xl border border-border bg-card p-4">
  * @mutate src/components/postjob/detailsSection/TaxKindQuestion.tsx | className="flex items-center justify-between gap-3 border-t border-border pt-3" data-flat-row="" | className="flex items-center justify-between gap-3 rounded-2xl border border-border px-4 py-2" data-flat-row=""
+ *
+ * #42 (same step): the photo pitch was said 3 times; now once, in the step subtitle; the box's subtitle is "Optional".
+ * @mutate src/lib/i18n/enPostJob.ts | "postJob.extras.sub": "Optional", | "postJob.extras.sub": "Optional. A photo helps Helprs say yes.",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -55,5 +58,12 @@ describe("Post a job has no cards inside cards (polish 11-27 #10)", () => {
   it("the folded groups sit under a hairline", () => {
     expect(groupClasses("src/components/postjob/OptionalExtras.tsx")[0]).toMatch(/\bborder-t\b/);
     expect(groupClasses("src/components/postjob/detailsSection/TaxKindQuestion.tsx")[0]).toMatch(/\bborder-t\b/);
+  });
+
+  it("#42: the photo pitch once (the step subtitle); the box says only \"Optional\"", () => {
+    const en = readFileSync("src/lib/i18n/enPostJob.ts", "utf8");
+    expect(en).toContain('"postJob.extras.sub": "Optional",');
+    expect(en).toContain('"postJob.detailsH": "A few words and a photo help Helprs say yes.",');
+    expect(blankComments(readFileSync("src/components/postjob/detailsSection/PhotoUpload.tsx", "utf8"))).not.toMatch(/noticeably more applicants/);
   });
 });

@@ -6,3 +6,4 @@ export declare function cleanOffer(raw: string | null | undefined): string | nul
 export declare function cleanStore(store: string): string;
 export declare function cleanSales<T extends { store: string; offer: string }>(sales: readonly T[]): T[];
 export declare function cleanCodes<T extends { store: string; code: string; offer: string; href?: string }>(codes: readonly T[]): (T & { href?: string })[];
+export declare function offerOnly(offer: string | null | undefined): string;

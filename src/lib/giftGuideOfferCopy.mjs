@@ -144,3 +144,18 @@ export function cleanCodes(codes) {
     return offer ? [{ ...c, store: cleanStore(c.store), offer, ...(href ? { href } : {}) }] : [];
   });
 }
+
+/**
+ * A code or sale line as its card shows it on a deals day page (polish audit 1127 #18: the page title already names the
+ * day, so "(Black Friday)" and a leading "Black Friday through Cyber Monday:" repeated it on card after card). Only the
+ * words shown change: which day a line belongs to is still read from its full offer (namesOtherDay). A line that is
+ * nothing but the day's name stays as it is.
+ */
+const DAY_PAREN = /\s*\((?:early\s+)?(?:black friday|cyber monday|cyber week|bfcm)[^)]*\)/gi;
+const DAY_LEAD = /^(?:the\s+)?(?:early\s+)?(?:black friday|cyber monday|cyber week(?:end)?|cyber sale|bfcm)\b[^:]{0,40}:\s*/i;
+export function offerOnly(offer) {
+  const raw = String(offer ?? "");
+  const t = raw.replace(DAY_PAREN, "").replace(DAY_LEAD, "").replace(/\s+/g, " ").trim();
+  if (!t || t === raw) return raw;
+  return t[0].toUpperCase() + t.slice(1);
+}

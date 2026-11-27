@@ -5,6 +5,7 @@ import { giftGuides as G, type DiscountCode } from "@/content/giftGuides";
 import type { Sale } from "@/content/giftGuidePicks";
 import { storePhoto } from "@/content/giftGuideStorePhotos";
 import { DEALS_SLUG, DEALS_WORDS } from "@/content/giftGuideDeals.mjs";
+import { offerOnly } from "@/lib/giftGuideOfferCopy.mjs";
 import { GiftOut } from "./GiftOut";
 import { START_OPEN } from "./startOpen";
 import { WISH_CORE as WISH } from "@/content/giftWishListCore";
@@ -162,7 +163,7 @@ function CodeCard({ store, codes }: { store: string; codes: DiscountCode[] }) {
   // Polish audit 1127 #93: the offer in ink like every deal card, its dates on their own 12px grey line (were one grey line).
   const line = (c: DiscountCode) => {
     const when = DEALS_WORDS.runs(c.starts, c.expires);
-    return <><span className="gg-card-offer">{c.offer}</span>{when && <span className="gg-card-when">{when}</span>}</>;
+    return <><span className="gg-card-offer">{offerOnly(c.offer)}</span>{when && <span className="gg-card-when">{when}</span>}</>;
   };
   return (
     <Card store={store} href={href} name={`${store}: ${best.offer}`} line={
@@ -215,7 +216,7 @@ function SaleCard({ store, sales }: { store: string; sales: Sale[] }) {
       <ul className="gg-card-sales">
         {shown.map((x) => (
           <li key={x.href} data-gift-sale={x.slug}>
-            <GiftOut href={x.href} className="gg-card-sale">{x.offer}</GiftOut> <span className="gg-card-when">{DEALS_WORDS.runs(null, x.ends)}</span>
+            <GiftOut href={x.href} className="gg-card-sale">{offerOnly(x.offer)}</GiftOut> <span className="gg-card-when">{DEALS_WORDS.runs(null, x.ends)}</span>
           </li>
         ))}
         {!all && sales.length > SALE_LINES && (

@@ -51,9 +51,14 @@ describe("Declutter's guest pieces step aside inside the public frame (Q2784)", 
     expect(document.querySelector("[data-guest-brand]")).toBeNull();
   });
 
-  it("phone Browse: the sign-up line stays, without a second H", () => {
+  // Owner 2026-11-27 ("there is a repetitive sign up"): plain phone Browse draws no sign-up line under the header's
+  // "Join / Log in"; a link to an order still gets its Log in card, without a second H.
+  it("phone Browse: no sign-up line on a plain visit; an order link's card has no second H", () => {
     state.desktop = false;
     at("/declutter", <DeclutterGuestBrowseJoin />);
+    expect(document.querySelector('[data-guest-join="browse"]')).toBeNull();
+    cleanup();
+    at("/declutter?order=o1", <DeclutterGuestBrowseJoin />);
     expect(document.querySelector('[data-guest-join="browse"]')).not.toBeNull();
     expect(document.querySelector("[data-guest-brand]")).toBeNull();
   });

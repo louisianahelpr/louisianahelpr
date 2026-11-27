@@ -29,7 +29,10 @@ import {
   JOB_CARD_META,
   JOB_CARD_TITLE_ROW, JOB_CARD_ROW_FRAME, JOB_ROW_BADGE_LINE, JOB_ROW_BODY, JOB_ROW_MEDIA_PAD } from "@/components/job/cardGeometry";
 import type { JobCardProps } from "./jobCardProps";
-import { jobDayLabel } from "@/lib/jobDateWindow";
+import { jobDayLabel, jobDayLabelShort } from "@/lib/jobDateWindow";
+
+/** A Browse ROW's meta icons (owner 2026-11-27): 12px, the line's own grey. The shell draws the same class. */
+const JOB_ROW_META_ICON = "w-3 h-3 shrink-0";
 
 // Category colors apply ONLY to the category badge pill at the top of
 // the card. The job title itself stays in `text-foreground` (deep
@@ -317,16 +320,20 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               The width the group-job chip needs is bought back below instead —
               see the `is_group_job` chip, which drops its separator and rides
               tighter than the rest of the row. */}
-          <div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden">
-            {row && (<>
-              {/* No icon before the label (owner 2026-11-17): the row's thumbnail tile already shows it. */}
-              <JobCategoryTab category={job.category} icon={false} className="shrink-0" />
-              <span className="shrink-0 opacity-30">·</span>
-            </>)}
+          {/* Owner 2026-11-27 (signed-out Jobs at 390: "hard to tell the difference between location, category, time,
+              day"; then "keep them ALL ON ONE LINE"): a ROW's one meta line names each part by its look, not by tiny
+              dots. The category is tinted (its tile's colour), then a pin before the town, a calendar before the day
+              ("Sun 11/29" on a phone) and a clock before the time, 10px apart, no "·". Replaces 11-25's no-icon line.
+              10px, not 12: at 375 a long category ("Handyman") with "10 AM" left the town at "New Ib…" with 12px.
+              Guard: src/test/jobRowsPriceAlone1127.test.tsx. */}
+          <div className={`job-meta-row flex items-center ${row ? "gap-x-2.5" : "gap-x-2"} flex-nowrap max-[359px]:flex-wrap overflow-hidden`}>
+            {row && (
+              // No icon before the label (owner 2026-11-17): the row's thumbnail tile already shows it.
+              <JobCategoryTab category={job.category} icon={false} tinted className="shrink-0" />
+            )}
             {/* Never hidden (owner, 2026-10-08); floor = pin + ~5 letters, not a city's width (owner, 2026-10-19: even "·" spacing). */}
             <span className="flex items-center gap-1 min-w-[3.625rem] overflow-hidden">
-              {/* No pin on a row's one meta line (owner 11-25): the city keeps the width instead. */}
-              {!row && <MapPin className="w-2.5 h-2.5 shrink-0" />}
+              <MapPin className={row ? JOB_ROW_META_ICON : "w-2.5 h-2.5 shrink-0"} />
               {/* `min-w-0` + `overflow-hidden` + `truncate`, and NOTHING that
                   sets a width. Two wrong answers were tried here first, and the
                   comment records both so neither comes back:
@@ -394,7 +401,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             {/* The line break below 360px: a full-width, 2px-tall item, so the
                 "when" group starts line two on every card (Q2222). */}
             <span aria-hidden data-meta-break className="hidden max-[359px]:block basis-full h-0.5" />
-            <span className="shrink-0 opacity-30 max-[359px]:hidden">·</span>
+            {!row && <span data-meta-dot className="shrink-0 opacity-30 max-[359px]:hidden">·</span>}
             {/* Date + time + duration live in ONE no-wrap group so the "when"
                 of a job can never be split across lines — the trio moves
                 together. "Due" is dropped — the date is self-evidently the day
@@ -402,21 +409,29 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 start_time is set (most posts leave it blank); the duration
                 chip fills that slot from estimated_hours, which every post
                 collects, so the row always answers "how much of my day?". */}
-            <span className="inline-flex shrink-0 items-center gap-x-2">
+            <span className={`inline-flex shrink-0 items-center ${row ? "gap-x-2.5" : "gap-x-2"}`}>
               {!job.date_needed && !job.start_time ? (
                 <span className="flex items-center gap-1">
-                  {!row && <Calendar className="w-2.5 h-2.5 shrink-0" />}
+                  <Calendar className={row ? JOB_ROW_META_ICON : "w-2.5 h-2.5 shrink-0"} />
                   <span className="font-sans">Flexible</span>
                 </span>
               ) : (
                 <>
                   {job.date_needed && (
                     <span className="flex items-center gap-1">
-                      {/* Owner 11-25 (compact rows): a row's one meta line carries no calendar or clock icon. */}
-                      {!row && <Calendar className="w-2.5 h-2.5 shrink-0" />}
-                      <span className="font-sans whitespace-nowrap">
-                        {jobDayLabel(job)}
-                      </span>
+                      {/* Owner 11-27: a row's icons are back (calendar, clock, pin), in place of the "·" between them. */}
+                      <Calendar className={row ? JOB_ROW_META_ICON : "w-2.5 h-2.5 shrink-0"} />
+                      {row ? (
+                        // A phone row says "Sun 11/29" so the one line fits at 375; from 640px up, "Sun, Nov 29".
+                        <>
+                          <span className="font-sans whitespace-nowrap sm:hidden">{jobDayLabelShort(job)}</span>
+                          <span className="font-sans whitespace-nowrap hidden sm:inline">{jobDayLabel(job)}</span>
+                        </>
+                      ) : (
+                        <span className="font-sans whitespace-nowrap">
+                          {jobDayLabel(job)}
+                        </span>
+                      )}
                     </span>
                   )}
                   {/* The start time is never hidden by a width rule (owner,
@@ -429,10 +444,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                       the chip (and its separator) are not rendered at all.
                       Gating on `job.start_time` directly is what used to make
                       a flexible-but-timeless job silently lose its "when". */}
-                  {job.date_needed && timeLabel && <span className="shrink-0 opacity-30">·</span>}
+                  {!row && job.date_needed && timeLabel && <span className="shrink-0 opacity-30">·</span>}
                   {timeLabel && (
                     <span data-meta-time className="shrink-0 flex items-center gap-1">
-                      {!row && <Clock className="w-2.5 h-2.5 shrink-0" />}
+                      <Clock className={row ? JOB_ROW_META_ICON : "w-2.5 h-2.5 shrink-0"} />
                       {/* A row says "9 AM" for 9:00 AM (owner 11-25, one meta line); the shell does the same. */}
                       {/* Phone polish C (11-25): a member's row shows the clock only and "Flexible time" rides the poster
                           line below (at 375 "1 PM · Flexible" was cut to "1 PM · Flexib" and the city to "Baton R…"). */}
@@ -485,9 +500,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               // is, where, when, or what it pays) and it is the longest, so
               // it is the right thing to drop first.
               <>
-                <span className="shrink-0 opacity-30 hidden [@media(min-width:400px)]:inline">·</span>
+                {!row && <span className="shrink-0 opacity-30 hidden [@media(min-width:400px)]:inline">·</span>}
                 <span className="shrink-0 hidden [@media(min-width:400px)]:flex items-center gap-1">
-                  <Repeat className="w-2.5 h-2.5 shrink-0" />
+                  <Repeat className={row ? JOB_ROW_META_ICON : "w-2.5 h-2.5 shrink-0"} />
                   <span className="font-sans">
                     {seriesSummary(job) ?? formatRecurrenceInterval(job.recurrence_interval)}
                   </span>
@@ -523,9 +538,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <span data-testid="job-card-countdown-slot" className="flex-1 basis-0 min-w-0 h-[1.5em] overflow-hidden flex flex-wrap items-center gap-x-2">
                 <span aria-hidden className="w-0 h-[1.5em]" />
                 <span className={`shrink-0 flex items-center gap-x-2 whitespace-nowrap ${isExpiringSoon ? "text-destructive-ink font-medium" : ""}`}>
-                  <span className="opacity-30">·</span>
+                  {!row && <span className="opacity-30">·</span>}
                   <span className="flex items-center gap-1">
-                    <Timer className="w-2.5 h-2.5 shrink-0" />
+                    <Timer className={row ? JOB_ROW_META_ICON : "w-2.5 h-2.5 shrink-0"} />
                     <span className="font-sans">{expiryText}</span>
                   </span>
                 </span>

@@ -4,7 +4,7 @@
  * @mutate src/lib/jobDateWindow.ts |   if (!hasDateWindow(job)) return formatJobDate(job.date_needed); |   return formatJobDate(job.date_needed);
  * @mutate src/lib/jobDateWindow.ts |   return hasDateWindow(job) ? job.date_window_end! : job.date_needed; |   return job.date_needed;
  * @mutate src/lib/jobDateWindow.ts | export const DATE_WINDOW_EXTRA_DAYS = 6; | export const DATE_WINDOW_EXTRA_DAYS = 7;
- * @mutate src/components/dashboard/JobCard.tsx | {jobDayLabel(job)} | {formatJobDate(job.date_needed)}
+ * @mutate src/components/dashboard/JobCard.tsx | hidden sm:inline">{jobDayLabel(job)} | hidden sm:inline">{formatJobDate(job.date_needed)}
  * @mutate supabase/migrations/20261120221545_browse_and_detail_change_address_after_accept.sql | ((COALESCE(date_window_end, date_needed) + 1)::timestamp | ((date_needed + 1)::timestamp
  * @mutate src/lib/jobColumns.ts | "tax_kind", "date_window_end"] as const; | "tax_kind"] as const;
  * @mutate src/components/job-card/MineJobFace.tsx |     job.date_needed ? jobDayLabel(job) : null, |     job.date_needed ? formatJobDate(job.date_needed) : null,

@@ -56,10 +56,11 @@ describe("F402: a guest's order link says the order is behind a log in", () => {
     expect(screen.getByText("Log in to see your Wanted posts")).toBeInTheDocument();
   });
 
-  it("plain Browse keeps the join line", () => {
+  it("plain Browse draws no join line (the top bar's Join / Log in is the way in)", () => {
     show("/declutter");
-    // Owner 11-25: the plain line is one slim line ("Join to buy or sell." + Sign up).
-    expect(screen.getByText("Join to buy or sell.")).toBeInTheDocument();
+    // Owner 2026-11-27 ("there is a repetitive sign up"): 11-25's slim line is gone; only an order/offer link gets a card.
+    expect(document.querySelector('[data-guest-join="browse"]')).toBeNull();
+    expect(screen.queryByText(/Join to buy or sell/)).toBeNull();
     expect(screen.queryByText(/Log in to see/)).toBeNull();
   });
 });

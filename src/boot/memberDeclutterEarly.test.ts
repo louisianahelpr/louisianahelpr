@@ -317,9 +317,12 @@ describe("the skeleton's boxes are Browse's (no jump when Browse replaces the dr
     expect(INDEX).toContain('class="h-[52px] space-y-1.5 px-0.5 pt-2 lg:h-[110px]"');
   });
 
-  it("a guest's copy carries Browse's sign-up line above the bones, shown only for a guest (no jump on the swap)", () => {
+  it("a guest's copy carries Browse's guest row (no sign-up line since owner 2026-11-27), shown only for a guest", () => {
     const shell = shellMarkup(INDEX);
-    const join = shell.indexOf('<div data-lh-guest-join="" style="display:none"><section data-guest-join="browse"');
+    // Owner 2026-11-27 ("there is a repetitive sign up"): plain Browse draws no sign-up line, so neither does the copy.
+    expect(shell).not.toContain('data-guest-join="browse"');
+    // The guest's "Jobs | Declutter ... + Sell" bones still ride in a guest-only slot.
+    const join = shell.indexOf('<div data-lh-guest-join="" style="display:none"><div class="flex items-center justify-between gap-2 pb-2" aria-hidden="true" data-declutter-switch-bones="">');
     expect(join).toBeGreaterThan(0);
     expect(join, "above the cards").toBeLessThan(shell.indexOf('aria-label="Loading items"'));
     // The rule that shows it: inlined into the HTML by the build, and the same rule in the app's sheet.

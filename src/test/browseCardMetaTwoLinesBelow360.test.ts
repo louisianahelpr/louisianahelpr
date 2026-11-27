@@ -30,7 +30,8 @@ const CSS = blankComments(readFileSync(join(process.cwd(), "src/index.css"), "ut
 
 describe("the Browse card meta row takes two lines below 360px (Q2222)", () => {
   it("the row wraps only below 360px", () => {
-    expect(CARD).toContain('<div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden">');
+    // Owner 2026-11-27: a feed ROW spaces its icon groups 10px apart (gap-x-2.5); the photo hero keeps gap-x-2.
+    expect(CARD).toContain('<div className={`job-meta-row flex items-center ${row ? "gap-x-2.5" : "gap-x-2"} flex-nowrap max-[359px]:flex-wrap overflow-hidden`}>');
   });
 
   it("an unconditional full-width break sits between the place and the when group, and the dot before the date drops there", () => {
@@ -39,7 +40,8 @@ describe("the Browse card meta row takes two lines below 360px (Q2222)", () => {
     const when = CARD.indexOf("{jobDayLabel(job)}"); // Q2408: the day reads through the window formatter
     expect(brk).toBeGreaterThan(place);
     expect(when).toBeGreaterThan(brk);
-    expect(CARD.slice(brk, when)).toMatch(/<span className="shrink-0 [^"]*max-\[359px\]:hidden">·<\/span>/);
+    // The photo hero's dot (a feed ROW has none since owner 2026-11-27: its icons separate the groups).
+    expect(CARD.slice(brk, when)).toMatch(/<span data-meta-dot className="shrink-0 [^"]*max-\[359px\]:hidden">·<\/span>/);
     // Not behind a condition: every card breaks, so every card is one height.
     expect(CARD.slice(Math.max(0, brk - 120), brk)).not.toMatch(/&&\s*\(?\s*$/);
   });
@@ -63,6 +65,8 @@ describe("a narrow text column takes the two-line meta row, at any screen width 
     const block = CSS.slice(at, CSS.indexOf("}\n}", at) + 3);
     expect(block).toContain(".job-card-media-col .job-meta-row { flex-wrap: wrap; }");
     expect(block).toContain(".job-card-media-col .job-meta-row > [data-meta-break] { display: block; }");
-    expect(block).toContain(".job-card-media-col .job-meta-row > [data-meta-break] + span { display: none; }");
+    expect(block).toContain(".job-card-media-col .job-meta-row > [data-meta-dot] { display: none; }");
+    // Owner 2026-11-27: never "the span after the break" (on a ROW that is the day and time, not a dot).
+    expect(CSS).not.toContain("[data-meta-break] + span");
   });
 });

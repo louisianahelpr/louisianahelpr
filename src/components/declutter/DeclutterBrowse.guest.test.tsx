@@ -99,20 +99,15 @@ describe("BUY-16: guests browse Declutter", () => {
     expect(route).not.toContain("ProtectedRoute");
   });
 
-  it("a guest gets Browse alone, a sign-up line that comes back here, and no member-only control or read", async () => {
-    // Phone width (owner 11-25): ONE slim line with Sign up. The bar above has "Join / Log in" and the logo (the web's
-    // public header, the app's guest bar), so the line no longer repeats Log in or the H.
+  it("a guest gets Browse alone, no repeated sign-up line, and no member-only control or read", async () => {
+    // Phone width. Owner 2026-11-27 ("there is a repetitive sign up"): the bar above has "Join / Log in" (the web's
+    // public header, the app's guest bar), so plain Browse draws no sign-up line under it (11-25's slim line is gone).
     state.desktop = false;
     show(<DeclutterHome />);
     expect(await screen.findByText("Thing 1")).toBeInTheDocument();
     expect(screen.getByText("Thing 2")).toBeInTheDocument();
-    const join = document.querySelector('[data-guest-join="browse"]') as HTMLElement;
-    expect(join).not.toBeNull();
-    expect(join).toHaveTextContent("Join to buy or sell. It's free.");
-    const back = encodeURIComponent("/declutter");
-    expect(within(join).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", `/signup?redirect=${back}`);
-    expect(within(join).queryByRole("link", { name: "Log in" })).toBeNull();
-    expect(within(join).queryByRole("link", { name: "Helpr home" })).toBeNull();
+    expect(document.querySelector('[data-guest-join="browse"]')).toBeNull();
+    expect(screen.queryByText(/Join to buy or sell/)).toBeNull();
     // Browse is the only tab; no gear.
     for (const tab of ["Buying", "Selling", "Deliver", "Free"]) expect(screen.queryByRole("tab", { name: new RegExp(`^${tab}`) })).toBeNull();
     expect(screen.queryByRole("link", { name: /settings/i })).toBeNull();
@@ -125,8 +120,8 @@ describe("BUY-16: guests browse Declutter", () => {
   });
 
   // Owner 11-10 (replaces F073): at desktop width the guest top bar already has Log in / Sign up, so the sign-up card is
-  // not repeated above Browse; the phone keeps it (its bar has no buttons).
-  // @mutate src/components/declutter/DeclutterGuest.tsx |   if (barShown && !want) return null; |   if (false) return null;
+  // not repeated above Browse (owner 2026-11-27: nor on the phone, whose bar now has "Join / Log in" too).
+  // @mutate src/components/declutter/DeclutterGuest.tsx |   if (!want) return null; |   if (!want && false) return null;
   it("at desktop width there is no sign-up card above Browse (the top bar has Log in / Sign up)", async () => {
     show(<DeclutterHome />);
     expect(await screen.findByText("Thing 1")).toBeInTheDocument();

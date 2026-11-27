@@ -68,9 +68,9 @@ function visibleText(el: Element): string {
   return (clone.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
-/** The chip's figure alone, without its "after fees" note (owner 2026-11-22). */
+/** The chip's figure (owner 2026-11-27: the chip carries no "after fees" note any more). */
 function figureOf(el: Element): string {
-  return visibleText(el).replace(/\s*after fees$/, "");
+  return visibleText(el);
 }
 
 describe("a signed-in job card's accessible name is its own words (WCAG 2.5.3)", () => {
@@ -90,8 +90,8 @@ describe("a signed-in job card's accessible name is its own words (WCAG 2.5.3)",
     expect(name).toContain("Deep clean the kitchen");
     expect(name).toContain("Lafayette");
     const chip = card.querySelector(".money-chip")!;
-    // Owner 2026-11-22 ("One number, small label"): the figure, then the small grey "after fees", both spoken.
-    expect(visibleText(chip)).toMatch(/^\$\d+\s*after fees$/);
+    // Owner 2026-11-27: the chip is the figure alone (11-22's small "after fees" came off the list row).
+    expect(visibleText(chip)).toMatch(/^\$\d+$/);
     expect(name.replace(/\s+/g, "")).toContain(visibleText(chip).replace(/\s+/g, ""));
   });
 

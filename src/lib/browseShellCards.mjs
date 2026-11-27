@@ -102,12 +102,6 @@ function isFlat(job) {
   return !blank(job.helper_fee_flat_cents) && Number.isFinite(Number(job.helper_fee_flat_cents));
 }
 
-/**
- * AfterFeesNote (src/components/job/AfterFeesNote.tsx) as the guest chip draws it, byte for byte (owner 2026-11-22,
- * "One number, small label"): src/test/browseShellCards.test.tsx holds the two together.
- */
-export const SHELL_AFTER_FEES_HTML =
-  `<span data-after-fees="" class="mt-0.5 block font-sans text-ds-11 font-normal leading-tight text-muted-foreground ">after fees</span>`;
 
 /** helprFlatFeeCents for a guest (no poster flat fee is in the view). */
 function flatFeeCents(shareCents, job) {
@@ -259,7 +253,7 @@ export const SHELL_CARD_CLASSES = {
   chip: "money-chip inline-flex flex-col items-center justify-center rounded-ds-md text-center px-2.5 py-1 shrink-0 self-start",
   amount: "font-sans leading-none tabular-nums text-ds-17",
   metaWrap: "mt-1 flex flex-col gap-0.5 text-ds-11 leading-tight text-muted-foreground",
-  metaRow: "job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden",
+  metaRow: "job-meta-row flex items-center gap-x-2.5 flex-nowrap max-[359px]:flex-wrap overflow-hidden",
   // Photo-first cards (Q2043 + Q2036): the picture tile beside the text, same size as the app's (owner 11-25: no poster-face line, a guest card draws none).
   mediaRow: "flex items-stretch",
   mediaPad: "py-2.5",
@@ -284,6 +278,25 @@ export function shellDayLabel(job) {
   return `Any day ${a}-${a.split(" ")[0] === b.split(" ")[0] ? b.split(" ")[1] : b}`;
 }
 
+/** jobDayLabelShort (src/lib/jobDateWindow.ts): a phone row's one day, "Sun 11/29"; a window as shellDayLabel. */
+function shellDayLabelShort(job) {
+  const first = typeof job.date_needed === "string" ? job.date_needed.slice(0, 10) : "";
+  if (!YMD.test(first)) return "";
+  const end = typeof job.date_window_end === "string" ? job.date_window_end.slice(0, 10) : "";
+  if (!YMD.test(end) || end <= first) return `${utcDay(first, { weekday: "short" })} ${utcDay(first, { month: "numeric", day: "numeric" })}`;
+  return shellDayLabel(job);
+}
+
+/**
+ * The row's meta icons (owner 2026-11-27: a pin, a calendar and a clock name the town, the day and the time, in place
+ * of the "·" between them), lucide's own drawings at JobCard's JOB_ROW_META_ICON size.
+ */
+const shellIcon = (name, inner) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-${name} w-3 h-3 shrink-0" aria-hidden="true">${inner}</svg>`;
+const SHELL_PIN_SVG = shellIcon("map-pin", '<path vector-effect="non-scaling-stroke" d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle vector-effect="non-scaling-stroke" cx="12" cy="10" r="3"></circle>');
+const SHELL_CALENDAR_SVG = shellIcon("calendar", '<path vector-effect="non-scaling-stroke" d="M8 2v3"></path><path vector-effect="non-scaling-stroke" d="M16 2v3"></path><rect vector-effect="non-scaling-stroke" x="3" y="3" width="18" height="18" rx="2"></rect><path vector-effect="non-scaling-stroke" d="M3 9h18"></path>');
+const SHELL_CLOCK_SVG = shellIcon("clock", '<circle vector-effect="non-scaling-stroke" cx="12" cy="12" r="10"></circle><path vector-effect="non-scaling-stroke" d="M12 6v6l4 2"></path>');
+
 /** jobStartTimeLabel (src/lib/jobDate.ts): "9:00 AM", "Flexible", "9:00 AM · Flexible", or null. */
 export function shellTimeLabel(startTime, isFlexible) {
   const raw = typeof startTime === "string" ? startTime.trim() : "";
@@ -307,19 +320,19 @@ export function shellTimeLabel(startTime, isFlexible) {
 export function shellWhenHtml(job) {
   const day = shellDayLabel(job);
   const time = shellTimeLabel(job.start_time, job.is_flexible_schedule);
-  const dayHtml = (label) => `<span class="flex items-center gap-1"><span class="font-sans whitespace-nowrap">${escapeShellText(label)}</span></span>`;
+  // Phone "Sun 11/29", from 640px "Sun, Nov 29" (owner 2026-11-27: the one line fits at 375).
+  const dayHtml = (label) =>
+    `<span class="flex items-center gap-1">${SHELL_CALENDAR_SVG}<span class="font-sans whitespace-nowrap sm:hidden">${escapeShellText(shellDayLabelShort(job))}</span><span class="font-sans whitespace-nowrap hidden sm:inline">${escapeShellText(label)}</span></span>`;
   let inner;
   // JobCard's own test: no date_needed and no start_time (raw), whatever the Flexible tick says.
-  if (!job.date_needed && !job.start_time) inner = `<span class="flex items-center gap-1"><span class="font-sans">Flexible</span></span>`;
+  if (!job.date_needed && !job.start_time) inner = `<span class="flex items-center gap-1">${SHELL_CALENDAR_SVG}<span class="font-sans">Flexible</span></span>`;
   else {
     inner = day ? dayHtml(day) : "";
-    if (day && time) inner += '<span class="shrink-0 opacity-30">·</span>';
-    if (time) inner += `<span data-meta-time="true" class="shrink-0 flex items-center gap-1"><span class="font-sans whitespace-nowrap">${escapeShellText(time.replace(/:00(?= [AP]M)/g, ""))}</span></span>`;
+    if (time) inner += `<span data-meta-time="true" class="shrink-0 flex items-center gap-1">${SHELL_CLOCK_SVG}<span class="font-sans whitespace-nowrap">${escapeShellText(time.replace(/:00(?= [AP]M)/g, ""))}</span></span>`;
   }
   return (
     '<span aria-hidden="true" data-meta-break="true" class="hidden max-[359px]:block basis-full h-0.5"></span>' +
-    '<span class="shrink-0 opacity-30 max-[359px]:hidden">·</span>' +
-    `<span class="inline-flex shrink-0 items-center gap-x-2">${inner}</span>`
+    `<span class="inline-flex shrink-0 items-center gap-x-2.5">${inner}</span>`
   );
 }
 
@@ -336,8 +349,9 @@ function cardHtml(job) {
     `<div class="${c.body}"><div class="${c.titleRow}">` +
     `<h2 class="${c.title}" style="color:hsl(var(--ink-deep));letter-spacing:-0.02em">${title}</h2>` +
     `<div class="${c.chip}" style="background:hsl(var(--bark) / 0.1);border:0.5px solid hsl(var(--bark) / 0.28)">` +
-    `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span>${shellIsGiveaway(job) ? "" : SHELL_AFTER_FEES_HTML}</div>` +
-    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}"><span class="font-sans truncate">${label}</span></span><span class="shrink-0 opacity-30">·</span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span>${shellWhenHtml(job)}</div></div>` +
+    // Owner 2026-11-27: the price stands alone, no "after fees" under it (as the app's chip).
+    `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span></div>` +
+    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}" style="color:${jobCategoryTint(job.category).color}"><span class="font-sans truncate">${label}</span></span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden">${SHELL_PIN_SVG}<span class="truncate font-sans min-w-[2.75rem]">${town}</span></span>${shellWhenHtml(job)}</div></div>` +
     `</div></div></div></div></div>`
   );
 }

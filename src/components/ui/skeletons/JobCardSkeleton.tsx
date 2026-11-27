@@ -64,7 +64,7 @@ export function JobCardSkeleton({ badge = false }: { badge?: boolean } = {}) {
                   <Skeleton className="h-3 w-24 rounded" style={{ background: "hsl(var(--olivewood) / 0.10)" }} />
                 </span>
                 <span aria-hidden data-meta-break className="hidden max-[359px]:block basis-full h-0.5" />
-                <span className="shrink-0 opacity-0 max-[359px]:hidden">·</span>
+                <span data-meta-dot className="shrink-0 opacity-0 max-[359px]:hidden">·</span>
                 <span className="inline-flex shrink-0 items-center gap-1">
                   <span className="invisible w-0">{ZW}</span>
                   <Skeleton className="h-3 w-20 rounded" style={{ background: "hsl(var(--olivewood) / 0.10)" }} />

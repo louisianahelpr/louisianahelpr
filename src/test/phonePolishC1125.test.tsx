@@ -115,7 +115,7 @@ describe("phone polish C (11-25)", () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(screen.getByText("Flexible time")).toBeTruthy();
+    expect(screen.getByText("Flexible")).toBeTruthy();
     expect(screen.getByText("Lexi")).toBeTruthy();
   });
 

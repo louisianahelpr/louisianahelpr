@@ -40,7 +40,7 @@ export function PostedJobMetaRow({
         // which is a promise the poster never made. Nothing is shown
         // when there is neither a time nor the flag.
         isFlexibleSchedule={job.is_flexible_schedule}
-        flexibleLabel="Flexible time"
+        // One word, "Flexible", everywhere (polish audit 11-27 #3).
         // A job whose poster deleted their account is anonymised, not
         // removed (20260901033011), so it stands with no address. The
         // chip's normaliser already treats "" as absent.

@@ -60,7 +60,8 @@ export function JobCardPosterFace({
   reviewCount,
   flexibleTag = false,
 }: {
-  /** Phone polish C (11-25): a row moves "Flexible" off its one meta line ("1 PM · Flexib" cut at 375) to a small tag here. */
+  /** Phone polish C (11-25): a row moves "Flexible" off its one meta line ("1 PM · Flexib" cut at 375) to a small tag here.
+   *  One word, "Flexible", as signed out (polish audit 11-27 #3). */
   flexibleTag?: boolean;
   posterId: string | null | undefined;
   name: string | null | undefined;
@@ -72,7 +73,7 @@ export function JobCardPosterFace({
   // The row always holds its 20px, named or not, so every card (and the
   // pre-boot Browse shell, which never carries a name) is the same height.
   const tag = flexibleTag ? (
-    <span data-flexible-tag="" className="shrink-0 rounded-full border border-border px-1.5 text-ds-10 font-semibold leading-4 text-muted-foreground">Flexible time</span>
+    <span data-flexible-tag="" className="shrink-0 rounded-full border border-border px-1.5 text-ds-10 font-semibold leading-4 text-muted-foreground">Flexible</span>
   ) : null;
   if (!first || name === "a neighbor") return tag ? <div data-testid="job-card-poster" className={JOB_CARD_FACE_ROW}>{tag}</div> : <div data-testid="job-card-poster" aria-hidden className={JOB_CARD_FACE_ROW} />;
   const rated = (reviewCount ?? 0) > 0 && (avgRating ?? 0) > 0;

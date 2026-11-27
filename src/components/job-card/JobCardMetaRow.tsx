@@ -6,7 +6,7 @@ import { differenceInHours } from "date-fns";
 import { formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
-import { jobDayLabel } from "@/lib/jobDateWindow";
+import { jobDayLabel, jobDayLabelShort } from "@/lib/jobDateWindow";
 import { getCity } from "@/lib/locationUtils";
 import { hasStreetAddress } from "../../pages/jobs/appliedJobCard/JobAddressLine";
 import { mapsSearchUrl } from "@/lib/mapsLink";
@@ -439,10 +439,19 @@ export function JobCardMetaRow({
           <span title={city} className={wrapAddress ? "whitespace-normal break-words" : "truncate"}>{shown}</span>
         </a>
       ))}
-      <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-        {/* The one-line row (item 11) drops the date and clock glyphs so the street keeps its width. */}
-        {!oneLine && <Calendar className="w-3 h-3 shrink-0" />}
-        {jobDayLabel({ date_needed: dateNeeded, date_window_end: dateWindowEnd })}
+      <span data-meta-day="" className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+        {/* Polish audit 11-27 #3 (owner: "location category time day" hard to tell apart, ALL ON ONE LINE): the
+            one-line row wears the Browse row's look (JobCard, 11-27): a pin, a calendar and a clock tell the place,
+            day and time apart, and a phone says "Mon 11/9" so the street keeps its width. Replaces item 11's
+            glyph-free line ("2000 Johnston St  Mon, Nov 9  3:00 PM" read as one string).
+            Guard: src/test/jobMetaOneLine1127.test.tsx. */}
+        <Calendar className="w-3 h-3 shrink-0" />
+        {oneLine ? (
+          <>
+            <span className="sm:hidden">{jobDayLabelShort({ date_needed: dateNeeded, date_window_end: dateWindowEnd })}</span>
+            <span className="hidden sm:inline">{jobDayLabel({ date_needed: dateNeeded, date_window_end: dateWindowEnd })}</span>
+          </>
+        ) : jobDayLabel({ date_needed: dateNeeded, date_window_end: dateWindowEnd })}
       </span>
       {/* THE START TIME IS THE FIRST THING THIS ROW DROPS WHEN IT IS FULL, and
           only then — the same rule, at the same 400px, that the browse feed's
@@ -469,9 +478,10 @@ export function JobCardMetaRow({
           1 day left only if there is space". The time is never dropped now;
           below 400px it is the COUNTDOWN that goes (see the countdown below). */}
       {timeLabel && (
-        <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-          {!oneLine && <Clock className="w-3 h-3 shrink-0" />}
-          {timeLabel}
+        <span data-meta-time="" className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+          <Clock className="w-3 h-3 shrink-0" />
+          {/* One line (11-27 #3): "3 PM" for 3:00 PM, as the Browse row says it. */}
+          {oneLine ? timeLabel.replace(/:00(?= [AP]M)/g, "") : timeLabel}
         </span>
       )}
       {/* DIRECTLY RIGHT OF THE TIME (owner, 2026-08-30: "3 helprs needed goes

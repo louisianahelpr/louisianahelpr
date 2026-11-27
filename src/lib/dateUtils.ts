@@ -36,6 +36,16 @@ export function formatJobDate(dateStr: string): string {
 }
 
 /**
+ * formatJobDate with a numeric month and no comma ("Sun 11/29"; Spanish "dom 29/11"): a phone-width Jobs list row
+ * (owner 2026-11-27: category, place, day and time on ONE line with an icon each, so the day gives up its month name).
+ */
+export function formatJobDateShort(dateStr: string): string {
+  const locale = getLang() === "es" ? "es-US" : "en-US";
+  const d = parseLocalDate(dateStr);
+  return `${d.toLocaleDateString(locale, { weekday: "short" })} ${d.toLocaleDateString(locale, { month: "numeric", day: "numeric" })}`;
+}
+
+/**
  * Render "how much longer" the canonical way every countdown should:
  * "5 days left" · "22 hours left" · "9 minutes left".
  *

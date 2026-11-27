@@ -14,7 +14,7 @@
  *      back to the link) shows at desktop width for an order / offer / chat link, and not for a plain Browse visit.
  */
 // @mutate src/components/declutter/DeclutterOrderTalk.tsx |   if (!user \|\| !orderId \|\| !UUID.test(orderId)) return null; |   if (!orderId \|\| !UUID.test(orderId)) return null;
-// @mutate src/components/declutter/DeclutterGuest.tsx |   if (barShown && !want) return null; |   if (barShown) return null;
+// @mutate src/components/declutter/DeclutterGuest.tsx |   if (!want) return null; |   if (!want && !barShown) return null;
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { cleanup, render, screen } from "@testing-library/react";

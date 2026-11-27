@@ -67,10 +67,9 @@ export function DeclutterHomeSkeleton({ guestJoin }: { guestJoin?: ReactNode } =
         </>
       )}
     >
-      {/* Q2705 (11-09): index.html's copy of this frame carries a guest's sign-up line where Browse draws it (above the
-          cards), hidden unless index.html's guest script marks <html> data-lh-declutter-guest, so a guest's drawn
-          photos sit where Browse's land (262px at 375, not 116px). The app never passes it. */}
-      {guestJoin && <div data-lh-guest-join="" style={{ display: "none" }}>{guestJoin}</div>}
+      {/* Q2705 (11-09) drew a guest's sign-up line here in index.html's copy, above the cards. Owner 2026-11-27: a plain
+          guest visit has no sign-up line any more (the top bar's "Join / Log in" is the one way in), so the copy draws
+          none either and a guest's photos still sit where Browse's land. */}
       <DeclutterBrowseBones map={map} full={desktop && !map} />
     </SectionScreen>
   );

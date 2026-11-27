@@ -8,7 +8,6 @@ import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
-import { AfterFeesNote } from "@/components/job/AfterFeesNote";
 
 interface CompactJobCardProps {
   job: EnrichedJob;
@@ -130,8 +129,7 @@ export function CompactJobCard({
           style={{ color: "hsl(var(--bark))" }}
         >
           ${priceText}
-          {/* Owner 2026-11-22 ("One number, small label"): a take-home carries the small grey "after fees". */}
-          {isNet && !isGiveawayFixedPayJob(job) && <AfterFeesNote inline />}
+          {/* Owner 2026-11-27: a list row's price stands alone (no "after fees"). Guard: jobRowsPriceAlone1127.test.tsx. */}
         </span>
 
         {/* Time ago */}

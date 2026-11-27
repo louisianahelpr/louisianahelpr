@@ -2,6 +2,7 @@ import { categoryColors, categoryLabels } from "@/components/job-card/activityCo
 import { wordInLang } from "@/lib/i18n/inLang";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { formatCategory } from "@/lib/format";
+import { jobCategoryTint } from "@/lib/jobCategoryTint.mjs";
 
 /**
  * JobCategoryTab — the corner tab that names a job's category.
@@ -34,6 +35,7 @@ export function JobCategoryTab({
   category,
   flexible = false,
   icon = true,
+  tinted = false,
   className,
 }: {
   /** Job category key, e.g. "cleaning". Unknown keys fall back to "other". */
@@ -50,6 +52,12 @@ export function JobCategoryTab({
    * already shows the category icon, so the row drew it twice.
    */
   icon?: boolean;
+  /**
+   * Colour the label with the category's tile tint (the row thumbnail's icon colour). On a Browse feed ROW (owner
+   * 2026-11-27: "hard to tell the difference between location, category, time, day"), so the category reads apart from
+   * the grey place, day and time beside it.
+   */
+  tinted?: boolean;
   className?: string;
 }) {
   const catStyle = categoryColors[category] ?? categoryColors.other;
@@ -58,6 +66,7 @@ export function JobCategoryTab({
   return (
     <span
       className={`job-cat-label inline-flex items-center gap-1.5 min-w-0 text-ds-11 font-semibold text-muted-foreground${flexible ? " max-w-[52%]" : ""}${className ? ` ${className}` : ""}`}
+      style={tinted ? { color: jobCategoryTint(category).color } : undefined}
     >
       {icon && (
         <CategoryIcon

@@ -200,47 +200,25 @@ export function DeclutterGuestBrowseJoin() {
   // Owner 11-10: at desktop width the guest top bar already carries Log in / Sign up, so this card is not repeated there.
   // Deep audit 1122 #3: except for a link to something of theirs (an order, offer or chat from an email): at 1440 that
   // was plain Browse with no word about the order, so the "Log in to see your order" card shows at every width.
-  if (barShown && !want) return null;
-  // Owner 11-25 (signed-out phone: the switch, "+ Sell" and this card "take half the screen"): a plain visit gets ONE
-  // slim line, "Join to buy or sell. It's free." and a Sign up button. The bar above already has "Join / Log in" (the
-  // web's public header and the app's top bar), so the card's own Log in, the H and the second line are gone. A link to
-  // something of theirs (F402, below) keeps the full card: there Log in is the main way in.
+  // Owner 2026-11-27 (signed-out Declutter at 390: "there is a repetitive sign up"): a plain visit gets NO card at any
+  // width. The bar above already has "Join / Log in" (the web's public header, Navbar, and the app's guest top bar,
+  // AppTopBar/GuestAuthActions), so 11-25's slim "Join to buy or sell. It's free. [Sign up]" line said it twice. A link
+  // to something of theirs (F402, below) keeps the full card: there Log in is the main way in.
   // Guard: src/test/phoneCompactBrowse1125.test.tsx.
-  if (!want) {
-    return (
-      <section data-guest-join="browse" data-guest-join-slim="" aria-label={gw("g.joinAria")} className="flex items-center gap-2 rounded-2xl border border-border bg-card py-1 pl-3 pr-1">
-        <p className="min-w-0 flex-1 truncate text-ds-13">
-          <span className="font-semibold">{gw("g.joinAria")}.</span>{" "}
-          <span className="text-muted-foreground">{gw("g.itsFree")}</span>
-        </p>
-        <Button asChild size="sm" className="shrink-0 rounded-full px-4" data-guest-join-buttons="">
-          <Link to={`/signup?redirect=${here(location)}`}>{gw("g.signUp")}</Link>
-        </Button>
-      </section>
-    );
-  }
+  if (!want) return null;
   return (
     <section data-guest-join="browse" aria-label={gw("g.joinAria")} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
       {!barShown && <GuestBrand />}
       <p className="min-w-0 flex-1 basis-48 text-sm">
-        {want ? (
-          // F402: the link is to something of theirs; Log in is the main button, Sign up the aside.
-          <>
-            <span className="font-semibold">{want}</span>{" "}
-            <span className="text-muted-foreground">{gw("g.newHere")}</span>
-          </>
-        ) : (
-          <>
-            <span className="font-semibold">{gw("g.signUpToBuy")}</span>{" "}
-            <span className="text-muted-foreground">{gw("g.itsFree")}</span>
-          </>
-        )}
+        {/* F402: the link is to something of theirs; Log in is the main button, Sign up the aside. */}
+        <span className="font-semibold">{want}</span>{" "}
+        <span className="text-muted-foreground">{gw("g.newHere")}</span>
       </p>
       <div className="flex shrink-0 gap-2" data-guest-join-buttons="">
-        <Button asChild size="sm" variant={want ? "default" : "outline"} className="rounded-full">
+        <Button asChild size="sm" variant="default" className="rounded-full">
           <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>
         </Button>
-        <Button asChild size="sm" variant={want ? "outline" : "default"} className="rounded-full">
+        <Button asChild size="sm" variant="outline" className="rounded-full">
           <Link to={`/signup?redirect=${here(location)}`}>{gw("g.signUp")}</Link>
         </Button>
       </div>

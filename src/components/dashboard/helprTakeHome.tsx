@@ -61,7 +61,7 @@ export function JobPriceTakeHome({ job, className = "", after = "", fallback = n
     return (
       <span data-job-price-take-home="" className={`font-display text-ds-24 font-bold leading-none tabular-nums text-[hsl(var(--ink-deep))] ${className}`}>
         {!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}
-        {!fixedPay && <AfterFeesNote className="text-right" />}
+        {/* Owner 2026-11-27: the job pop-up's figure stands alone (no "after fees"). Guard: jobRowsPriceAlone1127.test.tsx. */}
       </span>
     );
   }

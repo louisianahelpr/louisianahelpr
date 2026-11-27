@@ -49,8 +49,8 @@ describe("J1: the poster sees the price they set on their own job", () => {
     expect(priceText(POSTER)).toMatch(/^\$?60(\.00)?$/);
   });
   it("anyone else: the Helpr take-home ($52 on this legacy 12% job)", () => {
-    // Owner 2026-11-22 ("One number, small label"): the take-home carries "after fees"; the poster's own price does not.
-    expect(priceText("someone-else")).toMatch(/^\$?52afterfees$/);
+    // Owner 2026-11-27: the Browse card's take-home stands alone too (no "after fees"); a different figure from the poster's.
+    expect(priceText("someone-else")).toMatch(/^\$?52$/);
   });
 
   it("inventory: every JobPrice render site asks whether the viewer is the poster", () => {

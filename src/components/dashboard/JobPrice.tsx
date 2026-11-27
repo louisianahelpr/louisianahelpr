@@ -1,5 +1,4 @@
 import { formatPrice, formatPriceFloor } from "@/lib/format";
-import { AfterFeesNote } from "@/components/job/AfterFeesNote";
 import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
 import { type FlatFeeStamp, helprFlatFeeCents, isFlatFeeJob, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
@@ -163,8 +162,9 @@ export function JobPrice({
     return (
       <div className={chipClass} style={chipSurface}>
         {amountNode}
-        {/* One number, small label (owner 2026-11-22): the take-home carries "after fees"; a poster's or guest's budget does not. */}
-        {!showBudget && !isGiveawayFixedPayJob(feeStamp) && <AfterFeesNote />}
+        {/* Owner 2026-11-27 (signed-out Jobs list at 390): "Remove after fees from the money part." The figure stands
+            alone on the list row and in the job pop-up, replacing 11-22's small "after fees" label here.
+            Guard: src/test/jobRowsPriceAlone1127.test.tsx. */}
         {/* Q1272 (2): a screen reader hears WHY the figure is lower while the
             one-time setup fee is still owed. Not shown on screen (owner,
             2026-08-30: no fee math on the card). */}
@@ -215,7 +215,6 @@ export function JobPrice({
       >
         ${earnings}
       </p>
-      {!showBudget && !isGiveawayFixedPayJob(feeStamp) && <AfterFeesNote />}
       {/* Guest/poster surfaces still see the plain gross budget label — that
           number is what the poster typed, not a helper-side calculation, so
           it doesn't carry the same disclosure concern. */}

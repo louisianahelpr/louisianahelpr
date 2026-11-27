@@ -18,7 +18,7 @@
  * @mutate src/lib/browseShellCards.mjs |   const shell = browseShellHtml(rows, now, src && srcset ? { src, srcset } : null); |   const shell = browseShellHtml(rows, now, null);
  * @mutate src/index.css | #lh-browse-shell { visibility: visible !important; } | #lh-browse-shell { visibility: visible; }
  * @mutate src/lib/browseShellCards.mjs |   catLabel: "job-cat-label inline-flex | catLabel: "job-cat-labelx inline-flex
- * @mutate src/lib/browseShellCards.mjs | ${shellIsGiveaway(job) ? "" : SHELL_AFTER_FEES_HTML}</div> | </div>
+ * @mutate src/lib/browseShellCards.mjs | ${net}</span></div> | ${net}</span><span data-after-fees="">after fees</span></div>
  */
 import { jobCategoryTint } from "@/lib/jobCategoryTint.mjs";
 import { describe, it, expect, vi } from "vitest";
@@ -41,7 +41,6 @@ import {
   SHELL_CARD_COUNT,
   SHELL_CATEGORY_LABELS,
   SHELL_GUEST_FEE_PERCENT,
-  SHELL_AFTER_FEES_HTML,
   browseShellHtml,
   selectShellJobs,
   shellTakeHomeDollars,
@@ -218,9 +217,15 @@ describe("the shell card wears the real guest JobCard's classes", () => {
     expect(c.metaRow).toBe(real(".job-meta-row"));
     expect(c.metaWrap).toBe(container.querySelector(".job-meta-row")?.parentElement?.getAttribute("class"));
     expect(container.querySelector(".job-card-title")?.textContent).toBe("Mow the front yard");
-    // Owner 2026-11-22 ("One number, small label"): the chip carries the small "after fees", the shell the same bytes.
-    expect(container.querySelector(".money-chip")?.textContent).toBe("$74after fees");
-    expect(container.querySelector(".money-chip [data-after-fees]")?.outerHTML).toBe(SHELL_AFTER_FEES_HTML);
-    expect(browseShellHtml([row()], NOW)).toContain(`</span>${SHELL_AFTER_FEES_HTML}</div>`);
+    // Owner 2026-11-27 ("Remove after fees from the money part"): the chip is the figure alone, and the shell's too.
+    expect(container.querySelector(".money-chip")?.textContent).toBe("$74");
+    expect(container.querySelector(".money-chip [data-after-fees]")).toBeNull();
+    const shell = browseShellHtml([row()], NOW);
+    expect(shell).toContain(">74</span></div>");
+    expect(shell).not.toContain("after fees");
+    // Owner 2026-11-27: the row's category label wears its tile's tint, the shell the same colour.
+    const label = container.querySelector<HTMLElement>(".job-cat-label")!;
+    expect(label.getAttribute("style")).toContain(jobCategoryTint(job.category).color);
+    expect(shell).toContain(`<span class="${c.catLabel}" style="color:${jobCategoryTint(row().category).color}">`);
   });
 });

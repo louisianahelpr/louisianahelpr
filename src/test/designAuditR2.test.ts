@@ -491,7 +491,7 @@ describe("design audit r2 #33: Spanish job categories and dates", () => {
  * #37 (rest): Home's count lines ("15 need you", "241 items near you"), the post-step-1 gift-card banner, Settings'
  * "Your profile link" and "Password", and the guest's "Log in / Join free / Sign up to buy..." were English in Spanish.
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       : wordInLang("home.c.itemsNear", `${near.declutter} items near you`, { n: near.declutter! }) |       : `${near.declutter} items near you`
- * @mutate src/components/declutter/DeclutterGuest.tsx | <span className="font-semibold">{gw("g.signUpToBuy")}</span> | <span className="font-semibold">Sign up to buy, make offers or sell.</span>
+ * @mutate src/components/declutter/DeclutterGuest.tsx | <span className="text-muted-foreground">{gw("g.newHere")}</span> | <span className="text-muted-foreground">New here? <Link to="/signup">Sign up</Link></span>
  */
 describe("design audit r2 #37: the stragglers follow the reader's language", () => {
   it("Home's counts, the profile line and the guest words read Spanish for a Spanish reader", async () => {

@@ -3,7 +3,7 @@
  * jobs.date_window_end its last (at most 6 days later; NULL = a one-day job). Every place that prints a job's day
  * uses jobDayLabel so a window never shows as one specific day.
  */
-import { formatJobDate } from "@/lib/dateUtils";
+import { formatJobDate, formatJobDateShort } from "@/lib/dateUtils";
 
 /** The longest window: the first day plus 6 more (7 days in all). Mirrors jobs_date_window_end_in_a_week. */
 export const DATE_WINDOW_EXTRA_DAYS = 6;
@@ -42,6 +42,12 @@ export function jobDayLabel(job: JobDays): string {
   const b = monthDay(job.date_window_end!);
   const sameMonth = a.split(" ")[0] === b.split(" ")[0];
   return `Any day ${a}-${sameMonth ? b.split(" ")[1] : b}`;
+}
+
+/** jobDayLabel for a phone-width list row: one day reads "Sun 11/29" (formatJobDateShort); a window is unchanged. */
+export function jobDayLabelShort(job: JobDays): string {
+  if (!job?.date_needed) return "";
+  return hasDateWindow(job) ? jobDayLabel(job) : formatJobDateShort(job.date_needed);
 }
 
 /** The last day the job can still be done (the window's end, else its one day). Expiry and "date passed" read this. */

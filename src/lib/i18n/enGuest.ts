@@ -22,8 +22,6 @@ export const enGuest = {
   "g.want.wanted": "Log in to see your Wanted posts",
   "g.joinAria": "Join to buy or sell",
   "g.newHere": "New here?",
-  "g.signUpToBuy": "Sign up to buy, make offers or sell.",
-  "g.itsFree": "It's free.",
   // G1 (app audit 1123): guest Jobs on the web counts its list, as member Browse does.
   "g.openJobs": "{n} open jobs",
   "g.openJob": "1 open job",

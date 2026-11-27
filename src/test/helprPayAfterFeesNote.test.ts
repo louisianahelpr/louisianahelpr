@@ -18,13 +18,17 @@
  *  4. The apply sheet's job card names no price (the posted price is the poster's).
  *  5. Search: the row's note follows the same rule as the price (take-home only).
  *
+ * Owner 2026-11-27 (signed-out Jobs list at 390, "Remove after fees from the money part") took the note OFF the Jobs
+ * list row (JobPrice's chip, CompactJobCard, the /browse HTML shell) and the job's detail (JobPrice's pop-up pill, the
+ * pop-up title row's large figure, the job page's HelprPrice): the figure stands alone there, held by
+ * src/test/jobRowsPriceAlone1127.test.tsx. The surfaces below keep the note.
+ *
  * @mutate src/pages/jobs/AppliedJobCard.tsx |             moneyNote={isGiveawayFixedPayJob(job) ? null : <AfterFeesNote />} |             moneyNote={null}
- * @mutate src/components/dashboard/CompactJobCard.tsx |           {isNet && !isGiveawayFixedPayJob(job) && <AfterFeesNote inline />} |           {null}
  * @mutate src/pages/search/SearchPage.tsx |           priceNote={searchJobPriceIsTakeHome(j, user?.id ?? null) ? <AfterFeesNote /> : null} |           priceNote={null}
  * @mutate src/pages/search/searchJobPrice.ts |   if (viewerId && job.customer_id === viewerId) return false; |   if (false) return false;
  * @mutate src/components/job-card/MineJobFace.tsx |                   {moneyNote} |                   {null}
  * @mutate src/components/messages/chatView/DealCard.tsx |       {!isGiveawayFixedPayJob(job) && <AfterFeesNote />} |       {null}
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       {!fixedPay && <AfterFeesNote />} |       {null}
+ * @mutate src/components/dashboard/helprTakeHome.tsx |       {!fixedPay && <AfterFeesNote inline />} |       {null}
  * @mutate src/components/job/AfterFeesNote.tsx | const AFTER_FEES_WORDS = "after fees"; | const AFTER_FEES_WORDS = "You take home";
  */
 import { describe, expect, it } from "vitest";
@@ -39,12 +43,9 @@ const code = (file: string) => blankComments(readFileSync(resolve(ROOT, file), "
 
 /** Each Helpr take-home surface and the rendered note it must carry. */
 const SURFACES: Record<string, { what: string; renders: RegExp }> = {
-  "src/components/dashboard/JobPrice.tsx": { what: "Browse card chip + job pop-up price", renders: /!showBudget && !isGiveawayFixedPayJob\(feeStamp\) && <AfterFeesNote \/>/g },
-  "src/components/dashboard/helprTakeHome.tsx": { what: "JobPriceTakeHome (pop-up title row, Application sent)", renders: /<AfterFeesNote\b[^>]*\/>/g },
-  "src/pages/jobs/jobPage/JobPageParts.tsx": { what: "job page HelprPrice", renders: /!fixedPay && <AfterFeesNote \/>/g },
+  "src/components/dashboard/helprTakeHome.tsx": { what: "JobPriceTakeHome's in-sentence figure (Application sent)", renders: /!fixedPay && <AfterFeesNote inline \/>/g },
   "src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx": { what: "apply sheet take-home", renders: /<AfterFeesNote \/>/g },
   "src/components/messages/chatView/DealCard.tsx": { what: "chat deal card", renders: /<AfterFeesNote \/>/g },
-  "src/components/dashboard/CompactJobCard.tsx": { what: "compact Browse row", renders: /isNet && !isGiveawayFixedPayJob\(job\) && <AfterFeesNote inline \/>/g },
   "src/pages/jobs/AppliedJobCard.tsx": { what: "Working / Applied card face", renders: /moneyNote=\{isGiveawayFixedPayJob\(job\) \? null : <AfterFeesNote \/>\}/g },
   "src/components/job-card/MineJobFace.tsx": { what: "the face that draws AppliedJobCard's money", renders: /\{moneyNote\}/g },
   "src/pages/search/SearchPage.tsx": { what: "Search job row", renders: /priceNote=\{searchJobPriceIsTakeHome\([^)]*\) \? <AfterFeesNote \/> : null\}/g },
@@ -54,6 +55,7 @@ const SURFACES: Record<string, { what: string; renders: RegExp }> = {
 // @two-way src/test/helprPayAfterFeesNote.test.ts:EXEMPT is exact both ways
 const EXEMPT: Record<string, string> = {
   "src/components/declutter/DeclutterDeliveryViews.tsx": "Declutter delivery pay (take_home_cents from the server), not a job's posted price; not in the 11-22 decision's job scope",
+  "src/pages/jobs/jobPage/JobPageParts.tsx": "the job's own page (HelprPrice): owner 2026-11-27 took the note off the job's detail; jobRowsPriceAlone1127.test.tsx holds it bare",
 };
 
 describe("Helpr pay: one number, small \"after fees\" label (owner 2026-11-22)", () => {
@@ -64,7 +66,7 @@ describe("Helpr pay: one number, small \"after fees\" label (owner 2026-11-22)",
       if (n < 1) missing.push(`${file} (${what})`);
     }
     expect(missing).toEqual([]);
-    expect(Object.keys(SURFACES).length).toBeGreaterThan(8);
+    expect(Object.keys(SURFACES).length).toBeGreaterThan(5);
   });
 
   it("no new Helpr take-home ships bare: every \"Your pay\" file renders AfterFeesNote", () => {

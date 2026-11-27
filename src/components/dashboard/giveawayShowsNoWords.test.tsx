@@ -56,14 +56,16 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
 
   // What an ordinary job still says: the small grey "after fees" everywhere (owner 2026-11-22), plus a screen-reader "Your pay" off the apply sheet.
   const SR = /Your pay/;
-  const surfaces: Array<[string, (j: typeof giveaway) => React.ReactElement, RegExp]> = [
-    ["the job page's amount and notes", (j) => <><HelprPrice job={j as never} /><HelprMoneyNotes job={j as never} hired={false} /></>, SR],
-    ["the sentence (quick view, Application sent)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} after=", paid once it's confirmed done" />, SR],
-    ["the bare figure (job sheet)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} bare />, SR],
-    ["the apply sheet", (j) => <ApplyEarningsBreakdown confirmApplyJob={j as unknown as EnrichedJob} platformFee={12} />, AFTER],
+  // The last field: does an ordinary job's figure carry "after fees" here? Owner 2026-11-27 took it off the job's detail
+  // (the job page and the job sheet's bare figure; src/test/jobRowsPriceAlone1127.test.tsx).
+  const surfaces: Array<[string, (j: typeof giveaway) => React.ReactElement, RegExp, boolean]> = [
+    ["the job page's amount and notes", (j) => <><HelprPrice job={j as never} /><HelprMoneyNotes job={j as never} hired={false} /></>, SR, false],
+    ["the sentence (quick view, Application sent)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} after=", paid once it's confirmed done" />, SR, true],
+    ["the bare figure (job sheet)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} bare />, SR, false],
+    ["the apply sheet", (j) => <ApplyEarningsBreakdown confirmApplyJob={j as unknown as EnrichedJob} platformFee={12} />, AFTER, true],
   ];
 
-  for (const [name, ui, kept] of surfaces) {
+  for (const [name, ui, kept, afterFees] of surfaces) {
     it(`${name}: $50 and no words on the giveaway, even with the setup fee owed`, () => {
       const text = textOf(ui(giveaway));
       // Floor: the surface rendered (an empty render has none of the words either).
@@ -80,7 +82,8 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
       const text = textOf(ui(ordinary));
       expect(text).toContain("$54");
       expect(text).toMatch(kept);
-      expect(text).toMatch(AFTER);
+      if (afterFees) expect(text).toMatch(AFTER);
+      else expect(text).not.toMatch(AFTER);
       expect(text).not.toMatch(WORDS);
     });
   }

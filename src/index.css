@@ -437,7 +437,9 @@
 @container (max-width: 459px) {
   .job-card-media-col .job-meta-row { flex-wrap: wrap; }
   .job-card-media-col .job-meta-row > [data-meta-break] { display: block; }
-  .job-card-media-col .job-meta-row > [data-meta-break] + span { display: none; }
+  /* The "·" after the break, by its own marker (owner 2026-11-27: a ROW has no dot there; its when group follows the
+     break, and a "+ span" rule hid the day and time). */
+  .job-card-media-col .job-meta-row > [data-meta-dot] { display: none; }
 }
 
 /* Garden District Stone Color System */
@@ -5096,7 +5098,7 @@ label[for].bg-card,
 @media (min-width: 360px) {
   [data-feed-row] .job-card-media-col .job-meta-row { flex-wrap: nowrap; }
   [data-feed-row] .job-card-media-col .job-meta-row > [data-meta-break] { display: none; }
-  [data-feed-row] .job-card-media-col .job-meta-row > [data-meta-break] + span { display: inline; }
+  [data-feed-row] .job-card-media-col .job-meta-row > [data-meta-dot] { display: inline; }
 }
 .job-cat-label { padding-left: 1rem; padding-top: 0.75rem; }
 [data-activity-card] div.pt-6 { padding-top: 2.25rem !important; }

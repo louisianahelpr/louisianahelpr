@@ -18,10 +18,10 @@
  * @mutate src/components/sections/AppTopBar.tsx |       {guestBar && ( |       {false && (
  * @mutate src/components/dashboard/JobCard.tsx |           {!isGuest && ( |           {(
  * @mutate src/components/job/cardGeometry.ts | export const JOB_ROW_MEDIA = "relative shrink-0 self-start w-10 h-10 | export const JOB_ROW_MEDIA = "relative shrink-0 self-start w-12 h-12
- * @mutate src/components/declutter/DeclutterGuest.tsx |   if (!want) { |   if (!want && false) {
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (!want) return null; |   if (false) return null;
  * @mutate src/pages/home/DashboardGuest.tsx |               filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />} />} /> |               />} />
  * @mutate src/index.css |   [data-feed-row] .job-card-media-col .job-meta-row { flex-wrap: nowrap; } |   [data-feed-row] .job-card-media-col .job-meta-row { flex-wrap: wrap; }
- * @mutate src/components/dashboard/JobCard.tsx | {!row && <Clock className="w-2.5 h-2.5 shrink-0" />} | <Clock className="w-2.5 h-2.5 shrink-0" />
+ * @mutate src/components/dashboard/JobCard.tsx | <Clock className={row ? JOB_ROW_META_ICON : "w-2.5 h-2.5 shrink-0"} /> | {!row && <Clock className="w-2.5 h-2.5 shrink-0" />}
  * @mutate src/pages/home/Dashboard.tsx |     <JobActiveFilters category={filters.selectedCategory} | <JobCategoryChips value={filters.selectedCategory}
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -156,12 +156,14 @@ describe("3. compact job rows and a slim guest sign-up line", () => {
     expect(member.querySelector("[data-testid=job-card-poster]")).not.toBeNull();
   });
 
-  it("a row's meta is ONE line from 360px, with no calendar or clock icon, and says 9 AM for 9:00 AM", () => {
+  // Owner 2026-11-27 reversed 11-25's "no calendar or clock icon": the one line names each part by its icon instead of
+  // "·" (src/test/jobRowsPriceAlone1127.test.tsx). Still ONE line from 360px, still "9 AM".
+  it("a row's meta is ONE line from 360px, with a clock before the time, and says 9 AM for 9:00 AM", () => {
     const css = readFileSync("src/index.css", "utf8");
     expect(css).toMatch(/@media \(min-width: 360px\) \{\s*\[data-feed-row\] \.job-card-media-col \.job-meta-row \{ flex-wrap: nowrap; \}/);
     const row = render(<JobCard job={{ ...job, date_needed: jobLocalDateISO(4), start_time: "09:00" } as EnrichedJob} variant="guest" effectiveFee={0.15} onApply={vi.fn()} onReport={vi.fn()} onSelect={vi.fn()} />).container;
     const meta = row.querySelector(".job-meta-row")!;
-    expect(meta.querySelector(".lucide-calendar, .lucide-clock")).toBeNull();
+    expect(meta.querySelector("[data-meta-time] .lucide-clock")).not.toBeNull();
     expect(meta.querySelector("[data-meta-time]")!.textContent).toBe("9 AM");
   });
 
@@ -169,8 +171,11 @@ describe("3. compact job rows and a slim guest sign-up line", () => {
     expect(code("src/pages/home/DashboardGuest.tsx")).toMatch(/<SectionSearchBar noun="jobs" home="\/browse"[^>]*\s+filter=\{<BrowseFiltersButton filters=\{filters\} filtersButtonRef=\{filtersButtonRef\} \/>\}/);
   });
 
-  it("guest Declutter's plain sign-up card is one slim line with one Sign up button", () => {
+  // Owner 2026-11-27 ("there is a repetitive sign up"): 11-25's slim line is gone too; the top bar's "Join / Log in" is
+  // the one way in. DeclutterBrowse.guest.test.tsx renders it.
+  it("guest Declutter's plain visit draws no sign-up card at all", () => {
     const src = code("src/components/declutter/DeclutterGuest.tsx");
-    expect(src).toMatch(/if \(!want\) \{\s*return \(\s*<section data-guest-join="browse" data-guest-join-slim=""/);
+    expect(src).toMatch(/if \(!want\) return null;/);
+    expect(src).not.toContain("data-guest-join-slim");
   });
 });

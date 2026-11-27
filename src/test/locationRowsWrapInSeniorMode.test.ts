@@ -14,7 +14,7 @@
  * and whose row holds a map pin and a date/time chip carries `job-meta-row`,
  * and index.css still wraps `.job-meta-row` under html.senior-mode.
  *
- * @mutate src/components/dashboard/JobCard.tsx | <div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden"> | <div className="flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden">
+ * @mutate src/components/dashboard/JobCard.tsx | <div className={`job-meta-row flex items-center | <div className={`flex items-center
  * @mutate src/components/profile/schedule/ScheduleCard.tsx | className="job-meta-row flex flex-1 | className="flex flex-1
  * @mutate src/index.css | html.senior-mode .job-meta-row { | html.senior-mode .job-meta-row-x {
  */

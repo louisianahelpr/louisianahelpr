@@ -9,12 +9,17 @@
  * @mutate src/components/job-card/JobCardMetaRow.tsx |           <Clock className="w-3 h-3 shrink-0" /> |           {!oneLine && <Clock className="w-3 h-3 shrink-0" />}
  * @mutate src/components/job-card/JobCardMetaRow.tsx |             <span className="sm:hidden">{jobDayLabelShort( |             <span className="sm:hidden">{jobDayLabel(
  * @mutate src/components/dashboard/JobCardMedia.tsx | text-muted-foreground">Flexible</span> | text-muted-foreground">Flexible time</span>
+ * @mutate src/components/job/JobMetaLine.tsx |   const CHUNK = "inline-flex shrink-0 items-center gap-1 whitespace-nowrap"; |   const CHUNK = "inline-flex items-center gap-1";
+ * @mutate src/components/job/JobMetaLine.tsx | <Clock className={ICON} aria-hidden />{time} | {time}
+ * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |                   <JobMetaLine className="text-ds-13 | <span className="text-ds-13
+ * @mutate src/components/profile/schedule/ScheduleCard.tsx |               <JobMetaLine className="text-ds-11 | <span className="text-ds-11
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { JobCardMetaRow } from "@/components/job-card/JobCardMetaRow";
+import { JobMetaLine, shortTime } from "@/components/job/JobMetaLine";
 import { blankComments } from "./helpers/blankNonCode";
 
 function row(oneLine: boolean) {
@@ -54,5 +59,26 @@ describe("the cards' one-line meta tells place, day and time apart (polish 11-27
   it('"Flexible" is one word on the signed-in row tag and on Posted cards', () => {
     expect(blankComments(readFileSync("src/components/dashboard/JobCardMedia.tsx", "utf8"))).toMatch(/>Flexible<\/span>/);
     expect(blankComments(readFileSync("src/pages/posts/postedJobCard/PostedJobMetaRow.tsx", "utf8"))).not.toMatch(/Flexible time/);
+  });
+
+  it("the shared JobMetaLine: place, day, time in order, each an unbreakable chunk with its icon; no separators", () => {
+    const { container } = render(<JobMetaLine place="New Iberia" day="Sun 11/29" time={shortTime("9:00 AM")} />);
+    const line = container.querySelector("[data-job-meta-line]") as HTMLElement;
+    const parts = [...line.children] as HTMLElement[];
+    expect(parts.map((p) => p.textContent)).toEqual(["New Iberia", "Sun 11/29", "9 AM"]);
+    for (const p of parts) {
+      expect(p.className).toContain("whitespace-nowrap");
+      expect(p.className).toContain("shrink-0");
+      expect(p.querySelector("svg"), `${p.textContent} has no icon`).not.toBeNull();
+    }
+    // Never ends a line on a separator: there is none; the line wraps between whole parts (time last).
+    expect(line.textContent).not.toMatch(/·/);
+    expect(line.className).toContain("flex-wrap");
+  });
+
+  it("Home's Jobs near you and Schedule's rows draw it", () => {
+    for (const f of ["src/pages/home/homeDashboard/FirstJobHome.tsx", "src/components/profile/schedule/ScheduleCard.tsx"]) {
+      expect(blankComments(readFileSync(f, "utf8")), f).toMatch(/<JobMetaLine\b/);
+    }
   });
 });

@@ -15,7 +15,9 @@
  * and index.css still wraps `.job-meta-row` under html.senior-mode.
  *
  * @mutate src/components/dashboard/JobCard.tsx | <div className={`job-meta-row flex items-center | <div className={`flex items-center
- * @mutate src/components/profile/schedule/ScheduleCard.tsx | className="job-meta-row flex flex-1 | className="flex flex-1
+ * Polish audit 11-27 #3: the schedule card now draws the shared JobMetaLine, which always wraps between its unbreakable
+ * parts (never nowrap), so it leaves this class; a nowrap JobMetaLine without the hook would re-enter it and fail.
+ * @mutate src/components/job/JobMetaLine.tsx | className={`flex flex-wrap items-center gap-x-2.5 | className={`flex flex-nowrap overflow-hidden items-center gap-x-2.5
  * @mutate src/index.css | html.senior-mode .job-meta-row { | html.senior-mode .job-meta-row-x {
  */
 import { readFileSync } from "node:fs";
@@ -64,7 +66,7 @@ describe("location + when rows wrap in Senior mode", () => {
   const rows = locationRows();
 
   it("finds the rows (floor)", () => {
-    expect(rows.length).toBeGreaterThanOrEqual(3);
+    expect(rows.length).toBeGreaterThanOrEqual(2);
     expect(rows.map((r) => r.file)).toEqual(expect.arrayContaining(["src/components/dashboard/JobCard.tsx", "src/components/job-card/JobCardMetaRow.tsx"]));
   });
 

@@ -1,6 +1,13 @@
 import { useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { report } from "@/lib/errorLogger";
+import { KEEP_PAGE } from "@/lib/keepPage";
+
+/** The entry's own state plus KEEP_PAGE: a mirror write refines the page it is on, never makes a new one. */
+const withKeepPage = (state: unknown): Record<string, unknown> => ({
+  ...(state && typeof state === "object" ? (state as Record<string, unknown>) : {}),
+  [KEEP_PAGE]: true,
+});
 
 /**
  * Rolling write-rate instrumentation.
@@ -141,6 +148,13 @@ export function useSearchParamMirror(
   // Held in a ref, never a dep — see the warning in the doc comment above.
   const setSearchParamsRef = useRef(setSearchParams);
   setSearchParamsRef.current = setSearchParams;
+  // The entry's state, carried over on our write with KEEP_PAGE added (polish audit 11-27 #8): every replace makes a
+  // new location.key, RoutePageTransition keys the page by it, and without the flag the page remounted on each write.
+  // Signed-out /browse lost the search field's focus after the first letter ("clean" left "c"). Ref, never a dep.
+  // Guard: src/test/guestSearchKeepsTyping1127.test.tsx.
+  const location = useLocation();
+  const locationStateRef = useRef<unknown>(location.state);
+  locationStateRef.current = location.state;
 
   /**
    * THE WRITE THIS HOOK HAS ISSUED AND NOT YET SEEN LAND (Q1476).
@@ -246,7 +260,7 @@ export function useSearchParamMirror(
     // render, but the adopt effect below runs in THIS commit and still sees
     // `search`; it must not take that pre-write URL for an outside change.
     inFlightRef.current = { from: search, to: nextSearch };
-    setSearchParamsRef.current(next, { replace: true });
+    setSearchParamsRef.current(next, { replace: true, state: withKeepPage(locationStateRef.current) });
     // Both deps are strings: once the write lands, `search` matches `desired`,
     // this re-runs once more, finds nothing changed, and stops.
   }, [stateKey, search]);

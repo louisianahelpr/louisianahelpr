@@ -24,6 +24,8 @@ const router = vi.hoisted(() => ({
 }));
 
 vi.mock("react-router-dom", () => ({
+  // The hook reads the entry's state to carry it over on its write (KEEP_PAGE, polish audit 11-27 #8).
+  useLocation: () => ({ state: null }),
   useSearchParams: () => [
     new URLSearchParams(router.search),
     (next: URLSearchParams) => {

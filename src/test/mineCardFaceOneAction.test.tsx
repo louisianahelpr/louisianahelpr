@@ -14,7 +14,7 @@
  *
  * @mutate src/components/job-card/MineJobFace.tsx |           {buttonLabel(action.label)} |           {action.label}
  * Q1816 (axe 4.14 label-content-name-mismatch, WCAG 2.5.3): the face link's name holds every word it shows, in order.
- * @mutate src/components/job-card/MineJobFace.tsx | aria-label={[`Open ${title}`, money && moneyNote ? `${money} ${AFTER_FEES_WORDS}` : money, when].filter(Boolean).join(", ")} | aria-label={`Open ${title}`}
+ * @mutate src/components/job-card/MineJobFace.tsx | aria-label={[`Open ${title}`, money, when].filter(Boolean).join(", ")} | aria-label={`Open ${title}`}
  * @mutate src/components/job-card/MineJobFace.tsx |             {when && " "}\n |
  * @mutate src/pages/home/HomeDashboard.tsx | className="font-normal text-muted-foreground"> · {line}</span>} | className="font-normal text-muted-foreground">{line}</span>}
  * @mutate src/components/DesktopSidebarNav.tsx |                   {soon && " "}\n |

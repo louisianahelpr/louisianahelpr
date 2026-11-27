@@ -21,6 +21,8 @@
  * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-deal-grid[data-gift-capped]>li:nth-child(n+13){display:none} | .gg-deal-grid[data-gift-capped]>li{}
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | -webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden} | }
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | justify-content:center;height:120px;flex:none; | justify-content:center;aspect-ratio:1/1;
+ * @mutate src/lib/giftGuideOfferCopy.mjs | const t = raw.replace(DAY_PAREN, "").replace(DAY_LEAD, "") | const t = raw
+ * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | className="gg-card-sale">{offerOnly(x.offer)}</GiftOut> | className="gg-card-sale">{x.offer}</GiftOut>
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -32,6 +34,7 @@ import { DEAL_TEXT_MAX, buildDeals, dealTextProblem, type SourceDeal } from "../
 vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
 import { CARD_WORDS, SECTION_CAP } from "@/pages/info/giftGuides/GiftGuideDealCards";
+import { offerOnly } from "@/lib/giftGuideOfferCopy.mjs";
 
 const deals = DEALS as Deal[];
 const SOURCE = JSON.parse(readFileSync("scripts/gift-guide-deals-1121.json", "utf8")) as { deals: SourceDeal[] };
@@ -76,7 +79,7 @@ describe("polish audit 1127 #17: compact deal cards and capped sections", () => 
     expect(css).toContain("padding:12px;border:1px solid var(--gg-line);border-radius:14px");
     expect(css).toContain(".gg-deal-photo{display:flex;align-items:center;justify-content:center;height:120px;flex:none;");
     expect(css).toContain(".gg-deal-text{margin:0;font-size:14px;line-height:1.35;color:var(--gg-ink);overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}");
-    expect(css).toContain(".gg-deal>.gg-deal-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}");
+    expect(css).toContain(".gg-deal>p[data-gift-deal-dates]{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}");
     expect(css).toContain(".gg-deal-brand{margin:2px 0 0;font-size:15px;font-weight:700;");
   });
 
@@ -105,5 +108,20 @@ describe("polish audit 1127 #17: compact deal cards and capped sections", () => 
         expect(g.nextElementSibling?.hasAttribute("data-gift-show-all") ?? false).toBe(false);
       }
     }
+  });
+});
+
+describe("polish audit 1127 #18: code and sale lines drop the day's name on their cards", () => {
+  it("offerOnly takes off '(Black Friday)' and a leading 'Black Friday ...:' and keeps the rest; the cards use it", () => {
+    expect(offerOnly("25% off everything (Black Friday)")).toBe("25% off everything");
+    expect(offerOnly("25% off sitewide, no code needed (Black Friday + Cyber Monday)")).toBe("25% off sitewide, no code needed");
+    expect(offerOnly("Early Black Friday sale: up to 50% off eligible styles")).toBe("Up to 50% off eligible styles");
+    expect(offerOnly("Black Friday through Cyber Monday: paddles 40% off")).toBe("Paddles 40% off");
+    // Mid-sentence words and a line that is only the day's name stay.
+    expect(offerOnly("Save up to 50% on Black Friday early access")).toBe("Save up to 50% on Black Friday early access");
+    expect(offerOnly("Black Friday Deals")).toBe("Black Friday Deals");
+    const cards = src("src/pages/info/giftGuides/GiftGuideDealCards.tsx");
+    expect(cards).toContain('<span className="gg-card-offer">{offerOnly(c.offer)}</span>');
+    expect(cards).toContain('className="gg-card-sale">{offerOnly(x.offer)}</GiftOut>');
   });
 });

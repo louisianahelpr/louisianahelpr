@@ -19,6 +19,7 @@ import { MemoryRouter } from "react-router-dom";
 import { discountCodes, type DiscountCode } from "@/content/giftGuides";
 import { DEAL_EVENTS, DEALS_WORDS, codesDay } from "@/content/giftGuideDeals.mjs";
 import { CodeCards, codesOn } from "@/pages/info/giftGuides/GiftGuideDealCards";
+import { offerOnly } from "@/lib/giftGuideOfferCopy.mjs";
 
 /** The deals this queue added: store, exact code, end day (and the link, when one was made for it; `on`: a day it shows). */
 const ADDED: { store: string; code: string; offer: RegExp; expires: string; on?: string; href?: string }[] = [
@@ -68,7 +69,8 @@ describe("deals queue 1123: the incoming Black Friday / Cyber Monday deals are o
       if (!days.has(on)) days.set(on, textOn(on));
       const text = days.get(on)!;
       const c = find(a)!;
-      expect(text, `${a.store}: ${c.offer}`).toContain(c.offer);
+      // Polish audit 1127 #18: the card shows the offer without the day's name (offerOnly).
+      expect(text, `${a.store}: ${c.offer}`).toContain(offerOnly(c.offer));
       expect(text, `${a.store}: ${c.offer}`).toContain(DEALS_WORDS.runs(c.starts, c.expires));
     }
     expect(days.get("2026-11-28")).toContain("TAKE20");

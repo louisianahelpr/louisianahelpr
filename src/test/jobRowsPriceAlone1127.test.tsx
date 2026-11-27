@@ -4,16 +4,17 @@
  *      it), on every surface that draws that row (JobPrice's chip: Browse, Home's "Jobs near you"; CompactJobCard; the
  *      /browse HTML shell), and on the job's detail, where the same small label sat (JobPrice's pop-up pill, the pop-up
  *      title row's large figure, the job page's HelprPrice). The apply sheet, the chat card, the Applied/Working card,
- *      Search rows and the "Application sent" sentence keep 11-22's note (src/test/helprPayAfterFeesNote.test.ts).
+ *      Search rows and the "Application sent" sentence lost it the same evening (polish audit 11-27 #1; the class guard
+ *      is src/test/noAfterFeesAnywhere1127.test.ts).
  *   2. "It's hard to tell the difference between location, category, time, day" ... then "keep them ALL ON ONE LINE":
  *      a feed ROW's meta line names each part by its look: the category tinted (its tile's colour), a pin before the
  *      town, a calendar before the day ("Sun 11/29" on a phone, "Sun, Nov 29" from 640px), a clock before the time,
  *      10px apart and no "·" between them. The shell draws the same.
  * (Owner 3, Declutter's repeated sign-up line, is held by phoneCompactBrowse1125 and DeclutterBrowse.guest.)
  *
- * @mutate src/components/dashboard/JobPrice.tsx |       {/* Guest/poster surfaces still see | {!showBudget && <AfterFeesNote />}{/* Guest/poster surfaces still see
- * @mutate src/components/dashboard/helprTakeHome.tsx | </span>}${formatPriceFloor(net)} | </span>}${formatPriceFloor(net)}<AfterFeesNote />
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | ${formatPriceFloor(net)}</p> | ${formatPriceFloor(net)}</p><AfterFeesNote />
+ * @mutate src/components/dashboard/JobPrice.tsx |       {/* Guest/poster surfaces still see | <span data-after-fees="">after fees</span>{/* Guest/poster surfaces still see
+ * @mutate src/components/dashboard/helprTakeHome.tsx | </span>}${formatPriceFloor(net)} | </span>}${formatPriceFloor(net)}<span data-after-fees="">after fees</span>
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | ${formatPriceFloor(net)}</p> | ${formatPriceFloor(net)}</p><span data-after-fees="">after fees</span>
  * @mutate src/lib/browseShellCards.mjs | ${net}</span></div> | ${net}</span><span data-after-fees="">after fees</span></div>
  * @mutate src/components/dashboard/JobCard.tsx | <MapPin className={row ? JOB_ROW_META_ICON : "w-2.5 h-2.5 shrink-0"} /> | {!row && <MapPin className="w-2.5 h-2.5 shrink-0" />}
  * @mutate src/components/dashboard/JobCard.tsx | {!row && job.date_needed && timeLabel && <span | {job.date_needed && timeLabel && <span
@@ -66,13 +67,13 @@ describe("1. the Jobs list row and the job's detail show the price alone (owner 
 
   it("no list-row or job-detail surface renders the note; the shell draws none", () => {
     for (const f of ["src/components/dashboard/JobPrice.tsx", "src/components/dashboard/CompactJobCard.tsx", "src/pages/jobs/jobPage/JobPageParts.tsx"]) {
-      expect(code(f), f).not.toMatch(/<AfterFeesNote\b/);
+      expect(code(f), f).not.toMatch(/<AfterFeesNote\b|after fees/);
     }
-    // The pop-up title row's large figure (JobPriceTakeHome bare); its in-sentence form keeps the note.
+    // The pop-up title row's large figure (JobPriceTakeHome bare).
     const take = code("src/components/dashboard/helprTakeHome.tsx");
     const bare = take.slice(take.indexOf("if (bare) {"), take.indexOf("  return (", take.indexOf("if (bare) {") + 20));
     expect(bare.length).toBeGreaterThan(80);
-    expect(bare).not.toMatch(/AfterFeesNote/);
+    expect(bare).not.toMatch(/AfterFeesNote|after fees/);
     const shell = browseShellHtml([row], NOW);
     expect(shell).toContain("Deep clean 2 bedroom house");
     expect(shell).not.toMatch(/after fees|data-after-fees/);

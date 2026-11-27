@@ -12,7 +12,7 @@ export const esJobsHelpr: Record<keyof typeof enJobsHelpr, string> = {
   "jh.f.showOnly": "Mostrar solo",
   "jh.f.more": "Más filtros",
   "jh.f.anyPrice": "Cualquier precio",
-  "jh.f.priceHint": "El precio puesto en el trabajo. Las tarjetas muestran lo que usted se llevaría.",
+  "jh.f.priceHint": "Filtre por lo que paga el trabajo.",
   "jh.f.savedOnly": "Solo trabajos guardados",
   "jh.f.savedN": "{n} guardados",
   "jh.f.noneOpen": "Ninguno abierto ahora",

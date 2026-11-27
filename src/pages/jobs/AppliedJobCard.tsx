@@ -12,8 +12,6 @@ import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/u
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
 import { formatPriceFloor } from "@/lib/format";
-import { AfterFeesNote } from "@/components/job/AfterFeesNote";
-import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { closedCardLabel, deriveAppliedJobCardState, describeCancellation, posterFirstName } from "./appliedJobCard/appliedJobCardHelpers";
@@ -274,10 +272,8 @@ function AppliedJobCardInner({
             extra={addressOnFace ? metaRow : null}
             // FLOORED, matching JobPrice (owner, 2026-08-19): a take-home never
             // reads above the payout. What this Helpr takes home (board 21).
-            // Owner 2026-11-22 ("One number, small label"): the small grey "after fees" note under it
-            // (the giveaway's fixed pay, owner 2026-10-30, has no words). Guard: helprPayAfterFeesNote.test.ts.
+            // Owner 2026-11-27 (polish audit #1): the price stands alone, no "after fees". Guard: src/test/noAfterFeesAnywhere1127.test.ts.
             money={`$${formatPriceFloor(payout)}`}
-            moneyNote={isGiveawayFixedPayJob(job) ? null : <AfterFeesNote />}
             status={
               !isMinimalCard && !isExpanded ? (
                 <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} progress={faceProgress} otherFirst={posterFirst} />

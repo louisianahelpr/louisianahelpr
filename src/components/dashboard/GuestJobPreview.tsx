@@ -3,7 +3,7 @@
  * "Guests see shared jobs: no poster, address, coordinates").
  *
  * A guest who taps a job on the public Browse list, or opens a shared job link, sees the job's title, category,
- * town and parish, its day and time, and what they would earn after fees, and one way forward: "Sign up to apply".
+ * town and parish, its day and time, and its pay, and one way forward: "Sign up to apply".
  * F217 (whole-app audit 2026-11-10): the sheet dropped the day, time and town the card had just shown, and "You'd take
  * home" read as a different figure from the card's bare price. Nothing else: no poster name, no address, no
  * coordinates, no description or photos (a description is free text and can carry a street address or a phone
@@ -67,8 +67,6 @@ export type GuestJob = FlatFeeStamp & {
   description?: string | null;
 };
 
-/** The pay label: the same words on the sheet for every paid job, so it never reads as a second figure (F217). */
-const GUEST_PAY_LABEL = "You'd earn after fees";
 
 /** The fee rate a guest card is priced at (DashboardGuest passes the same to every guest JobCard). */
 export const GUEST_FEE_PERCENT = TIER_PERKS.free.platformFeePercent;
@@ -104,7 +102,6 @@ const FACT_KEYS: Record<string, string> = {
   Day: "pub.fact.Day",
   Time: "pub.fact.Time",
   Pay: "pub.fact.Pay",
-  [GUEST_PAY_LABEL]: "pub.fact.earn",
 };
 export const guestFactLabel = (label: string): string => (FACT_KEYS[label] ? wordInLang(FACT_KEYS[label], label) : label);
 
@@ -126,7 +123,9 @@ export function guestJobFacts(job: GuestJob, firstPayoutFeeDollars = 0): Array<{
   else if (!day && !(job.date_needed || job.start_time)) facts.push({ label: "Time", value: FLEXIBLE_TIME_LABEL });
   const net = guestTakeHome(job, firstPayoutFeeDollars);
   // Owner 2026-10-30: the giveaway shows its pay with no "take home" words.
-  if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : GUEST_PAY_LABEL, value: `$${formatPriceFloor(net)}` });
+  // The pay row says "Pay" for every paid job (F217: one label, never a second figure; owner 2026-11-27, polish audit
+  // #1: no "You'd earn after fees"). Guard: src/test/noAfterFeesAnywhere1127.test.ts.
+  if (net != null) facts.push({ label: "Pay", value: `$${formatPriceFloor(net)}` });
   return facts;
 }
 

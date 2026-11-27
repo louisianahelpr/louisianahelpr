@@ -17,7 +17,7 @@ export const enJobsHelpr = {
   "jh.f.showOnly": "Show only",
   "jh.f.more": "More filters",
   "jh.f.anyPrice": "Any price",
-  "jh.f.priceHint": "The price set on the job. Cards show what you would take home.",
+  "jh.f.priceHint": "Filter by what the job pays.",
   "jh.f.savedOnly": "Saved jobs only",
   "jh.f.savedN": "{n} saved",
   "jh.f.noneOpen": "None open right now",

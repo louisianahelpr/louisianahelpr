@@ -3,7 +3,7 @@
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           {confirmApplyJob && <ApplyJobSummary job={confirmApplyJob} />} |
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |         {meta && <p className="font-sans text-ds-13 text-muted-foreground">{meta}</p>} |         {meta && <p className="font-sans text-ds-13 text-muted-foreground">{meta}</p>}<span>${job.budget}</span>
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const applyLabel = "Apply now"; |   const applyLabel = `Apply at $${confirmApplyJob?.budget}`;
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |       {!isGiveawayFixedPayJob(confirmApplyJob) && <AfterFeesNote />} |       {<AfterFeesNote />}
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |         ${formatPriceFloor(takeHome)} |         ${formatPriceFloor(takeHome)}<span>after fees</span>
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -84,8 +84,8 @@ describe("ApplyConfirmDialog", () => {
     // sheet shows: no fee name, rate or subtraction.
     render(<ApplyConfirmDialog {...makeProps()} />);
     expect(screen.getByText(/Fix the fence/)).toBeInTheDocument();
-    // Owner 2026-11-22 ("One number, small label"): the figure and a small "after fees" note.
-    expect(screen.getByText("after fees")).toBeInTheDocument();
+    // Owner 2026-11-27 (polish audit #1): the figure alone, no "after fees" note.
+    expect(screen.queryByText("after fees")).toBeNull();
     expect(screen.getByText("$90")).toBeInTheDocument();
     expect(screen.queryByText("$100")).toBeNull();
     expect(document.body.textContent ?? "").not.toMatch(/platform fee|helpr fee|10%|budget −/i);
@@ -422,11 +422,11 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
         expect(sheet).not.toMatch(/setup fee/i);
       });
 
-      it(`every other job shows only the take-home, "after fees", never the posted price${owing}`, () => {
+      it(`every other job shows only the take-home, no "after fees", never the posted price${owing}`, () => {
         owedFee.cents = cents;
         render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ ...stamp, helper_fee_flat_cents: 70 }) })} />);
         expect(document.body.textContent ?? "").not.toContain("$60");
-        expect(screen.getByText("after fees")).toBeInTheDocument();
+        expect(document.body.textContent ?? "").not.toMatch(/after fees/);
         expect(screen.getByRole("button", { name: "Apply now" })).toBeEnabled();
         const sheet = document.body.textContent ?? "";
         expect(sheet).toContain(cents ? "$54" : "$56");

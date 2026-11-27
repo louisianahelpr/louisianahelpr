@@ -214,12 +214,13 @@ export function DeclutterGuestBrowseJoin() {
         <span className="font-semibold">{want}</span>{" "}
         <span className="text-muted-foreground">{gw("g.newHere")}</span>
       </p>
+      {/* The primary on the right of the pair (buttonPairsPrimaryRight): Sign up the aside, then Log in. */}
       <div className="flex shrink-0 gap-2" data-guest-join-buttons="">
-        <Button asChild size="sm" variant="default" className="rounded-full">
-          <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>
-        </Button>
         <Button asChild size="sm" variant="outline" className="rounded-full">
           <Link to={`/signup?redirect=${here(location)}`}>{gw("g.signUp")}</Link>
+        </Button>
+        <Button asChild size="sm" variant="default" className="rounded-full">
+          <Link to={`/login?redirect=${here(location)}`}>{gw("g.logIn")}</Link>
         </Button>
       </div>
     </section>

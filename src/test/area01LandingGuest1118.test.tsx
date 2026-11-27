@@ -32,7 +32,7 @@
  * @mutate src/lib/parishes.ts |   return parishForCity(town) ?? BY_PRIMARY_CITY_LOWER.get(town.trim().toLowerCase()) ?? null; |   return parishForCity(town);
  * @mutate src/index.css |   border: 1px solid hsl(var(--input));\n} |   border: 0;\n}
  * @mutate src/index.css | .helpr-emblem {\n  filter: none;\n} | .helpr-emblem {\n  filter: drop-shadow(0 1px 1px rgba(46, 47, 34, 0.18));\n}
- * @mutate src/components/landing/LiveJobsSection.tsx | {date && <span className="whitespace-nowrap" data-live-job-date="">{date}</span>} | {date}
+ * @mutate src/components/landing/LiveJobsSection.tsx | const whereLine = <JobMetaLine place={parish} day={date} | const whereLine = <span>{parish} · {date}</span>; void <JobMetaLine place={parish} day={date}
  * @mutate src/lib/i18n/esLanding.ts |   "landing.how.side.sell": "Compra y venta", |   "landing.how.side.sell": "Comprar o vender",
  * @mutate src/pages/info/Fees.tsx |           {t("fees.declutter", { pct: DECLUTTER_BUYER_FEE_PERCENT, cents: DECLUTTER_BUYER_FEE_FIXED_CENTS })} |           {null}
  * @mutate src/pages/info/Safety.tsx |         <li className={INFO_CARD_ROW} data-safety-declutter="">{t("safety.declutter")}</li> |
@@ -174,8 +174,8 @@ describe("landing", () => {
     expect(rule).toContain("filter: none");
     expect(rule).not.toContain("drop-shadow");
   });
-  it("#7 the card's date is one unbreakable run", () => {
-    expect(src("src/components/landing/LiveJobsSection.tsx")).toContain('<span className="whitespace-nowrap" data-live-job-date="">{date}</span>');
+  it("#7 the card's date is one unbreakable run (polish 11-27 #3: the shared JobMetaLine, whose parts are nowrap)", () => {
+    expect(src("src/components/landing/LiveJobsSection.tsx")).toContain("const whereLine = <JobMetaLine place={parish} day={date}");
   });
   it("#8 the Spanish tabs are no longer than the English by more than 3 letters", () => {
     for (const side of ["hire", "work", "sell"] as const) {

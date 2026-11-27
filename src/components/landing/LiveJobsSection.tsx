@@ -6,6 +6,7 @@ import { LandingProof, useProofLine } from "./LandingProof";
 import { JOBS_SHELL, LandingBrowseShell, NO_JOBS_DECLUTTER_SHELL } from "./LandingBrowseShell";
 import { FreshDeclutterSection } from "./FreshDeclutterSection";
 import { useGuestSpanish } from "./useGuestSpanish";
+import { JobMetaLine } from "@/components/job/JobMetaLine";
 
 /**
  * "Live now: Open jobs near you" (owner, 2026-10-23, landing option B): the
@@ -212,16 +213,11 @@ export function LiveJobsSection() {
           state.jobs.slice(0, LIVE_JOBS_LIMIT).map((j) => {
             const date = liveJobDate(j.date_needed, es ? "es-US" : "en-US");
             const parish = j.parish ? w("landing.live.parish", "{parish} Parish").replace("{parish}", j.parish) : null;
-            const where = [parish, date].filter(Boolean).join(" · ");
-            // Design audit areas 11-18 #7: the date never breaks inside itself ("Sat, Dec" over a lone "5"); the line
-            // may still wrap between the parish and the date.
-            const whereLine = (
-              <>
-                {parish}
-                {parish && date ? " · " : null}
-                {date && <span className="whitespace-nowrap" data-live-job-date="">{date}</span>}
-              </>
-            );
+            const where = parish || date;
+            // Design audit areas 11-18 #7: the date never breaks inside itself ("Sat, Dec" over a lone "5"). Polish audit
+            // 11-27 #3: the shared details line (pin, calendar), so a line can no longer end on a "·"
+            // ("East Baton Rouge Parish ·" over "Sat, Dec 5"); each part is one unbreakable run.
+            const whereLine = <JobMetaLine place={parish} day={date} />;
             return (
               <li key={j.id} data-live-job="">
                 <Link

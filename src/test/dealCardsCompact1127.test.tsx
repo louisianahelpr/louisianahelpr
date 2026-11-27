@@ -28,7 +28,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
-import { dealDay, isSteal, type Deal } from "@/content/giftGuideDeals.mjs";
+import { DEALS_WORDS, dealDay, isSteal, type Deal } from "@/content/giftGuideDeals.mjs";
 import { DEAL_TEXT_MAX, buildDeals, dealTextProblem, type SourceDeal } from "../../scripts/gift-guide-deals.mjs";
 vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
@@ -62,6 +62,14 @@ describe("polish audit 1127 #18: a store sale's text is the offer only", () => {
     // Kohl's Cash is the reward's name, not the brand repeated; a plain offer is clean.
     expect(dealTextProblem({ brand: "Kohl's", code: "TAKE20", deal: "Extra 20% off with the code, plus $15 Kohl's Cash per $50" })).toBe("");
     expect(dealTextProblem({ brand: "Lancôme", deal: "Up to 50% off on Amazon" })).toBe("");
+  });
+
+  it("a one-day deal carries its day in the date line, not the text (CAKES Body's Cyber Monday-only bra)", () => {
+    expect(DEALS_WORDS.runs("2026-11-30", "2026-11-30")).toBe("Nov 30 only");
+    expect(DEALS_WORDS.runs("2026-11-27", "2026-11-30")).toBe("Nov 27 – Nov 30");
+    const cakes = deals.find((d) => d.event === "cyber-monday" && d.brand === "CAKES Body");
+    expect(cakes).toMatchObject({ starts: "2026-11-30", ends: "2026-11-30" });
+    expect(cakes!.deal).toContain("Cleavage bra 30% off");
   });
 
   it("the generator refuses a row that breaks it, so a new deal follows the rule", () => {

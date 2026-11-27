@@ -19,9 +19,10 @@ export function OptionalExtras({ icon, title, summary, filled, children, testId 
 }) {
   const [open, setOpen] = useState(filled);
   return (
-    <section className="rounded-[20px] border border-border bg-card" data-testid={testId} data-open={open ? "" : undefined}>
+    // Polish audit 11-27 #10: a flat group under a hairline, not a card inside the step. Guard: src/test/postJobNoCardsInCards1127.test.ts.
+    <section className="border-t border-border [&>button]:px-0" data-flat-group="" data-testid={testId} data-open={open ? "" : undefined}>
       <CardDisclosureHeader icon={icon} title={title} summary={summary} open={open} onToggle={() => setOpen((o) => !o)} />
-      <div hidden={!open} className="space-y-section px-4 pb-4">
+      <div hidden={!open} className="space-y-section pb-4">
         {children}
       </div>
     </section>

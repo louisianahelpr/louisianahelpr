@@ -498,7 +498,8 @@ export function LogisticsSection({
           />
         )}
         {/* No exact address before hire: Helprs see the town and the distance. */}
-        <div className="flex items-start gap-2.5 rounded-2xl border border-border bg-card p-4">
+        {/* Polish audit 11-27 #10 (and LOW #110): one grey line, not a card. Guard: src/test/postJobNoCardsInCards1127.test.ts. */}
+        <div data-flat-row="" className="flex items-start gap-2.5">
           <Shield className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--bark))]" aria-hidden />
           <p className="font-sans text-ds-13 leading-snug text-muted-foreground">
             Helprs see <span className="font-semibold text-foreground">{town || "your town"}</span> and the distance. {STREET_ADDRESS_RULE}

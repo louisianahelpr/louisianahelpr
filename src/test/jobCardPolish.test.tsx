@@ -184,7 +184,7 @@ describe("job card polish (owner 2026-10-23)", () => {
     expect(container.querySelector(".whitespace-normal")).toBeNull();
     // The address gives way; date and time stay on the line (the first cut pushed them out, looked 2026-10-23).
     expect(container.querySelector(".basis-full")).toBeNull();
-    expect(container.textContent).toMatch(/3:00 PM/);
+    expect(container.textContent).toMatch(/3 PM/); // polish 11-27 #3: one line says "3 PM"
   });
 
   it("12: no caption word under the price (owner 2026-10-25); 14: desktop price beside the title", () => {

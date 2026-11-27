@@ -147,7 +147,8 @@ export const DEALS_WORDS = {
    * both days when both are known ("Nov 20 – Nov 28"), else the one we know ("Starts Nov 27" / "Ends Dec 17"), else
    * nothing. Never an invented day.
    */
-  runs: (start, end) => (start && end ? `${shortDay(start)} – ${shortDay(end)}` : start ? `Starts ${shortDay(start)}` : end ? `Ends ${shortDay(end)}` : ""),
+  // A one-day deal (start and end the same day: CAKES Body's Cyber Monday-only bra price) reads "Nov 30 only".
+  runs: (start, end) => (start && end && start === end ? `${shortDay(start)} only` : start && end ? `${shortDay(start)} – ${shortDay(end)}` : start ? `Starts ${shortDay(start)}` : end ? `Ends ${shortDay(end)}` : ""),
   shopSmall: "More Louisiana small businesses on Shop Small",
   none: "These deals have ended. Our gift guides are still full of ideas.",
   noneCta: "Browse the gift guides",

@@ -42,7 +42,7 @@ const chunk = (JSON.parse(readFileSync(`src/content/giftGuidePicks/${SAMS_BF_SLU
 
 const renderAt = async (url: string) => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-11-25T23:00:00Z"));
+  vi.setSystemTime(new Date("2026-11-27T18:00:00Z")); // the rows' price-read day (re-read 2026-11-27)
   let out!: ReturnType<typeof render>;
   await act(async () => {
     out = render(
@@ -126,8 +126,8 @@ describe("the Sam's Club Black Friday deals guide (owner 2026-11-25)", () => {
   });
 
   it("its search words say deals, never for kids", () => {
-    const rows = chunk.map((p) => ({ name: p.name, price: p.price, priceAt: "2026-11-25", store: "Sam's Club" }));
-    const meta = giftGuidePageMeta(SAMS_BF_SLUG, "", [], rows.length, rows, "2026-11-25");
+    const rows = chunk.map((p) => ({ name: p.name, price: p.price, priceAt: "2026-11-27", store: "Sam's Club" }));
+    const meta = giftGuidePageMeta(SAMS_BF_SLUG, "", [], rows.length, rows, "2026-11-27");
     expect(meta.title).toMatch(/deals/i);
     expect(`${meta.title} ${meta.description}`).not.toMatch(/for kids/i);
   });

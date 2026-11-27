@@ -11,7 +11,7 @@
  *
  * Owner 11-01 (A3-87): the card's figure stands alone ("You take home" gone; an sr-only "Your pay"), and the
  * poster's price has no "held safely" line, as on the job page. Owner 2026-11-22 ("One number, small label"):
- * the figure now carries the small grey "after fees" note (src/test/helprPayAfterFeesNote.test.ts).
+ * the figure stood with a small grey "after fees" note until polish audit 11-27 #1 took it off (noAfterFeesAnywhere1127).
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -98,7 +98,7 @@ describe("chat job card: the Helpr sees their take-home (F2)", () => {
 
   it("the hired Helpr sees $35 (40 - 2.70 fee - the $2 setup fee, floored), not $40", async () => {
     const { container } = show(false);
-    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $35after fees"));
+    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $35"));
     expect(container.textContent).not.toMatch(/take home/i);
     expect(container.textContent).not.toContain("$40");
     expect(container.textContent).not.toContain("held safely");
@@ -107,7 +107,7 @@ describe("chat job card: the Helpr sees their take-home (F2)", () => {
   it("with the setup fee already paid, the take-home is $37", async () => {
     state.owed = 0;
     const { container } = show(false);
-    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $37after fees"));
+    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $37"));
   });
 
   it("the poster still sees the $40 they paid, with no 'held safely' line (owner 11-01)", async () => {

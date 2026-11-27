@@ -9,7 +9,7 @@
  * F284a: the Browse filter's price caption said "The job's price as posted" while the cards show the Helpr's pay
  * after the fee (helprTakeHome.tsx), so the two numbers looked like a contradiction. The slider still filters on the
  * posted price (min_budget / max_budget are the posted figure), so the caption says so AND names the card's number.
- * @mutate src/lib/i18n/enJobsHelpr.ts | "jh.f.priceHint": "The price set on the job. Cards show what you would take home.", | "jh.f.priceHint": "The job's price as posted",
+ * @mutate src/lib/i18n/enJobsHelpr.ts | "jh.f.priceHint": "Filter by what the job pays.", | "jh.f.priceHint": "The job's price as posted",
  *
  * F295: the blocked-message sheet labelled a caught phrase "Off-platform language detected" and promised that
  * "no strike has been recorded" — moderation words that scare a well-meaning Helpr. The scanner now labels the two
@@ -79,7 +79,8 @@ describe("audit 11-10 W2: Jobs in-app copy", () => {
     // Area 04 #2 (11-18): the caption is the dictionary's now (Spanish too); the slider draws that key.
     expect(read("src/components/dashboard/filterSheet/PayRangeSlider.tsx")).toContain('{t("jh.f.priceHint")}');
     const src = read("src/lib/i18n/enJobsHelpr.ts");
-    expect(src).toContain('"jh.f.priceHint": "The price set on the job. Cards show what you would take home."');
+    // Owner 2026-11-27 (polish audit #1): no take-home words; the note says what the filter does.
+    expect(src).toContain('"jh.f.priceHint": "Filter by what the job pays."');
     expect(src).not.toContain("price as posted");
   });
 

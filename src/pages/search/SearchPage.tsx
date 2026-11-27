@@ -37,8 +37,7 @@ import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { likePattern, type SearchSection } from "./searchQuery";
 import { SearchStart } from "./SearchStart";
 import { pushRecentSearch } from "@/lib/searchHistory";
-import { searchJobPrice, searchJobPriceIsTakeHome, type PricedJobHit } from "./searchJobPrice";
-import { AfterFeesNote } from "@/components/job/AfterFeesNote";
+import { searchJobPrice, type PricedJobHit } from "./searchJobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import "@/lib/i18n/enSearch";
@@ -196,7 +195,7 @@ function JobThumb({ category }: { category: string | null }) {
   );
 }
 
-function Row({ to, title, sub, price, thumb, priceInk, priceNote = null }: { to: string; title: string; sub?: string | null; price?: string | null; thumb?: React.ReactNode; priceInk?: boolean; priceNote?: React.ReactNode }) {
+function Row({ to, title, sub, price, thumb, priceInk }: { to: string; title: string; sub?: string | null; price?: string | null; thumb?: React.ReactNode; priceInk?: boolean }) {
   return (
     <Link
       to={to}
@@ -210,8 +209,8 @@ function Row({ to, title, sub, price, thumb, priceInk, priceNote = null }: { to:
         {sub && <span className="block font-sans text-ds-12 text-muted-foreground truncate">{sub}</span>}
       </span>
       {/* Audit 11-21 (P15): a job's price is ink, as on the Browse row (jobsHairlineRows); an item keeps Declutter's rust. */}
-      {/* Owner 2026-11-22 ("One number, small label"): a Helpr's take-home carries the small grey "after fees". */}
-      {price && <span className="shrink-0 text-right font-sans font-bold text-ds-14 tabular-nums" style={{ color: priceInk ? "hsl(var(--ink-deep))" : "hsl(var(--burnt-sienna))" }}><span className="block">{price}</span>{priceNote}</span>}
+      {/* Owner 2026-11-27 (polish audit #1): the price stands alone, no "after fees". Guard: src/test/noAfterFeesAnywhere1127.test.ts. */}
+      {price && <span className="shrink-0 text-right font-sans font-bold text-ds-14 tabular-nums" style={{ color: priceInk ? "hsl(var(--ink-deep))" : "hsl(var(--burnt-sienna))" }}><span className="block">{price}</span></span>}
     </Link>
   );
 }
@@ -388,7 +387,6 @@ export default function SearchPage() {
           sub={[jobPlace(j), j.date_needed ? jobDayLabel(j) : null].filter(Boolean).join(" · ") || null}
           price={searchJobPrice(j, user?.id ?? null, viewerFee, firstPayoutFee)}
           priceInk
-          priceNote={searchJobPriceIsTakeHome(j, user?.id ?? null) ? <AfterFeesNote /> : null}
         />
       ))}
     </Group>

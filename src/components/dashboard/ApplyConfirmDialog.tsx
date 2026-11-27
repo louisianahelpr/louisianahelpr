@@ -12,7 +12,7 @@ import { jobDayLabel } from "@/lib/jobDateWindow";
  * the job row has it; never the street address. No price (owner 2026-11-22, "One
  * number, small label"): a Helpr sees one figure, their take-home with "after
  * fees", in the box right under this card; the posted price is the poster's.
- * Guard: src/test/helprPayAfterFeesNote.test.ts.
+ * Guard: src/test/noAfterFeesAnywhere1127.test.ts.
  */
 function ApplyJobSummary({ job }: { job: EnrichedJob }) {
   const when = [job.date_needed ? jobDayLabel(job) : null, jobStartTimeLabel(job.start_time, job.is_flexible_schedule)]

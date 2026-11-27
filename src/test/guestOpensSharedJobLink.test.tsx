@@ -127,7 +127,7 @@ describe("a guest opening a shared link", () => {
     expect(net).toBeGreaterThan(0);
     expect(net).toBeLessThan(120);
     expect(screen.getByText(`$${Math.floor(net!)}`)).toBeTruthy();
-    expect(screen.getByText("You'd earn after fees")).toBeTruthy();
+    expect(screen.getByText("Pay")).toBeTruthy();
     expect(screen.queryByText("$120")).toBeNull();
     expect(screen.queryByText(/Oak St/)).toBeNull();
     expect(screen.queryByTestId("where")).toBeNull();

@@ -1,5 +1,4 @@
 import { ShieldCheck } from "lucide-react";
-import { AfterFeesNote } from "@/components/job/AfterFeesNote";
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useApplyTakeHome } from "./applyTakeHome";
@@ -8,7 +7,6 @@ import { useApplyTakeHome } from "./applyTakeHome";
 // wrong for the lines that justify it, where the column has to add up.
 import { formatPriceFloor } from "@/lib/format";
 import { setupFeeWords } from "@/lib/takeHomeFeeWords";
-import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
 /**
  * ApplyEarningsBreakdown — the "You earn" take-home block on the apply step.
@@ -54,7 +52,7 @@ export function ApplyEarningsBreakdown({
       >
         ${formatPriceFloor(takeHome)}
       </p>
-      {!isGiveawayFixedPayJob(confirmApplyJob) && <AfterFeesNote />}
+      {/* Owner 2026-11-27 (polish audit #1): the price stands alone, no "after fees". Guard: src/test/noAfterFeesAnywhere1127.test.ts. */}
 
       {firstPayoutFee > 0 && (
         <p className="mt-1.5 font-sans text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-testid="apply-setup-fee-line">

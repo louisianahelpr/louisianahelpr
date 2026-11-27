@@ -18,7 +18,6 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import type { JobProgressState } from "@/components/tracker/jobProgressState";
 import { jobDayLabel } from "@/lib/jobDateWindow";
-import { AFTER_FEES_WORDS } from "@/components/job/AfterFeesNote";
 
 /** The card's one button: the real next step, or the quiet fallback that opens the card's controls. */
 export interface MineFaceAction {
@@ -72,7 +71,6 @@ export function MineJobFace({
   when,
   status,
   money,
-  moneyNote = null,
   action,
   extra,
   progress,
@@ -88,9 +86,6 @@ export function MineJobFace({
   status: ReactNode;
   /** Pre-formatted, with its "$". Null hides it (spec §1.5). */
   money: string | null;
-  /** Under the money: a Helpr's small grey "after fees" note (owner 2026-11-22, "One number, small label").
-   *  A poster's card passes nothing: the posted price is theirs. */
-  moneyNote?: ReactNode;
   /** Null when the card is open: its own step row carries the action then. */
   action: MineFaceAction | null;
   /** Under the face, above the button, OUTSIDE the link (it may hold controls):
@@ -216,8 +211,7 @@ export function MineJobFace({
           to={`/jobs/${encodeURIComponent(jobId)}`}
           data-mine-face-open=""
           // WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the name holds every word the face shows, in order.
-          // The "after fees" note under a Helpr's take-home is shown inside this link, so it is in the name too.
-          aria-label={[`Open ${title}`, money && moneyNote ? `${money} ${AFTER_FEES_WORDS}` : money, when].filter(Boolean).join(", ")}
+          aria-label={[`Open ${title}`, money, when].filter(Boolean).join(", ")}
           className="flex min-w-0 flex-1 items-start gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span
@@ -256,11 +250,7 @@ export function MineJobFace({
                   <span className="block text-ds-17 font-bold leading-snug tabular-nums text-[hsl(var(--ink-deep))]">
                     {money}
                   </span>
-                  {/* Owner 2026-11-22 ("One number, small label"): a Helpr's take-home carries the small grey
-                      "after fees" note (AfterFeesNote, passed by AppliedJobCard); a poster's price has none.
-                      The space keeps "$140" and "after fees" two words for the link's name check (WCAG 2.5.3). */}
-                  {moneyNote && " "}
-                  {moneyNote}
+                  {/* Owner 2026-11-27 (polish audit #1): the price stands alone, no "after fees". */}
                 </span>
               )}
             </span>

@@ -1,19 +1,6 @@
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
-import { type FlatFeeStamp, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
-
-/**
- * Owner 2026-11-22 ("One number, small label"): true when the Search row's price is the viewer's
- * take-home, so it carries the small grey "after fees" note. The poster's own job (the posted
- * price), a quote job, a job with no budget and the giveaway's fixed pay (owner 2026-10-30, no
- * words) carry none. Guard: src/test/helprPayAfterFeesNote.test.ts.
- */
-export function searchJobPriceIsTakeHome(job: PricedJobHit, viewerId: string | null): boolean {
-  if (job.pricing_mode === "quote") return false;
-  if (typeof job.budget !== "number" || job.budget <= 0) return false;
-  if (viewerId && job.customer_id === viewerId) return false;
-  return !isGiveawayFixedPayJob(job);
-}
+import { type FlatFeeStamp } from "@/lib/helprFlatFee";
 
 /** The columns a Search job hit needs to be priced like the Jobs browse card. */
 export type PricedJobHit = FlatFeeStamp & {

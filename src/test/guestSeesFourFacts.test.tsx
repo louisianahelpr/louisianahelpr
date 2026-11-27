@@ -1,7 +1,7 @@
 /**
  * A GUEST SEES A JOB'S TITLE, CATEGORY, PARISH AND TAKE-HOME, THEN "SIGN UP TO APPLY" (JOBS-29, lead decision
  * 2026-10-31, under the owner's 9-2 rule "Guests see shared jobs: no poster, address, coordinates").
- * The figure is the guest Browse card's own ("You'd earn after fees $74"), never "Budget $85" beside a card that said $74
+ * The figure is the guest Browse card's own ("Pay $74"), never "Budget $85" beside a card that said $74
  * (lead 10-31, b49's finding); the sheet has its X and no drag bar (owner 10-31 14:22).
  * The 10-30 jobs audit: on guest Browse, tapping a card went straight to the sign-up form with no job shown first.
  * RE-POINTED 2026-11-12 (F268a, owner decision in OWNER-DECISIONS): a shared /jobs/:id link opened signed out is now the
@@ -22,12 +22,12 @@
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1; |   const helpers = 1;
  * @mutate src/components/dashboard/GuestJobPreview.tsx | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, job) | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, null)
  * F217 (whole-app audit 2026-11-10): the sheet also prints the card's town, day and time ("When"), and the pay reads
- * "You'd earn after fees", never "take home" beside the card's bare price.
+ * "Pay", never "take home" beside the card's bare price.
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (day) facts.push({ label: "Day", value: day }); |
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (town && area && area !== town) facts.push({ label: "Town", value: town }); |
- * @mutate src/components/dashboard/GuestJobPreview.tsx | const GUEST_PAY_LABEL = "You'd earn after fees"; | const GUEST_PAY_LABEL = "You'd take home";
+ * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (net != null) facts.push({ label: "Pay", |   if (net != null) facts.push({ label: "You'd take home",
  * @mutate src/pages/jobs/JobDetail.tsx | date_needed, date_window_end, start_time, is_flexible_schedule, status, expires_at, parish", | status, expires_at, parish",
- * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : GUEST_PAY_LABEL, value: `$${formatPriceFloor(net)}` }); |   if (job.budget) facts.push({ label: "Budget", value: `$${job.budget}` });
+ * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (net != null) facts.push({ label: "Pay", value: `$${formatPriceFloor(net)}` }); |   if (job.budget) facts.push({ label: "Budget", value: `$${job.budget}` });
  * @mutate src/components/dashboard/GuestJobPreview.tsx |         <DialogFooter>\n | <DialogFooter><button onClick={onClose}>Not now</button>\n
  * @mutate src/pages/home/DashboardGuest.tsx | <GuestJobPreview job={detailJob} | <GuestJobPreview job={{ ...detailJob, title: detailJob.description ?? "" }}
  */
@@ -68,11 +68,11 @@ describe("the guest job preview", () => {
     expect(sheet).toBeTruthy();
     expect(screen.getByText("Haul off an old couch")).toBeTruthy();
     const facts = guestJobFacts(JOB);
-    expect(facts.map((f) => f.label)).toEqual(["Category", "Town", "Parish", "Time", "You'd earn after fees"]);
+    expect(facts.map((f) => f.label)).toEqual(["Category", "Town", "Parish", "Time", "Pay"]);
     expect(facts.find((f) => f.label === "Town")?.value).toBe("Lafayette");
     expect(facts.find((f) => f.label === "Time")?.value).toBe("Flexible");
     expect(facts.find((f) => f.label === "Parish")?.value).toBe("Lafayette Parish");
-    expect(facts.find((f) => f.label === "You'd earn after fees")?.value).toBe(`$${Math.floor(guestTakeHome(JOB)!)}`);
+    expect(facts.find((f) => f.label === "Pay")?.value).toBe(`$${Math.floor(guestTakeHome(JOB)!)}`);
     expect(sheet.textContent).not.toContain("$85");
     for (const f of facts) expect(sheet.textContent).toContain(f.value);
     for (const secret of ["Oak St", "4411", "337-555", "Ann", "Guidry", "30.22", "-92.02", JOB.customer_id]) {
@@ -119,7 +119,7 @@ describe("the guest job preview", () => {
       );
       const chip = (container.textContent ?? "").replace(/[^0-9]/g, "");
       unmount();
-      const value = guestJobFacts(row).find((f) => f.label === "You'd earn after fees")?.value;
+      const value = guestJobFacts(row).find((f) => f.label === "Pay")?.value;
       expect(value, JSON.stringify(row)).toBe(`$${chip}`);
       expect(value).not.toBe(`$${row.budget}`);
     }
@@ -132,7 +132,7 @@ describe("the guest job preview", () => {
     expect(guestJobFacts({ ...JOB, budget: null, location: null }).map((f) => f.label)).toEqual(["Category", "Time"]);
     // A town that is its own area is not printed twice.
     // Design audit areas 11-18 #5: a town that names no single parish is labelled "Area", not "Parish".
-    expect(guestJobFacts({ ...JOB, location: "Nowhere Special, LA" }).map((f) => f.label)).toEqual(["Category", "Area", "Time", "You'd earn after fees"]);
+    expect(guestJobFacts({ ...JOB, location: "Nowhere Special, LA" }).map((f) => f.label)).toEqual(["Category", "Area", "Time", "Pay"]);
   });
 
   it("F217: the sheet prints the card's day and time, and the pay never says take home", () => {
@@ -146,7 +146,7 @@ describe("the guest job preview", () => {
     expect(sheet.textContent).toContain(`Day${formatJobDate(day)}`);
     expect(sheet.textContent).toContain("Time2:30 PM");
     expect(sheet.textContent).toContain("Lafayette Parish");
-    expect(sheet.textContent).toContain("You'd earn after fees");
+    expect(sheet.textContent).toContain("Pay");
     expect(sheet.textContent).not.toMatch(/take home/i);
   });
 });

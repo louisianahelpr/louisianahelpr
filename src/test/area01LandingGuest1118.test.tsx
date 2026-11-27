@@ -112,7 +112,7 @@ describe("#1 guest pages speak Spanish", () => {
     expect(notFoundCopy("/nope").title).toBe(esPublic["pub.nf.title"]);
     expect(notFoundCopy("/nope").primary).toBe(esPublic["pub.goHome"]);
     expect(notFoundCopy("/messages/abc").primary).toBe(esPublic["pub.nf.msgPrimary"]);
-    expect(guestFactLabel("You'd earn after fees")).toBe(esPublic["pub.fact.earn"]);
+    expect(guestFactLabel("Pay")).toBe(esPublic["pub.fact.Pay"]);
     expect(guestFactLabel("Area")).toBe(esPublic["pub.fact.Area"]);
     render(<PasswordStrengthMeter password="Abcdefgh1!xyz" />);
     expect(screen.getByTestId("password-strength").textContent).toBe(esPublic["pub.pw.4"]);

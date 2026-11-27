@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { AfterFeesNote } from "@/components/job/AfterFeesNote";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -82,7 +81,7 @@ function HelprDealPrice({ job }: { job: TakeHomeJob }) {
       {/* Owner 11-01 (A3-87): "Remove you take home": the figure alone; a screen reader still hears "Your pay"
           (the giveaway, owner 10-30, has no words at all). */}
       <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>{!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
-      {!isGiveawayFixedPayJob(job) && <AfterFeesNote />}
+      {/* Owner 2026-11-27 (polish audit #1): the price stands alone, no "after fees". Guard: src/test/noAfterFeesAnywhere1127.test.ts. */}
     </div>
   );
 }

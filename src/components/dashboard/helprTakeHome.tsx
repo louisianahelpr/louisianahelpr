@@ -1,5 +1,4 @@
 import { computeNet } from "@/components/dashboard/JobPrice";
-import { AfterFeesNote } from "@/components/job/AfterFeesNote";
 import { helperShareCount, type HelperEarningsJob } from "@/lib/helperEarnings";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -69,7 +68,7 @@ export function JobPriceTakeHome({ job, className = "", after = "", fallback = n
     <span data-job-price-take-home="" className={className}>
       {/* Owner 11-01: "Remove you take home." The figure alone; a screen reader still hears "Your pay". */}
       {!fixedPay && <span className="sr-only">Your pay </span>}<span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">${formatPriceFloor(net)}</span>
-      {!fixedPay && <AfterFeesNote inline />}
+      {/* Owner 2026-11-27 (polish audit #1): the price stands alone, no "after fees". Guard: src/test/noAfterFeesAnywhere1127.test.ts. */}
       {after}
     </span>
   );

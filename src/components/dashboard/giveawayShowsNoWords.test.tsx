@@ -11,7 +11,7 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     firstPayoutFee > 0 && !disputed && !fixedPay ? setupFeeWords(firstPayoutFee) : null, |     firstPayoutFee > 0 && !disputed ? setupFeeWords(firstPayoutFee) : null,
  * @mutate src/components/dashboard/helprTakeHome.tsx |       {!fixedPay && <span className="sr-only">Your pay </span>}<span className="font-semibold |       {"You take home "}<span className="font-semibold
  * @mutate src/components/dashboard/helprTakeHome.tsx |         {!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)} |         <span className="sr-only">Your pay </span>${formatPriceFloor(net)}
- * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |       {!isGiveawayFixedPayJob(confirmApplyJob) && <AfterFeesNote />} |       {true && <AfterFeesNote />}
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |         ${formatPriceFloor(takeHome)} |         ${formatPriceFloor(takeHome)} after fees
  * @mutate src/components/messages/chatView/DealCard.tsx | {!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)} | <span className="sr-only">Your pay </span>${formatPriceFloor(net)}
  * @mutate src/pages/tips/TipMoment.tsx | isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home" | "Job, you take home"
  * @mutate src/components/dashboard/CompactJobCard.tsx | isNet && !isGiveawayFixedPayJob(job) ? "you earn " | isNet ? "you earn "
@@ -40,7 +40,7 @@ const base = { id: "j", title: "t", budget: 60, urgent_fee: 0, is_group_job: fal
 const giveaway = { ...base, helper_fee_flat_cents: 700 };
 const ordinary = { ...base, helper_fee_flat_cents: 70 };
 const WORDS = /take[\s-]?home/i;
-// Owner 2026-11-22 ("One number, small label"): every ordinary take-home carries the small grey "after fees"; the giveaway none.
+// Owner 2026-11-27 (polish audit #1): no figure carries "after fees" any more, ordinary job or giveaway.
 const AFTER = /after fees/;
 
 function textOf(ui: React.ReactElement): string {
@@ -54,18 +54,16 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
   beforeEach(() => { owed.cents = 200; });
   afterEach(cleanup);
 
-  // What an ordinary job still says: the small grey "after fees" everywhere (owner 2026-11-22), plus a screen-reader "Your pay" off the apply sheet.
+  // What an ordinary job still says: a screen-reader "Your pay" off the apply sheet (the apply sheet: its figure alone).
   const SR = /Your pay/;
-  // The last field: does an ordinary job's figure carry "after fees" here? Owner 2026-11-27 took it off the job's detail
-  // (the job page and the job sheet's bare figure; src/test/jobRowsPriceAlone1127.test.tsx).
-  const surfaces: Array<[string, (j: typeof giveaway) => React.ReactElement, RegExp, boolean]> = [
-    ["the job page's amount and notes", (j) => <><HelprPrice job={j as never} /><HelprMoneyNotes job={j as never} hired={false} /></>, SR, false],
-    ["the sentence (quick view, Application sent)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} after=", paid once it's confirmed done" />, SR, true],
-    ["the bare figure (job sheet)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} bare />, SR, false],
-    ["the apply sheet", (j) => <ApplyEarningsBreakdown confirmApplyJob={j as unknown as EnrichedJob} platformFee={12} />, AFTER, true],
+  const surfaces: Array<[string, (j: typeof giveaway) => React.ReactElement, RegExp]> = [
+    ["the job page's amount and notes", (j) => <><HelprPrice job={j as never} /><HelprMoneyNotes job={j as never} hired={false} /></>, SR],
+    ["the sentence (quick view, Application sent)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} after=", paid once it's confirmed done" />, SR],
+    ["the bare figure (job sheet)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} bare />, SR],
+    ["the apply sheet", (j) => <ApplyEarningsBreakdown confirmApplyJob={j as unknown as EnrichedJob} platformFee={12} />, /\$54/],
   ];
 
-  for (const [name, ui, kept, afterFees] of surfaces) {
+  for (const [name, ui, kept] of surfaces) {
     it(`${name}: $50 and no words on the giveaway, even with the setup fee owed`, () => {
       const text = textOf(ui(giveaway));
       // Floor: the surface rendered (an empty render has none of the words either).
@@ -82,8 +80,7 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
       const text = textOf(ui(ordinary));
       expect(text).toContain("$54");
       expect(text).toMatch(kept);
-      if (afterFees) expect(text).toMatch(AFTER);
-      else expect(text).not.toMatch(AFTER);
+      expect(text).not.toMatch(AFTER);
       expect(text).not.toMatch(WORDS);
     });
   }

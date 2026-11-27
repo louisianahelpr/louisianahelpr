@@ -191,17 +191,18 @@ export function HolidayUndatedRow({ item, kind }: { item: HolidayItem; kind: "li
   const price = holidayPriceLabel(item.price);
   const site = openableDocumentUrl(item.url);
   const maps = mapsSearchUrl(holidayMapsQuery(item));
-  const bits: [string, ReactNode][] = [];
-  if (where) bits.push(["where", where]);
-  if (price) bits.push(["price", <span data-holiday-price="">{price}</span>]);
+  // Each part after the first starts with a separator that stays on the line before it (never a line that starts with
+  // "·"); no array is built, so the line is the same parts every time, each present or not.
+  const sep = "\u00a0· ";
   return (
     <li className="flex min-w-0 flex-col gap-0.5 py-3 font-sans md:border-b md:border-border" data-holiday-item={item.id} data-holiday-undated="">
       <h3 className="text-ds-15 font-semibold leading-snug text-foreground">{item.name}</h3>
       <p className="text-ds-14 text-muted-foreground">
-        {bits.map(([k, b], i) => <span key={k}>{i > 0 && "\u00a0· "}{b}</span>)}
+        {where && <span>{where}</span>}
+        {price && <span>{where ? sep : null}<span data-holiday-price="">{price}</span></span>}
         {maps && (
           <>
-            {bits.length > 0 && "\u00a0· "}
+            {where || price ? sep : null}
             <a href={maps} target="_blank" rel="noopener noreferrer" data-holiday-maps={item.id} className="link-standard"
               onClick={() => track("holiday_maps_click", { kind, id: item.id, region: item.region })}>
               Map<span className="sr-only"> for {item.name} (opens in a new tab)</span>
@@ -210,7 +211,7 @@ export function HolidayUndatedRow({ item, kind }: { item: HolidayItem; kind: "li
         )}
         {site && (
           <>
-            {"\u00a0· "}
+            {where || price || maps ? sep : null}
             <a href={site} target="_blank" rel="noopener noreferrer" data-holiday-site={item.id} className="font-semibold text-[hsl(var(--olivewood))] link-standard">
               Website<span className="sr-only"> for {item.name} (opens in a new tab)</span>
             </a>

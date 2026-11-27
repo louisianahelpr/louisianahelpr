@@ -97,7 +97,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
   // Polish audit 11-27 #7 (owner rule 11-22, guides phone header = back + "Gift guides" + ≡ only, which signed in already
   // matched): scrolling away still showed two header rows at the top. Up to 767px the bar is not drawn at all on the
   // guides' pages for a guest; "Join / Log in" is the first row of the guides' ≡ menu (GiftGuidesPhoneSheet) instead.
-  const phoneHidden = navSection(location.pathname) === "guides";
+  const guidesPhoneNoBar = navSection(location.pathname) === "guides";
   // This nav is `position: fixed; top: 0`, so the global OfflineBanner (also
   // fixed at top:0) would overlay it. The `#root` padding that reserves space
   // for the banner on document-scroll pages can't move a fixed element, so
@@ -122,10 +122,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
     <nav
       ref={ref}
       aria-label="Primary"
-      data-nav-phone-hidden={phoneHidden ? "" : undefined}
+      data-nav-phone-hidden={guidesPhoneNoBar ? "" : undefined}
       className={cn(
         "fixed top-0 left-0 right-0 z-50 glass-nav",
-        phoneHidden && "max-[767px]:hidden",
+        guidesPhoneNoBar && "max-[767px]:hidden",
         solid && "is-scrolled",
         landing && atTop && "landing-nav-top",
         !landing && !atTop && "nav-past-top",

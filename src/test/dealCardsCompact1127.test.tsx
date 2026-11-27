@@ -2,7 +2,8 @@
  * Polish audit 1127 #17 and #18 (owner-requested phone polish audit, ~/.lh-shots/polish-audit-1127/FINDINGS.md):
  *   #17: the Black Friday / Cyber Monday deal cards were ~375px tall and the Black Friday page ~30,000px on a phone. One
  *        compact card (12px padding, a 120px photo, the offer 14px/1.35 clamped to 3 lines, the end date one 12px line),
- *        and a deals section over 12 cards shows 12 and a "Show all N" button; the section itself stays open.
+ *        and every card of every section shows (owner rule: everything on the guide and deal pages is expanded, never
+ *        collapsed or cut short; lead 11-27: no "Show all" cap).
  *   #18: the deal text repeated itself ("Black Friday" 83 times on the Black Friday page, the end date, the code and the
  *        brand twice, ELEMIS "through Cyber Monday" beside "Ends Dec 12"). A store sale's text is the offer only: the
  *        generator (scripts/gift-guide-deals.mjs dealTextProblem) refuses a row that names the day, a date, its own code
@@ -17,8 +18,6 @@
  * @mutate scripts/gift-guide-deals.mjs | if (problem) throw new Error | if (false) throw new Error
  * @mutate src/content/giftGuideDeals.json | "deal":"Up to 50% off on Amazon" | "deal":"Up to 50% off Lancôme on Amazon"
  * @mutate src/content/giftGuideDeals.json | "deal":"30% off best sellers on Amazon" | "deal":"Black Friday through Cyber Monday on Amazon: 30% off ELEMIS best sellers"
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | export const SECTION_CAP = 12; | export const SECTION_CAP = 1000;
- * @mutate src/pages/info/giftGuides/GiftGuideDealCards.tsx | .gg-deal-grid[data-gift-capped]>li:nth-child(n+13){display:none} | .gg-deal-grid[data-gift-capped]>li{}
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | -webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden} | }
  * @mutate src/pages/info/giftGuides/GiftGuideDeals.tsx | justify-content:center;height:120px;flex:none; | justify-content:center;aspect-ratio:1/1;
  * @mutate src/lib/giftGuideOfferCopy.mjs | const t = raw.replace(DAY_PAREN, "").replace(DAY_LEAD, "") | const t = raw
@@ -26,14 +25,13 @@
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import DEALS from "@/content/giftGuideDeals.json";
 import { dealDay, isSteal, type Deal } from "@/content/giftGuideDeals.mjs";
 import { DEAL_TEXT_MAX, buildDeals, dealTextProblem, type SourceDeal } from "../../scripts/gift-guide-deals.mjs";
 vi.mock("@/lib/sbsFeaturedApi", () => ({ listFeaturedLocal: async () => [], sbsLogoUrl: () => "" }));
 import { GiftGuideDeals } from "@/pages/info/giftGuides/GiftGuideDeals";
-import { CARD_WORDS, SECTION_CAP } from "@/pages/info/giftGuides/GiftGuideDealCards";
 import { offerOnly } from "@/lib/giftGuideOfferCopy.mjs";
 
 const deals = DEALS as Deal[];
@@ -83,31 +81,19 @@ describe("polish audit 1127 #17: compact deal cards and capped sections", () => 
     expect(css).toContain(".gg-deal-brand{margin:2px 0 0;font-size:15px;font-weight:700;");
   });
 
-  it("Black Friday: a section over 12 cards shows 12 and 'Show all N'; the section stays open; Show all shows every card", async () => {
-    expect(SECTION_CAP).toBe(12);
+  it("Black Friday: every section shows every card, open, with no cap or Show all button", async () => {
     const BF = dealDay("black-friday")!;
     const today = "2026-11-27";
     const { container } = render(<MemoryRouter><GiftGuideDeals day={BF} now={new Date(`${today}T18:00:00Z`)} /></MemoryRouter>);
     await waitFor(() => expect(container.querySelector("[data-gift-deal-list]")).not.toBeNull());
-    const sec = container.querySelector('[data-gift-deal-sub="deals"]')!;
-    const grid = sec.querySelector("ul.gg-deal-grid")!;
-    const n = grid.querySelectorAll(":scope > li").length;
-    expect(n).toBeGreaterThan(SECTION_CAP);
-    // Open (its body is drawn) and capped: the CSS hides cards past the 12th while data-gift-capped is on.
-    expect(grid.hasAttribute("data-gift-capped")).toBe(true);
-    expect(src("src/pages/info/giftGuides/GiftGuideDealCards.tsx")).toContain(".gg-deal-grid[data-gift-capped]>li:nth-child(n+13){display:none}");
-    const button = sec.querySelector<HTMLButtonElement>("[data-gift-show-all]")!;
-    expect(button.textContent).toBe(CARD_WORDS.showAll(n));
-    fireEvent.click(button);
-    expect(grid.hasAttribute("data-gift-capped")).toBe(false);
-    expect(sec.querySelector("[data-gift-show-all]")).toBeNull();
-    // A section of 12 or fewer cards has no button and no cap.
-    for (const g of container.querySelectorAll("ul.gg-deal-grid")) {
-      if (g.querySelectorAll(":scope > li").length <= SECTION_CAP) {
-        expect(g.hasAttribute("data-gift-capped")).toBe(false);
-        expect(g.nextElementSibling?.hasAttribute("data-gift-show-all") ?? false).toBe(false);
-      }
-    }
+    const grid = container.querySelector('[data-gift-deal-sub="deals"] ul.gg-deal-grid')!;
+    const stores = deals.filter((d) => d.event === "black-friday" && !isSteal(d)).length;
+    expect(stores).toBeGreaterThan(12);
+    expect(grid.querySelectorAll(":scope > li").length).toBeGreaterThan(12);
+    expect(container.querySelector("[data-gift-show-all], [data-gift-capped]")).toBeNull();
+    const css = src("src/pages/info/giftGuides/GiftGuideDealCards.tsx") + src("src/pages/info/giftGuides/GiftGuideDeals.tsx");
+    expect(css).not.toMatch(/nth-child\(n\+\d+\)\{display:none\}/);
+    expect(css).not.toContain("Show all");
   });
 });
 

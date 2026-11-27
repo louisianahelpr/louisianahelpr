@@ -39,33 +39,7 @@ export const CARD_WORDS = {
   copied: "Copied",
   moreSales: (n: number) => `+${n} more`,
   moreCodes: (n: number) => `+${n} more ${n === 1 ? "code" : "codes"}`,
-  showAll: (n: number) => `Show all ${n}`,
 };
-
-/**
- * Polish audit 1127 #17: the Black Friday page was ~30,000px on a phone ("Biggest store sales" alone has 65 cards). A deals
- * section with more than SECTION_CAP cards shows the first SECTION_CAP and a "Show all N" text button under them; the
- * section itself stays open (START_OPEN, owner 2026-11-22), so nothing a shopper opens starts closed.
- */
-export const SECTION_CAP = 12;
-
-/**
- * A deals grid: every card when SECTION_CAP or fewer, else the first SECTION_CAP showing and a "Show all N" button. The
- * cards past the cap stay in the page (hidden by .gg-deal-grid[data-gift-capped], so their lazy photos never load until
- * shown), so the page's words and in-page search still hold every deal.
- */
-export function CappedGrid({ items, data, labelledBy }: { items: ReactNode[]; data: Record<string, string>; labelledBy?: string }) {
-  const [all, setAll] = useState(false);
-  const capped = !all && items.length > SECTION_CAP;
-  return (
-    <>
-      <ul className="gg-deal-grid" aria-labelledby={labelledBy} {...data} data-gift-capped={capped ? "" : undefined}>{items}</ul>
-      {capped && (
-        <InlineTextButton className="gg-show-all" onClick={() => setAll(true)} data-gift-show-all={items.length}>{CARD_WORDS.showAll(items.length)}</InlineTextButton>
-      )}
-    </>
-  );
-}
 
 
 /** The photo: the store's cutout. A store with no photo shows none (guides polish 1122 #14: its name is already the card's
@@ -197,12 +171,20 @@ export function CodeCards({ codes }: { codes: DiscountCode[] }) {
   // A code with no link (none today; src/test/giftGuideHolidayPolish1121c.test.tsx) is not drawn as a dead card.
   const byStore = new Map<string, DiscountCode[]>();
   for (const c of codes) if (c.href) byStore.set(c.store, [...(byStore.get(c.store) ?? []), c]);
-  return <CappedGrid data={{ "data-gift-codes": "" }} items={[...byStore.entries()].map(([store, list]) => <CodeCard key={store} store={store} codes={list} />)} />;
+  return (
+    <ul className="gg-deal-grid" data-gift-codes="">
+      {[...byStore.entries()].map(([store, list]) => <CodeCard key={store} store={store} codes={list} />)}
+    </ul>
+  );
 }
 
 /** The store sales on `day`, one card per store. */
 export function SaleCards({ stores }: { stores: { store: string; sales: Sale[] }[] }) {
-  return <CappedGrid data={{ "data-gift-sales": "" }} items={stores.map(({ store, sales }) => <SaleCard key={store} store={store} sales={sales} />)} />;
+  return (
+    <ul className="gg-deal-grid" data-gift-sales="">
+      {stores.map(({ store, sales }) => <SaleCard key={store} store={store} sales={sales} />)}
+    </ul>
+  );
 }
 
 const SALE_LINES = 2;
@@ -240,8 +222,6 @@ export const CARD_CSS = `
 .gg-card-when{display:block;color:var(--gg-muted);white-space:nowrap}
 .gg-card-more{min-height:44px;padding:0;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:12.5px}
 .gg-card-head{display:flex;align-items:flex-start;gap:4px;margin-top:2px}
-.gg-deal-grid[data-gift-capped]>li:nth-child(n+13){display:none}
-.gg-show-all{display:block;min-height:44px;margin:4px auto 0;padding:0 12px;border:0;background:none;color:var(--gg-olive);font-weight:700;font-size:15px;text-decoration:underline;text-underline-offset:3px}
 .gg-card-head .gg-card-store{flex:1;min-width:0;margin:0}
 .gg-store-card:not(:has(>.gg-deal-photo))>.gg-card-head{padding-right:38px}
 .gg-store-card .gg-card-store{display:flex;align-items:center;min-height:44px}

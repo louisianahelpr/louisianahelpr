@@ -108,6 +108,9 @@ export function PriceModeChoice({
   );
 }
 
+/** The quote window switch's label size: the price choice's own (Q2611). */
+const QUOTE_WINDOW_OPTION_TEXT = "text-ds-15";
+
 function QuoteWindowSection({
   stepNumber,
   windowHours,
@@ -128,6 +131,9 @@ function QuoteWindowSection({
       <div className="mt-2" aria-labelledby="quote-window-label">
         <SegmentedControl
           ariaLabel="Take quotes for"
+          // Polish audit 11-27 #116: the same 15px labels as the Set a price / Get quotes switch above it (it was the
+          // shared control's 11px). Guard: src/test/quoteWindowLabelsReadable1127.test.tsx.
+          optionClassName={QUOTE_WINDOW_OPTION_TEXT}
           value={String(windowHours)}
           onChange={(v) => onWindowChange(Number(v) as QuoteWindowHours)}
           options={QUOTE_WINDOWS.map((w) => ({ value: String(w.value), label: w.label }))}

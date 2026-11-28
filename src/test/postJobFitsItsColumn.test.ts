@@ -22,7 +22,7 @@
  * Proof screenshots at 320/390/1024/1180/1280/1440: ~/.lh-shots/lane-a-posting/.
  *
  * @mutate src/index.css | .pj-cq { container-type: inline-size; } | .pj-cq { }
- * @mutate src/index.css | .pj-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } | .pj-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+ * @mutate src/index.css | .pj-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; } | .pj-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; }
  * @mutate src/index.css | .pj-when-grid { grid-template-columns: minmax(0, 1fr); } | .pj-when-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  * @mutate src/components/postjob/JobCategoryGroups.tsx |           <section aria-label={t("postJob.categoryGroups")} className="pj-group-tiles grid gap-2.5"> |           <section aria-label={t("postJob.categoryGroups")} className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
  * @mutate src/components/postjob/LogisticsSection.tsx |       <div className="pj-when-grid grid gap-5"> |       <div className="grid gap-5 md:grid-cols-2 md:items-stretch">
@@ -65,7 +65,7 @@ describe("Post a job sizes its grids to its own column", () => {
   it("index.css: the wrappers are containers; two tiles and a stacked date/time below 560px, three tiles and side by side from 560px", () => {
     const s = css();
     expect(ruleBody(s, ".pj-cq", null)).toBe("container-type: inline-size;");
-    expect(ruleBody(s, ".pj-tiles", null)).toBe("grid-template-columns: repeat(2, minmax(0, 1fr));");
+    expect(ruleBody(s, ".pj-tiles", null)).toBe("grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr;");
     // The group tiles' own grid (owner 2026-10-27): src/test/postJobCategoryGridOrderly.test.tsx.
     expect(ruleBody(s, ".pj-when-grid", null)).toBe("grid-template-columns: minmax(0, 1fr);");
     expect(ruleBody(s, ".pj-tiles", "min-width: 560px")).toBe("grid-template-columns: repeat(3, minmax(0, 1fr));");

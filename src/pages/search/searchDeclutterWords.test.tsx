@@ -3,7 +3,7 @@
  *   - a free item read "$0" (Orange Waffle Weave Zip Bag); everywhere else in Declutter it says "Free";
  *   - the section's link read "See 20 of 59", a count of what is shown rather than an action.
  *
- * @mutate src/pages/search/SearchPage.tsx | price={typeof cents === "number" ? itemPriceLabel(cents) : null} /> | price={typeof cents === "number" ? `$${cents / 100}` : null} />
+ * @mutate src/pages/search/SearchPage.tsx | price={typeof cents === "number" ? buyerPriceLabel(cents) : null} /> | price={typeof cents === "number" ? `$${cents / 100}` : null} />
  * @mutate src/lib/i18n/enSearch.ts |   "srch.seeMore": "See more", |   "srch.seeMore": "See 20 of 59",
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";

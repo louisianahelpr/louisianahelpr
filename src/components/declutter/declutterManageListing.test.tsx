@@ -3,7 +3,7 @@
  * one real call (migration 20261020064354_declutter_manage_listing.sql; its
  * backend proof is ~/.lh-pglite/b3b-manage-listing.mjs, PGlite 3x). "Edit listing" (audit 1028 D1-1, migration
  * 20261029205908, PGlite T11 in src/test/pglite/declutterHandoverChoices.pglite.mjs) shows for a live listing only.
- * @mutate src/components/declutter/DeclutterManageListing.tsx |               {item.status === "live" && ( |               {false && (
+ * @mutate src/components/declutter/DeclutterManageListing.tsx |               {item.status === "live" && (\n              <li>\n                <ListRow variant="flush" onClick={() => setView("edit")} |               {false && (\n              <li>\n                <ListRow variant="flush" onClick={() => setView("edit")}
  * @mutate src/components/declutter/DeclutterManageListing.tsx |               : free ? t("lp.m.lineFree") : t("lp.m.linePaid")} |               : t("lp.m.linePaid")}
  * @mutate src/components/declutter/DeclutterManageListing.tsx |         {view === "edit" && <DeclutterEditListing item={item} onDone={close} />} |
  *

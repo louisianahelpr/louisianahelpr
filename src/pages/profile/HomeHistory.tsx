@@ -205,12 +205,21 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
       // names the property owner, and the authoritative spelling of that name
       // is `profiles.full_name` — not `user_metadata.full_name`, which is a
       // copy taken at signup and never updated by a profile rename.
-      const helperIds = [...new Set([...idsByJob.values()].flat())];
-      const profilesRes = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", [...new Set([userId, ...helperIds])]);
-      const profiles = unwrap(profilesRes) as { user_id: string; full_name: string | null }[];
+      const helperIds = [...new Set([...idsByJob.values()].flat())].filter((id) => id !== userId);
+      // Polish audit 11-27 #132: the Helprs' names come from get_safe_profiles, not `profiles`. RLS lets a member read
+      // only their OWN profiles row (pg_policies, read 2026-11-28), so the old one-select read came back with no
+      // Helpr rows and every job said "done by a Helpr" (the same class as GroupJobHelpers, Q1382). The owner's own
+      // row still comes from `profiles`. Guard: src/pages/profile/HomeHistory.test.tsx (RLS-true mock).
+      const [ownRes, safeRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name").eq("user_id", userId),
+        helperIds.length
+          ? supabase.rpc("get_safe_profiles", { user_ids: helperIds })
+          : Promise.resolve({ data: [] as { user_id: string; full_name: string | null }[], error: null }),
+      ]);
+      const profiles = [
+        ...(unwrap(ownRes) as { user_id: string; full_name: string | null }[]),
+        ...((unwrap(safeRes) ?? []) as { user_id: string; full_name: string | null }[]),
+      ];
       // Your own name in full; every other member as "Marcus T." (owner 2026-10-21: we never show a
       // member's last name, only its first letter; this reverses the earlier full-name record).
       // A member with no name on file is "a Helpr" (spec v2 rebuild 2026-10-21:

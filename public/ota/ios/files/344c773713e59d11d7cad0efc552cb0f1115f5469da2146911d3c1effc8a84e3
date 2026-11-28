@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/web-Dpbuyals.js","assets/app-shared-BNxeUDUs.js","assets/rolldown-runtime-XKyaHtl9.js","assets/preload-helper-DodJttzY.js","assets/react-vendor-DBuF32qy.js","assets/tanstack-Dt62v76_.js","assets/toast-facade-CYoIGDkr.js"])))=>i.map(i=>d[i]);
+import{Wi as e}from"./app-shared-BNxeUDUs.js";import{c as t}from"./preload-helper-DodJttzY.js";var n=e(`Network`,{web:()=>t(()=>import(`./web-Dpbuyals.js`).then(e=>new e.NetworkWeb),__vite__mapDeps([0,1,2,3,4,5,6]))});export{n as Network};

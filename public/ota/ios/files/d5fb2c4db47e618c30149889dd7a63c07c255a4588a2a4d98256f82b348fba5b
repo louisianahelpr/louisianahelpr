@@ -1,0 +1,1 @@
+import{Gt as e}from"./home-shared-BCFcKivn.js";e({"trk.act.confirmed":`I've accepted`,"trk.act.job_confirmed":`Confirm this job`,"trk.act.on_the_way":`I'm on my way`,"trk.act.arrived":`I've arrived`,"trk.act.working":`Start working`,"trk.act.done":`Mark it done`,"trk.retryLocation":`Try my location again`});

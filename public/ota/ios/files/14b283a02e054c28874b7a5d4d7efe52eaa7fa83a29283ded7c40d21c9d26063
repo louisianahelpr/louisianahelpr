@@ -1,1 +1,0 @@
-import"./decl-item-first-DMFTlYaO.js";import{_ as e}from"./signed-in-late-BQZwAyqS.js";import{r as t}from"./react-vendor-DBuF32qy.js";import{t as n}from"./price-words-C3xQYH9D.js";var r=t();function i({priceCents:t,suffix:i=``,className:a,addCents:o=0}){return(0,r.jsxs)(`span`,{"data-buy-total":``,className:a,children:[n(e(t)+o),i]})}export{i as t};

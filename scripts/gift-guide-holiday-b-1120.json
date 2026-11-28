@@ -1439,7 +1439,11 @@
     "Artivism Dance Theatre",
     "Victoria Nicole Fine Art Portraits",
     "Kart Ranch",
-    "Adage Pilates Centre"
+    "Adage Pilates Centre",
+    "Escape My Room",
+    "Fleurish Forever",
+    "Luminous Advanced Aesthetics",
+    "Camellia Point Public House"
    ]
   },
   "National Brands": {
@@ -1487,7 +1491,8 @@
     "Forgiven Hearts",
     "RoseMae Eimear Creations",
     "SEEN",
-    "Teleflora"
+    "Teleflora",
+    "Cure Hydration"
    ]
   }
  },
@@ -1969,6 +1974,41 @@
    "gift": "Flower gift code (free shipping)",
    "href": "https://www.teleflora.com/",
    "image": "https://www.louisianahelpr.com/gift-guides/sponsor-picks/teleflora-logo.webp"
+  },
+  "Cure Hydration": {
+   "gift": "Cure Hydration gift pack",
+   "href": "https://www.facebook.com/curehydration/",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsor-picks/cure-hydration-logo.webp"
+  },
+  "Escape My Room": {
+   "gift": "Escape room for 4 players, New Orleans",
+   "href": "https://www.facebook.com/escapemyroom",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsor-picks/escape-my-room-logo.webp"
+  },
+  "Fleurish Forever": {
+   "gift": "Dance class for 2, Scott",
+   "href": "https://www.facebook.com/fleurishforeverllc",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsor-picks/fleurish-forever-logo.webp"
+  },
+  "Luminous Advanced Aesthetics": {
+   "gift": "Facial gift card, Baton Rouge",
+   "href": "https://www.luminousadvancedaesthetics.com/",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsors/luminous-advanced-aesthetics.webp"
+  },
+  "Camellia Point Public House": {
+   "gift": "Pub gift card, Slidell",
+   "href": "https://www.facebook.com/647288261796572",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsors/camellia-point-public-house.webp"
+  },
+  "Miss Claudia's Vintage Clothing & Costumes": {
+   "gift": "Vintage shop gift certificate, New Orleans",
+   "href": "https://missclaudiasvintage.etsy.com/",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsors/miss-claudias-vintage-clothing-and-costumes.webp"
+  },
+  "Jubilant Soapsetions": {
+   "gift": "Hand soap + matching bar soap",
+   "href": "https://jubilantsoapsetions.com/",
+   "image": "https://www.louisianahelpr.com/gift-guides/sponsors/jubilant-soapsetions.webp"
   }
  }
 }

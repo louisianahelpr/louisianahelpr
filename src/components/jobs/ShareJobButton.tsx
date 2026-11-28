@@ -299,8 +299,10 @@ export function ShareJobButton({
       // The default variant pins its text to parchment-cream with
       // `!important`, which an inline `style.color` can't beat. When a host
       // recolors via `style`, drop to the ghost variant (no forced text) so
-      // the override actually renders; the no-style mount keeps `default`.
-      variant={style ? "ghost" : "default"}
+      // the override actually renders.
+      // Polish audit 11-27 #114: with no host style it is the outline 44px button the Posted card's face uses, not a
+      // filled pill (the job page's no-applicants card, the guest job page and the job sheet drew it filled).
+      variant={style ? "ghost" : "outline"}
       aria-label={copied ? "Link copied to clipboard" : (ariaLabel ?? restAria)}
       disabled={sharing}
       onClick={handleShare}
@@ -309,12 +311,8 @@ export function ShareJobButton({
       // measures every `[data-job-action-chip]` (Q1080).
       data-job-action-chip={layout === "stack" ? "" : undefined}
       className={cn(
-        "border-0",
-        // Default tint: neutral parchment-green via the bark token. When
-        // the host passes an inline `style` (e.g. the muted-blue Share in
-        // My Posts) the green is dropped so the override wins cleanly,
-        // including on hover.
-        !style && "bg-[hsl(var(--bark)/0.10)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--bark)/0.20)]",
+        // A host's inline `style` (the muted-blue Share in My Posts) draws its own chip, so no border then.
+        style ? "border-0" : "rounded-full",
         className,
       )}
     >

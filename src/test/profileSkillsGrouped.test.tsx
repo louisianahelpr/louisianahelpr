@@ -18,6 +18,7 @@
  * @mutate src/lib/jobCategoryGroups.ts |   label: groupTileLabel(g), |   label: g.label,
  * @mutate src/components/profile/ProfileEditForm.tsx | {SKILL_GROUPS.map((g) => ( | {[{ id: "all", label: "Skills", skills: SKILL_PRESETS }].map((g) => (
  * @mutate src/components/profile/ProfileEditForm.tsx | {g.skills.length > 0 ? ( | {true ? (
+ * @mutate src/components/profile/ProfileEditForm.tsx |                     <Label htmlFor="skillsOther" className="sr-only"> |                     <Label htmlFor="skillsOther" className="text-ds-11 mb-1.5 block text-muted-foreground">
  * @mutate src/components/profile/ProfileEditForm.tsx |                         onClick={() => toggleSkillPreset(label)} |                         onClick={() => toggleSkillPreset(value)}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -96,7 +97,11 @@ describe("the edit screen draws the groups", () => {
       expect(chips, g.id).toEqual(g.skills.map((s) => s.label));
     });
     const other = screen.getByRole("group", { name: "Something else" });
-    expect(within(other).getByLabelText("Other (not listed above)")).toBeTruthy();
+    // Polish audit 11-27 #74: one visible name ("Something else", the group head); the field is named for screen readers only.
+    const field = within(other).getByLabelText("Something else you help with");
+    expect(field).toBeTruthy();
+    expect(other.querySelector('label[for="skillsOther"]')?.className).toMatch(/\bsr-only\b/);
+    expect(other.textContent).not.toMatch(/not listed above/);
     // Every chip on the screen is in a group.
     const all = screen.getAllByRole("button", { pressed: false }).concat(screen.getAllByRole("button", { pressed: true }));
     const inGroups = groups.flatMap((el) => within(el).queryAllByRole("button"));

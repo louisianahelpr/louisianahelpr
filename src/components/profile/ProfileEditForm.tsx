@@ -447,8 +447,10 @@ export function ProfileEditForm({
                   </div>
                   ) : (
                   <div>
-                    <Label htmlFor="skillsOther" className="text-ds-11 mb-1.5 block text-muted-foreground">
-                      Other (not listed above)
+                    {/* Polish audit 11-27 #74: the group heading above already says "Something else"; a second visible
+                        "Other (not listed above)" said it again. The field keeps its name for screen readers. */}
+                    <Label htmlFor="skillsOther" className="sr-only">
+                      Something else you help with
                     </Label>
                     <Input
                       id="skillsOther"

@@ -1,0 +1,1 @@
+import{Ai as e,Ti as t}from"./app-shared-BNxeUDUs.js";import{b as n}from"./holidayHub-DJ2UOzXr.js";import{r}from"./react-vendor-DBuF32qy.js";var i=r();function a(){let{pathname:r,search:a}=e();return(0,i.jsx)(t,{to:n(r.replace(/\/+$/,``),a),replace:!0})}export{a as default};

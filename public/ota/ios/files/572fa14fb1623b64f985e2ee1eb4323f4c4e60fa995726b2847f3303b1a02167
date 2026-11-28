@@ -1,1 +1,0 @@
-import{u as e}from"./tanstack-Dt62v76_.js";import{Ni as t}from"./signed-in-deep-CMSO5bY8.js";function n(n){let r=e();return e=>{if(t(e))for(let e of n)r.invalidateQueries({queryKey:e})}}export{n as t};

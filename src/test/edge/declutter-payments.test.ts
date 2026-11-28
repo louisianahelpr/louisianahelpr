@@ -25,7 +25,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id); |
  * @mutate supabase/functions/_shared/stripeMode.ts |     if (meta.kind === "declutter_card") return true; |     return meta.kind === "declutter_card";
  * @mutate supabase/functions/_shared/stripeMode.ts |       && meta.card_hold_plan === "schedule" && typeof meta.job_id | && typeof meta.job_id
- * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${walletRetry ? ":new-wallet" : ""}` }, |     {},
+ * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${surfaceKeySuffix(surface)}${walletRetry ? ":new-wallet" : ""}` }, |     {},
  * @mutate supabase/functions/declutter-checkout/index.ts | session = await withWalletCustomer(admin, stripe, user, mode, (payer, walletRetry) => | session = await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, f: (c: string, r: boolean) => Promise<Stripe.Checkout.Session>) => f("cus_dead", false))(admin, stripe, user, mode, (payer, walletRetry) =>
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged \|\| feeChanged \|\| quoteChanged \|\| deliveryChanged)) { |     if (false) {
@@ -1094,6 +1094,31 @@ describe("declutter-checkout: pay", () => {
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
+  // lh-silent-failure re-review 11-27: the older expires (a changed way, a gift taking the order) said "paid" on ANY
+  // Stripe error too; now only a re-read showing the page complete is "paid".
+  it("changing how you get it, when Stripe errors closing the old page (still open), is a try-again, never 'paid'", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_old" }] };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_old", "open", "https://x/old"));
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("Stripe 500"));
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "pickup_home" } }));
+    expect(res.status).toBe(503);
+    expect(rpcs("declutter_start_checkout")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("changing how you get it, when the old page was paid meanwhile (expire refused, re-read complete), answers paid", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_old" }] };
+    stripeMock.checkout.sessions.retrieve
+      .mockResolvedValueOnce(page("cs_live_old", "open", "https://x/old"))
+      .mockResolvedValueOnce(page("cs_live_old", "complete"));
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("This Checkout Session is complete"));
+    const body = await json(await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "pickup_home" } })));
+    expect(body).toEqual({ paid: true, order_id: ORDER });
+    expect(rpcs("declutter_start_checkout")).toHaveLength(0);
+  });
+
   it("changing how you get it closes the old open page BEFORE the order is replaced", async () => {
     const fn = await load();
     scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_old" }] };
@@ -1252,6 +1277,173 @@ describe("declutter-checkout: pay", () => {
     const res = await fn.fetch(payReq(fn));
     expect(res.status).toBe(200);
     expect(rpcs("feature_enabled_for_user")).toHaveLength(0);
+  });
+});
+
+// Phase W (owner 11-27: "checkout should never leave the app/site"): the website gets Stripe's EMBEDDED Checkout on
+// the same session; the app and old builds keep the hosted page. The switch decides on the server, for the caller.
+// @mutate supabase/functions/_shared/embeddedCheckout.ts |   if (!asksForEmbedded(body)) return "hosted"; |   if (false) return "hosted";
+// @mutate supabase/functions/_shared/embeddedCheckout.ts |     && !isNativeRequest(body); |     && true;
+// @mutate supabase/functions/declutter-checkout/index.ts |     if (existing.status === "open") { |     if (false) {
+describe("declutter-checkout: pay, embedded page on the website (phase W)", () => {
+  async function load(switchOn = true) {
+    env({ STRIPE_PUBLISHABLE_KEY: "pk_live_helprTest1" });
+    scenario.authUser = { id: BUYER, email: "buyer@test.dev" };
+    scenario.reads.declutter_orders ??= { rows: [{ setup_fee_cents: 0 }] };
+    scenario.rpc.feature_enabled_for_user = (args: { p_key: string }) => switchOn && args.p_key === "embedded_checkout";
+    return loadEdgeFunction("declutter-checkout");
+  }
+  const order = (over: Record<string, unknown> = {}) => [{
+    order_id: ORDER, items_cents: 4000, premium_cents: 600, tax_cents: 0, total_cents: 4600,
+    superseded_session_id: null, checkout_session_id: null, ...over,
+  }];
+  const payReq = (fn: EdgeHarness, extra: Record<string, unknown> = {}) =>
+    fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "porch", ...extra } });
+  const embeddedSession = { id: "cs_live_emb", ui_mode: "embedded", url: null, client_secret: "cs_live_emb_secret_x", amount_total: 4600 };
+
+  it("a website request with the switch on gets an embedded page: same session, return_url, no hosted URLs, and the client secret + key", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue(embeddedSession);
+    const res = await fn.fetch(payReq(fn, { embedded: true }));
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body).toEqual({ client_secret: "cs_live_emb_secret_x", publishable_key: "pk_live_helprTest1", order_id: ORDER });
+    const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.ui_mode).toBe("embedded");
+    expect(params.return_url).toBe(`https://www.louisianahelpr.com/declutter?view=cart&paid=1&order=${ORDER}`);
+    expect(params.success_url).toBeUndefined();
+    expect(params.cancel_url).toBeUndefined();
+    // Everything that moves money is the hosted page's, unchanged.
+    expect(params.payment_method_types).toEqual(["card"]);
+    expect(params.payment_intent_data.transfer_group).toBe(`declutter_order_${ORDER}`);
+    expect(params.payment_intent_data.setup_future_usage).toBe("off_session");
+    expect(params.metadata).toMatchObject({ kind: "declutter_order", order_id: ORDER, buyer_id: BUYER });
+    expect(params.custom_text?.submit?.message).toBeTruthy();
+    expect(opts.idempotencyKey).toMatch(new RegExp(`^declutter-order-${ORDER}-\\d+:embedded$`));
+    expect(rpcs("feature_enabled_for_user")[0]?.args).toEqual({ p_key: "embedded_checkout", p_user_id: BUYER });
+    expect(rpcs("declutter_attach_checkout_session")[0]?.args).toEqual({ p_order_id: ORDER, p_session_id: "cs_live_emb" });
+  });
+
+  it("the native app ({url} only) gets the hosted page even when it says embedded: true", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_new", url: "https://checkout.stripe.test/new", amount_total: 4600 });
+    const body = await json(await fn.fetch(payReq(fn, { embedded: true, native: true })));
+    expect(body.url).toBe("https://checkout.stripe.test/new");
+    expect(body.client_secret).toBeUndefined();
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.ui_mode).toBeUndefined();
+    expect(params.success_url).toContain("native=1");
+  });
+
+  it("an old client that does not ask, or the switch off for this member, gets exactly today's hosted page", async () => {
+    for (const [switchOn, extra] of [[true, {}], [false, { embedded: true }]] as const) {
+      resetSupabaseMock();
+      resetStripeMock();
+      const fn = await load(switchOn);
+      scenario.rpc.declutter_start_checkout = order();
+      scenario.rpc.declutter_attach_checkout_session = null;
+      stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_new", url: "https://checkout.stripe.test/new", amount_total: 4600 });
+      const body = await json(await fn.fetch(payReq(fn, extra)));
+      expect(body.url).toBe("https://checkout.stripe.test/new");
+      const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+      expect(params.ui_mode).toBeUndefined();
+      expect(params.cancel_url).toBe("https://www.louisianahelpr.com/declutter?view=cart&back=1");
+      expect(opts.idempotencyKey).toMatch(new RegExp(`^declutter-order-${ORDER}-\\d+$`));
+    }
+  });
+
+  it("no publishable key for the session's mode: hosted page, never an embedded page the browser cannot mount", async () => {
+    const fn = await load();
+    env({ STRIPE_PUBLISHABLE_KEY: "" });
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_new", url: "https://checkout.stripe.test/new", amount_total: 4600 });
+    const body = await json(await fn.fetch(payReq(fn, { embedded: true })));
+    expect(body.url).toBe("https://checkout.stripe.test/new");
+    expect(stripeMock.checkout.sessions.create.mock.calls[0][0].ui_mode).toBeUndefined();
+  });
+
+  it("an open embedded page is handed back as it is to the website", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order({ checkout_session_id: "cs_live_emb" });
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ ...embeddedSession, status: "open" });
+    const body = await json(await fn.fetch(payReq(fn, { embedded: true })));
+    expect(body).toEqual({ client_secret: "cs_live_emb_secret_x", publishable_key: "pk_live_helprTest1", order_id: ORDER });
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+  });
+
+  it("an open page of the OTHER kind is closed BEFORE the order is retired and a new page made (never two payable pages)", async () => {
+    for (const [extra, open] of [
+      [{ embedded: true }, page("cs_live_old", "open", "https://x/old")],
+      [{ native: true }, { ...embeddedSession, id: "cs_live_old", status: "open" }],
+    ] as const) {
+      resetSupabaseMock();
+      resetStripeMock();
+      const fn = await load();
+      const steps: string[] = [];
+      let starts = 0;
+      scenario.rpc.declutter_start_checkout = () => { steps.push("start"); starts += 1; return order(starts === 1 ? { checkout_session_id: "cs_live_old" } : {}); };
+      scenario.rpc.declutter_retire_order = () => { steps.push("retire"); return null; };
+      scenario.rpc.declutter_attach_checkout_session = null;
+      stripeMock.checkout.sessions.retrieve.mockResolvedValue(open);
+      stripeMock.checkout.sessions.expire.mockImplementation(async () => { steps.push("expire"); return { status: "expired" }; });
+      stripeMock.checkout.sessions.create.mockResolvedValue("embedded" in extra ? embeddedSession : { id: "cs_live_new", url: "https://x/new", amount_total: 4600 });
+      const res = await fn.fetch(payReq(fn, extra));
+      expect(res.status).toBe(200);
+      expect(steps).toEqual(["start", "expire", "retire", "start"]);
+      expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_live_old");
+      expect(rpcs("declutter_retire_order")[0]?.args).toEqual({ p_order_id: ORDER, p_buyer: BUYER, p_session_id: "cs_live_old" });
+    }
+  });
+
+  it("an other-kind page Stripe refuses to close was paid meanwhile: answered paid, nothing retired, no new page", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order({ checkout_session_id: "cs_live_old" });
+    stripeMock.checkout.sessions.retrieve
+      .mockResolvedValueOnce(page("cs_live_old", "open", "https://x/old"))
+      .mockResolvedValueOnce(page("cs_live_old", "complete"));
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("This Checkout Session is complete"));
+    const body = await json(await fn.fetch(payReq(fn, { embedded: true })));
+    expect(body).toEqual({ paid: true, order_id: ORDER });
+    expect(rpcs("declutter_retire_order")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  // lh-silent-failure review 11-27: a Stripe 5xx / rate limit on the expire is not "paid".
+  // @mutate supabase/functions/declutter-checkout/index.ts | ? json({ paid: true, order_id: orderId }) : json({ error: TRY_AGAIN }, 503); | ? json({ paid: true, order_id: orderId }) : json({ paid: true, order_id: orderId });
+  it("an other-kind page whose close fails for another reason (still open) is a try-again, never 'paid'", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order({ checkout_session_id: "cs_live_old" });
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_old", "open", "https://x/old"));
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("Stripe 500"));
+    const res = await fn.fetch(payReq(fn, { embedded: true }));
+    expect(res.status).toBe(503);
+    expect((await json(res)).paid).toBeUndefined();
+    expect(rpcs("declutter_retire_order")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  // Review 11-27 (both reviewers): an open embedded page whose mode has no key any more is never answered as a bare
+  // {order_id}: it is closed and made again. Here the stored page is a TEST-mode embedded page and the test key is
+  // unusable, while the request itself (live) can be embedded.
+  // @mutate supabase/functions/declutter-checkout/index.ts |     const reuse = pageServes(existing, surface) ? pageAnswer(existing, surface) : null; |     const reuse = pageServes(existing, surface) ? (pageAnswer(existing, surface) ?? {}) : null;
+  it("an open embedded page that can no longer be shown (no key for its mode) is closed and replaced, never answered empty", async () => {
+    const fn = await load();
+    env({ STRIPE_PUBLISHABLE_KEY: "pk_live_helprTest1", STRIPE_TEST_PUBLISHABLE_KEY: "not-a-key" });
+    let starts = 0;
+    scenario.rpc.declutter_start_checkout = () => { starts += 1; return order(starts === 1 ? { checkout_session_id: "cs_test_emb" } : {}); };
+    scenario.rpc.declutter_retire_order = null;
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ ...embeddedSession, id: "cs_test_emb", client_secret: "cs_test_emb_secret_y", status: "open" });
+    stripeMock.checkout.sessions.create.mockResolvedValue(embeddedSession);
+    const body = await json(await fn.fetch(payReq(fn, { embedded: true })));
+    expect(body).toEqual({ client_secret: "cs_live_emb_secret_x", publishable_key: "pk_live_helprTest1", order_id: ORDER });
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_test_emb");
   });
 });
 

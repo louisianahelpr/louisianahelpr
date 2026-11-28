@@ -366,6 +366,9 @@ describe("one footer convention", () => {
     "src/components/declutter/DeclutterOrderTalk.tsx": "an order chat: the pinned message box with its Send is the action row; the sheet's X is the exit",
     "src/components/declutter/DeclutterFreeClaim.tsx": "How free items work: words only, nothing to act on; the sheet's X is the exit (FreeAskSheet, the ask itself, has its footer)",
     "src/pages/jobs/jobPage/JobPageActionRow.tsx": "More options: a menu, each row acts and closes; the sheet's X is the exit",
+    // Phase W (11-27): Stripe Embedded Checkout. Stripe's own Pay button inside its iframe is the action row (a footer of
+    // ours would sit under a form we cannot reach into); the X is the exit and closing it is the cancel.
+    "src/components/payments/EmbeddedCheckoutSheet.tsx": "Stripe Embedded Checkout: Stripe's Pay button inside its iframe is the action row; the X is the exit (cancel)",
     // Gift guides 11-23: the "shop similar" panel is a read-only list of similar gifts (each row is its own link and heart),
     // nothing to confirm or cancel; its X, Escape or a tap outside closes it.
     "src/pages/info/giftGuides/DupePanel.tsx": "Shop similar: a read-only list of similar gifts, each row its own link; the X is the exit",

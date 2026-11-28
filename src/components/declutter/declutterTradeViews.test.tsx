@@ -41,7 +41,7 @@
  * @mutate src/components/declutter/DeclutterTabHeads.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null,\n              gift?.id ?? null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null,\n              gift?.id ?? null, asksForEmbeddedCheckout(embeddedOn)); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
  * Row 101 (porch is the default; a seller can turn it off per item).
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = picked && offered.includes(picked) ? picked : offered[0]; |   const chosen = picked ?? offered[0];
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
@@ -126,6 +126,12 @@ const state = {
   giftSent: [] as (string | null | undefined)[],
   giftRefusal: null as string | null,
   giftCoversCents: 0,
+  /** Phase W: embedded_checkout for this account, what each Pay asked for, and whether the server answers embedded. */
+  embeddedOn: false,
+  embeddedAsked: [] as (boolean | undefined)[],
+  embeddedAnswer: false,
+  noPage: false,
+  sheetsClosed: 0,
 };
 
 // Q2471: the offer box asks declutter-ai-reply for a suggested amount; no suggestion here (the box works without it).
@@ -136,7 +142,15 @@ vi.mock("@/lib/analytics", async (orig) => ({ ...(await orig<typeof import("@/li
 vi.mock("@/lib/declutter/aiReply", async (orig) => ({ ...(await orig<object>()), requestSuggestedOffer: async () => null }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "declutter_seller_delivery" ? state.sellerDeliveryOn
-  : key === "declutter_shipping" ? state.shipOn : state.deliveryOn) }));
+  : key === "declutter_shipping" ? state.shipOn : key === "embedded_checkout" ? state.embeddedOn : state.deliveryOn) }));
+// Phase W: the lazily loaded sheet that mounts Stripe's Embedded Checkout (Stripe.js never loads in jsdom).
+vi.mock("@/components/payments/EmbeddedCheckoutSheet", () => ({
+  default: ({ clientSecret, publishableKey, onClose }: { clientSecret: string; publishableKey: string; onClose: () => void }) => (
+    <div data-testid="embedded-sheet" data-secret={clientSecret} data-key={publishableKey}>
+      <button type="button" onClick={() => { state.sheetsClosed += 1; onClose(); }}>Close payment</button>
+    </div>
+  ),
+}));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => true }));
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/sellerDelivery")>()),
@@ -202,18 +216,21 @@ vi.mock("@/lib/declutter/api", () => ({
   startCardSave: async () => "https://checkout.stripe.test/setup",
   fetchItemsCanShip: async () => { state.canShipReads += 1; return state.canShip; },
   fetchShipRates: async (sellerId: string, shipTo: unknown) => { state.shipAsked.push({ sellerId, shipTo }); return state.shipQuotes; },
-  startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null, _rate?: number | null, quoteId?: string | null, giftCardId?: string | null) => {
+  startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null, _rate?: number | null, quoteId?: string | null, giftCardId?: string | null, embedded?: boolean) => {
     state.giftSent.push(giftCardId);
+    state.embeddedAsked.push(embedded);
     // Q2106 S5: the redeem's refusal sentence (declutter-checkout passes it as the error), or a gift that covers it all.
     if (giftCardId && state.giftRefusal) throw new Error(state.giftRefusal);
-    if (giftCardId && state.giftCoversCents > 0) return { url: null, paid: true, giftCents: state.giftCoversCents };
+    if (giftCardId && state.giftCoversCents > 0) return { page: null, paid: true, giftCents: state.giftCoversCents };
     if (handover === "delivery") {
       state.payRates.push(_rate);
       // declutter-checkout's delivery_rate_changed: the order froze a different price than the screen showed.
       if (state.serverDeliveryCents !== null && _rate !== state.serverDeliveryCents) throw new Error("delivery_rate_changed");
     }
     state.paid.push(handover === "ship" ? { sellerId, handover, quoteId } : handover === "seller_delivery" ? { sellerId, handover, slot, handoff } : slot ? { sellerId, handover, slot } : { sellerId, handover });
-    return { url: "https://checkout.stripe.test/pay", paid: false, giftCents: 0 };
+    if (state.noPage) return { page: null, paid: false, giftCents: 0 };
+    if (state.embeddedAnswer) return { page: { kind: "embedded" as const, clientSecret: "cs_test_e_secret_1", publishableKey: "pk_test_1" }, paid: false, giftCents: 0 };
+    return { page: { kind: "hosted" as const, url: "https://checkout.stripe.test/pay" }, paid: false, giftCents: 0 };
   },
 }));
 // Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
@@ -284,6 +301,11 @@ const OFFER = {
 describe("Declutter slice 3 screens", () => {
   beforeEach(() => {
     state.sizes = {};
+    state.embeddedOn = false;
+    state.embeddedAsked = [];
+    state.embeddedAnswer = false;
+    state.noPage = false;
+    state.sheetsClosed = 0;
     state.pickupWindows = [];
     state.porchDays = null;
     state.sellerPlaces = [];
@@ -1170,6 +1192,59 @@ describe("Declutter slice 3 screens", () => {
     expect(state.paid).toEqual([{ sellerId: "s2", handover: "porch" }]);
   });
 
+  // Phase W (owner 11-27: "checkout should never leave the app/site"): with the switch on, the website asks for an
+  // embedded page; an embedded answer opens our own sheet (never openExternalUrl), and closing it unpaid frees Pay.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |               gift?.id ?? null, asksForEmbeddedCheckout(embeddedOn)); |               gift?.id ?? null, false);
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     {checkoutPage.sheet} |     {null}
+  it("phase W: Pay asks for an embedded page while the switch is on, and an embedded answer opens our own sheet", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
+    state.embeddedOn = true;
+    state.embeddedAnswer = true;
+    show(<CartView />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
+    const sheet = await screen.findByTestId("embedded-sheet");
+    expect(sheet.getAttribute("data-secret")).toBe("cs_test_e_secret_1");
+    expect(sheet.getAttribute("data-key")).toBe("pk_test_1");
+    expect(state.embeddedAsked).toEqual([true]);
+    expect(state.opened).toEqual([]);
+    expect(screen.getByRole("button", { name: "Opening…" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Close payment" }));
+    await waitFor(() => expect(screen.queryByTestId("embedded-sheet")).toBeNull());
+    expect(state.sheetsClosed).toBe(1);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+  });
+
+  // lh-silent-failure review 11-27: an answer with neither paid nor a page we can show is an error, never "paid".
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |             if (res.paid) { |             if (res.paid \|\| !res.page) {
+  it("phase W: an answer with no page and not paid says the payment page could not open, never 'already paid'", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
+    state.noPage = true;
+    const { toast } = await import("sonner");
+    show(<CartView />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("The payment page isn't available right now. Please try again. Nothing was charged."));
+    expect(toast).not.toHaveBeenCalledWith("This order is already paid.");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+  });
+
+  it("phase W: with the switch off, Pay asks for nothing new and the hosted page opens as before", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
+    show(<CartView />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
+    await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]));
+    expect(state.embeddedAsked).toEqual([false]);
+    expect(screen.queryByTestId("embedded-sheet")).toBeNull();
+  });
+
   // Owner 2026-11-01 (checkout screenshot): the seller's pickup places sat after Helpr delivery in a box of their own.
   // They go UNDER the chosen way that uses them: porch pickup (the default), a door pickup or Helpr delivery.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |               {needsPlace && ( |               {false && (
@@ -1569,7 +1644,7 @@ describe("Declutter slice 3 screens", () => {
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: shipOn && itemIds.length > 0, staleTime: 60_000 }); |     enabled: itemIds.length > 0, staleTime: 60_000 });
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (shipOn && canShip.data === true) ticked.push("ship"); |   if (shipOn) ticked.push("ship");
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (shipRate !== null ? netItemsCents + buyerFeeCentsShip(netItemsCents, shipRate) + shipRate | const payCents = (shipRate !== null ? netItemsCents + shipRate
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null,\n              gift?.id ?? null); | sellerDelivering ? sdRate : null,\n              gift?.id ?? null);
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null,\n              gift?.id ?? null, asksForEmbeddedCheckout(embeddedOn)); | sellerDelivering ? sdRate : null,\n              gift?.id ?? null, asksForEmbeddedCheckout(embeddedOn));
   // @mutate src/components/declutter/DeclutterTradeViews.tsx | (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| | (delivering && !liveQuote) \|\|
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |           : shipping ? "It's paid to the seller about 48 hours |           : false ? "It's paid to the seller about 48 hours
   // @mutate src/components/declutter/ShipToMe.tsx |       onPick(q.find((x) => x.preselected) ?? q[0] ?? null); |       onPick(null);
@@ -1993,7 +2068,7 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
 /**
  * Q2106 S5: the buyer's own gift card at Declutter checkout. Only gifts the server takes are offered (claimed by the
  * buyer), the split is shown before Pay, Pay carries the gift and the card part, and a refusal is shown in its words.
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |               gift?.id ?? null); |               null);
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |               gift?.id ?? null, asksForEmbeddedCheckout(embeddedOn)); |               null, asksForEmbeddedCheckout(embeddedOn));
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | split?.onCardCents === 0 ? "Pay with gift card" : `Pay ${formatPrice(split ? split.onCardCents : payCents)}` | `Pay ${formatPrice(payCents)}`
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | !pickupTimeReady \|\| !!split?.cardPartTooSmall} | !pickupTimeReady}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |             if (giftWords) { |             if (false) {

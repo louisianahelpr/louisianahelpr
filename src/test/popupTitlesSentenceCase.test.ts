@@ -205,7 +205,8 @@ describe("every pop-up title is sentence case", () => {
     // 244 (inbox polish 11-20): +1 "Delete this conversation for you?" (useDeleteForMe, the Delete-for-me confirm).
     // 245 (Holiday Hub filters 11-21): +1 "Filters" (the /holidays filter panel, the shared FilterSheet's title).
     // 246 (Jobs audit 11-21, G8): +1 "Accept ${dollars(priceCents)}?" (QuoteAnswerControls, Accept asks first as Decline does).
-    expect(all.length).toBe(246);
+    // 247 (in-app pay phase W 11-27): +1 "Pay securely" (EmbeddedCheckoutSheet, Stripe's form inside our own popup).
+    expect(all.length).toBe(247);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

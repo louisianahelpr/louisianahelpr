@@ -79,6 +79,7 @@ import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { requireFeature } from "../_shared/featureSwitch.ts";
+import { checkoutSurface, pageAnswer, pageServes, surfaceKeySuffix, surfaceRedirects } from "../_shared/embeddedCheckout.ts";
 import { geocodeDropoff, plausibleAddress, type AppleMapsAccess } from "../_shared/geocodeDropoff.ts";
 import { type RouteStore, routeInBackground, storeRoutedMiles } from "../_shared/appleRoutes.ts";
 import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
@@ -149,6 +150,17 @@ async function expirePage(stripe: Stripe, sessionId: string): Promise<void> {
     // either way it can no longer take a new payment. Logged, not fatal.
     console.log(JSON.stringify({ event: "declutter_page_expire_skipped", session: sessionId, detail: String(e).slice(0, 200) }));
   }
+}
+
+/**
+ * After Stripe refused to expire an open page: it refuses a page that was paid meanwhile, but a 5xx, a rate limit or a
+ * dropped connection throws too. So the page is read again, and the buyer is told "paid" only when it IS complete;
+ * anything else is a try-again (lh-silent-failure review 11-27). A failed re-read throws (a 5xx), never "paid".
+ */
+async function refusedExpireAnswer(stripe: Stripe, sessionId: string, orderId: string, e: unknown): Promise<Response> {
+  console.log(JSON.stringify({ event: "declutter_page_expire_refused", session: sessionId, detail: String(e).slice(0, 200) }));
+  const again = await stripe.checkout.sessions.retrieve(sessionId);
+  return again.status === "complete" ? json({ paid: true, order_id: orderId }) : json({ error: TRY_AGAIN }, 503);
 }
 
 /** B110: the pickups whose day and time the buyer may choose at checkout. */
@@ -320,6 +332,9 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // fix 8): a shipped order is never paid on the live Stripe key.
   if (handover === "ship" && mode !== "test") return json({ error: "shipping_test_only" }, 409);
   const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
+  // Phase W (owner 11-27): the website mounts Stripe's form in our own sheet (embedded) when it asks and the
+  // embedded_checkout switch is on; the app and old builds keep the hosted page ({url}). Same session either way.
+  const surface = await checkoutSurface(admin, user, body, mode);
   /** A stored page runs in the mode its id was minted in (lh-money-escrow review 3b #9). */
   const stripeOf = (sessionId: string): Stripe => {
     const m = sessionIdMode(sessionId);
@@ -445,9 +460,8 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       try {
         await stripeOf(open.stripe_checkout_session_id).checkout.sessions.expire(open.stripe_checkout_session_id);
       } catch (e) {
-        // Paid in the meantime (Stripe refuses to expire a complete page).
-        console.log(JSON.stringify({ event: "declutter_page_expire_refused", session: open.stripe_checkout_session_id, detail: String(e).slice(0, 200) }));
-        return json({ paid: true, order_id: open.id });
+        // Paid in the meantime (Stripe refuses to expire a complete page), or a Stripe error: re-read decides.
+        return await refusedExpireAnswer(stripeOf(open.stripe_checkout_session_id), open.stripe_checkout_session_id, open.id, e);
       }
     }
   }
@@ -458,7 +472,10 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id);
   if (row!.checkout_session_id) {
     const existing = await stripeOf(row!.checkout_session_id).checkout.sessions.retrieve(row!.checkout_session_id);
-    if (existing.status === "open" && existing.url && !giftCardId) return json({ url: existing.url, order_id: row!.order_id });
+    // Reused only when it can actually be shown: an embedded page whose mode has no key any more is closed and made
+    // again below like a page of the other kind (lh-money-escrow + lh-silent-failure review 11-27).
+    const reuse = pageServes(existing, surface) ? pageAnswer(existing, surface) : null;
+    if (reuse && !giftCardId) return json({ ...reuse, order_id: row!.order_id });
     if (existing.status === "complete") return json({ paid: true, order_id: row!.order_id });
     if (existing.status === "open" && giftCardId) {
       // Q2106: the buyer now pays with a gift card. Close the open page FIRST (a page Stripe refuses to close was
@@ -466,12 +483,23 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       try {
         await stripeOf(row!.checkout_session_id).checkout.sessions.expire(row!.checkout_session_id);
       } catch (e) {
-        console.warn(JSON.stringify({ event: "declutter_page_expire_refused", session: row!.checkout_session_id, detail: String(e).slice(0, 200) }));
-        return json({ paid: true, order_id: row!.order_id });
+        // Paid in the meantime, or a Stripe error: re-read decides (the gift is not redeemed either way).
+        return await refusedExpireAnswer(stripeOf(row!.checkout_session_id), row!.checkout_session_id, row!.order_id, e);
       }
       retiredSession = row!.checkout_session_id;
     } else {
-    // Timed out unpaid: retire this order, then make a fresh one.
+    if (existing.status === "open") {
+      // Phase W: an open page of the OTHER kind (the buyer opened Pay on the website after the app, or the other way
+      // round). Close it FIRST, as for a changed time or spot, so it can never be paid next to the new one; a page
+      // Stripe refuses to close was paid meanwhile.
+      try {
+        await stripeOf(row!.checkout_session_id).checkout.sessions.expire(row!.checkout_session_id);
+      } catch (e) {
+        // Paid in the meantime, or a Stripe error: re-read decides.
+        return await refusedExpireAnswer(stripeOf(row!.checkout_session_id), row!.checkout_session_id, row!.order_id, e);
+      }
+    }
+    // Timed out unpaid (or just closed above): retire this order, then make a fresh one.
     const { error: retireErr } = await admin.rpc("declutter_retire_order", {
       p_order_id: row!.order_id, p_buyer: user.id, p_session_id: row!.checkout_session_id,
     });
@@ -666,11 +694,11 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       expires_at: expiresAt,
       // B48 live check 2026-10-29: the return names the order just paid, so "What happens next" opens for it even
       // when the buyer has other paid orders in their handover (BoughtWhatNext, justPaidOrder).
-      success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native),
-      // H3 (audit 11-08): back=1 lets the app record a return from Stripe's page that did not pay (funnel).
-      cancel_url: buildRedirectUrl("/declutter?view=cart&back=1", native),
+      // H3 (audit 11-08): back=1 on the cancel page lets the app record a return from Stripe's page that did not pay
+      // (funnel). Embedded (phase W): the return page is the same success page; closing our sheet is the way back.
+      ...surfaceRedirects(surface, `/declutter?view=cart&paid=1&order=${order.order_id}`, "/declutter?view=cart&back=1", native),
     },
-    { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${walletRetry ? ":new-wallet" : ""}` },
+    { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${surfaceKeySuffix(surface)}${walletRetry ? ":new-wallet" : ""}` },
     ), { adoptTagged: true });
   } catch (e) {
     if (!(e instanceof StripeCustomerUnavailable)) throw e;
@@ -693,11 +721,19 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     const keptId = (kept as { stripe_checkout_session_id?: string | null; status?: string } | null);
     if (keptId?.status === "awaiting_payment" && keptId.stripe_checkout_session_id) {
       const other = await stripeOf(keptId.stripe_checkout_session_id).checkout.sessions.retrieve(keptId.stripe_checkout_session_id);
-      if (other.status === "open" && other.url) return json({ url: other.url, order_id: order.order_id });
+      const kept = pageServes(other, surface) ? pageAnswer(other, surface) : null;
+      if (kept) return json({ ...kept, order_id: order.order_id });
     }
     return json({ error: TRY_AGAIN }, 409);
   }
-  return json({ url: session.url, order_id: order.order_id });
+  const answer = pageAnswer(session, surface);
+  if (!answer) {
+    // A page with neither a url nor (embedded) a client secret and its mode's key can take no payment: close it.
+    await expirePage(stripe, session.id);
+    console.error(`[declutter-checkout] session ${session.id} came back without a ${surface} page`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  return json({ ...answer, order_id: order.order_id });
 }
 
 /**

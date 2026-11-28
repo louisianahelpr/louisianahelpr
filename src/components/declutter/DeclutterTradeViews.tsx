@@ -38,7 +38,9 @@ import { fetchMyLastDropoff } from "@/lib/declutter/lastDropoff";
 import { fetchSellerDeliveryOffer, sellerDeliveryAmounts, type DeliveryHandoff, type SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
 import { SellerDeliveryPicker, sellerDeliveryPriceWords, sellerDeliveryState } from "./SellerDeliveryChoice";
-import { openExternalUrl } from "@/lib/openExternalUrl";
+import { useCheckoutPage } from "@/components/payments/useCheckoutPage";
+import { asksForEmbeddedCheckout } from "@/lib/payments/checkoutPage";
+import { report } from "@/lib/errorLogger";
 import { DeclutterNotice } from "./declutterUi";
 import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
@@ -121,6 +123,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
 }) {
   const qc = useQueryClient();
   const deliveryOpen = useFeature("declutter");
+  // Phase W (owner 11-27): on the website, Stripe's form opens inside our own sheet (embedded_checkout switch).
+  const embeddedOn = useFeature("embedded_checkout");
+  const checkoutPage = useCheckoutPage();
   // Seller delivery (20261027153244): asked of the server only while the switch is on for this member.
   const sellerDeliveryOn = useFeature("declutter_seller_delivery");
   const sdKey = ["declutter", "seller-delivery-offer", sellerId, itemsTotalCents] as const;
@@ -400,7 +405,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             await porchPlaces.whenPicked();
             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,
               sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null,
-              gift?.id ?? null);
+              gift?.id ?? null, asksForEmbeddedCheckout(embeddedOn));
             // The gift's balance moved (spent, or a leftover split off): the picker reads it again.
             if (gift) void qc.invalidateQueries({ queryKey: ["gift-card-count"] });
             if (res.paid && res.giftCents > 0) {
@@ -409,13 +414,28 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               setOpening(false);
               return;
             }
-            if (res.paid || !res.url) {
+            if (res.paid) {
               toast("This order is already paid.");
               invalidateTrades(qc);
               setOpening(false);
               return;
             }
-            await openExternalUrl(res.url, () => { setOpening(false); invalidateTrades(qc); onBack(); });
+            if (!res.page) {
+              // Neither paid nor a page we can show: never claim it was paid (lh-silent-failure review 11-27).
+              report(new Error("declutter-checkout answered no page"), { tags: { area: "embedded_checkout" } });
+              toast.error(declutterErrorMessage(new Error("payment_unavailable")));
+              invalidateTrades(qc);
+              setOpening(false);
+              return;
+            }
+            const embedded = res.page.kind === "embedded";
+            await checkoutPage.open(res.page, () => {
+              setOpening(false);
+              invalidateTrades(qc);
+              // H3: closing our sheet unpaid is the embedded twin of the hosted page's cancel_url (back=1).
+              if (embedded) trackFunnel("returned_from_stripe", { detail: "back" });
+              onBack();
+            });
           } catch (err) {
             const giftWords = gift ? giftPayErrorMessage(err) : null;
             if (giftWords) {
@@ -456,6 +476,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {/* Q2633 (owner rule: no line under the buttons): Pay is the last thing in the bill. The secure-page line went, and
           the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */}
     </div>
+    {checkoutPage.sheet}
     </div>
   );
 }

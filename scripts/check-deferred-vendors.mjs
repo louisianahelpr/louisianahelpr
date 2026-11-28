@@ -56,6 +56,9 @@ const ASSETS = `${DIST}/assets`;
 const DEFERRED = [
   { prefix: "sentry-", why: 'main.tsx defers it: import("./lib/sentry") in an idle callback' },
   { prefix: "posthog-", why: 'main.tsx defers it: import("./lib/posthog") in an idle callback' },
+  // Phase W (11-27): Stripe.js + React Stripe, only for an embedded payment page (useCheckoutPage lazy-loads
+  // components/payments/EmbeddedCheckoutSheet.tsx; vite.config.ts names the chunk "stripe").
+  { prefix: "stripe-", why: "useCheckoutPage loads EmbeddedCheckoutSheet with lazy(import()) only when an embedded page opens" },
 ];
 
 /**

@@ -224,7 +224,9 @@ const CLASSIFIED: Record<string, string> = {
   "pages/posts/postedJobs/RecurringVisitPayments.tsx::url": STRIPE_EDGE_URL,
   // startCardSave() returns declutter-card's Checkout (setup) session url (server-built).
   "components/declutter/DeclutterOfferPanel.tsx::url": STRIPE_EDGE_URL,
-  "components/declutter/DeclutterTradeViews.tsx::res.url": STRIPE_EDGE_URL,
+  // Phase W (11-27): the hosted half of useCheckoutPage, the page an edge function answered (checkoutPageFrom reads
+  // data.url); Declutter's cart Pay (DeclutterTradeViews) opens it through here now.
+  "components/payments/useCheckoutPage.tsx::page.url": STRIPE_EDGE_URL,
   "pages/post-job/useJobSubmit.ts::paymentUrl": STRIPE_EDGE_URL,
   "lib/escrowCheckout.ts::url": STRIPE_EDGE_URL + " (create-payment action escrow, the quote screens' booking)",
   // --- memberProfilePath(id): always the fixed template `/user/${userId}` (src/lib/profileLink/memberProfilePath.ts), a same-origin path ---

@@ -883,6 +883,12 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/declutterCheckoutName\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/declutterCheckoutName.ts";`,
   );
+  // Phase W (11-27): `_shared/embeddedCheckout.ts` imports only appUrl (pure), featureSwitch and stripeMode (both
+  // real here), so the REAL module decides hosted vs embedded and the switch read goes through scenario.rpc.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/embeddedCheckout\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/embeddedCheckout.ts";`,
+  );
 
   // JPEG metadata strip (Q2212): `_shared/jpegStripMetadata.ts` has ZERO
   // imports (pure byte walking), so the REAL module runs and the listing-photo

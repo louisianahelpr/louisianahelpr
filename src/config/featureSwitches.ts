@@ -175,6 +175,10 @@ export const FEATURE_SWITCH_KEYS = [
   // returns on=false, every sponsor RPC and the sponsor-25days function refuse while it is off. Read in the app by
   // /admin/sponsors (useFeatureStatus("sponsor_25days")); the public pages read on/off from sponsor_public_state.
   "sponsor_25days",
+  // Stripe Embedded Checkout on the website (owner 2026-11-27, in-app pay plan phase W). Created 'testers' by
+  // 20261128005905. The web client asks for an embedded page only while useFeature("embedded_checkout") is on
+  // (src/lib/payments/checkoutPage.ts); the server decides again for the verified caller (_shared/embeddedCheckout.ts).
+  "embedded_checkout",
 ] as const;
 
 /**

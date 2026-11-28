@@ -25,6 +25,7 @@ import { NotificationMessage } from "@/components/notificationPanel/Notification
 import { quickActionFor } from "@/components/notificationPanel/quickActions";
 import type { NotificationPanelModel } from "./NotificationPanel";
 import { useLanguage } from "@/lib/i18n/language";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 // The Spanish notice shapes arrive with the Spanish words (es.ts chunk), never on the English path.
 import { spanishNotice as noticeInSpanish } from "@/lib/i18n/language";
 import "@/lib/i18n/enNotifications";
@@ -77,6 +78,12 @@ export function NotificationPanelView({
   const { t, lang } = useLanguage();
   // F260q (owner 11-11): the server writes notices in English; Spanish readers see the known shapes re-written (noticeEs.ts).
   const say = (text: string) => (lang === "es" ? noticeInSpanish(text) : text);
+  // Polish audit 11-27 #13: the Inbox list's end clears the floating dock where it is painted (hidden on the desktop
+  // website), as the tab panel's own padding did before the list became the page's one scroll.
+  const isWebDesktop = useIsWebDesktop();
+  const inlineBottomPad = isWebDesktop
+    ? "calc(var(--safe-area-bottom, 0px) + 1rem)"
+    : "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))";
   const markAllButton =
     unreadCount > 0 ? (
       <Button type="button" variant="ghost" size="sm" onClick={markAllRead} data-testid="mark-all-read"
@@ -112,16 +119,32 @@ export function NotificationPanelView({
       chipAttr="data-notif-chip"
     />
   );
+  // THE INBOX'S NOTIFICATIONS TAB (owner 11-15): the same list, on a page instead of in the bell's panel. The tab
+  // above already names it and there is nothing to close, so the row keeps only Unread / All and Mark all read.
+  // Polish audit 11-27 #13: on the Inbox page this row, the rows, the page note and the push row are ONE scroll (the
+  // list's own, which runs to the bottom of the screen); before, the chips sat pinned over a short inner box and the
+  // push row was a fixed footer above the dock's blank room.
+  const inlineHeader = inline ? (
+    <div data-notif-inline-head="" className="flex items-center gap-2 pt-2 pb-2.5 border-b border-[hsl(var(--olivewood)/0.12)]">
+      <div className="min-w-0 flex-1">{inboxChips}</div>
+      {markAllButton}
+    </div>
+  ) : undefined;
+  const pushRow = showPushRow ? (
+    <ListRow variant="flush"
+      onClick={enablePush}
+      className={`min-h-11 px-0 py-0 text-center ${inline ? "" : "shrink-0 "}w-full h-11 inline-flex items-center justify-center gap-1.5 text-ds-12 font-sans font-semibold border-t border-[hsl(var(--olivewood)/0.12)] ctl-tint`}
+      style={{
+        color: "hsl(var(--bark))",
+        marginBottom: inline ? undefined : "var(--safe-area-bottom, 0px)",
+      }}
+    >
+      <BellRing className="w-4 h-4" /> {t("notif.turnOnPush")}
+    </ListRow>
+  ) : null;
   const body = (
         <div data-record-id="notifications-panel" className={inline ? "flex-1 min-h-0 flex flex-col overflow-hidden w-full max-w-2xl mx-auto" : "flex-1 min-h-0 flex flex-col overflow-hidden w-full max-w-lg mx-auto [.web-desktop_&]:w-[28rem]"}>
-        {inline ? (
-          // THE INBOX'S NOTIFICATIONS TAB (owner 11-15): the same list, on a page instead of in the bell's panel. The tab
-          // above already names it and there is nothing to close, so the row keeps only Unread / All and Mark all read.
-          <div className="shrink-0 flex items-center gap-2 pt-2 pb-2.5 border-b border-[hsl(var(--olivewood)/0.12)]">
-            <div className="min-w-0 flex-1">{inboxChips}</div>
-            {markAllButton}
-          </div>
-        ) : (
+        {inline ? null : (
         <AnchoredPanelHeader
           titleId={titleId}
           title={t("notif.title")}
@@ -157,6 +180,9 @@ export function NotificationPanelView({
           isPulling={isPulling}
           canTrigger={canTrigger}
           className="flex-1 min-h-0 no-scrollbar overscroll-contain"
+          top={inlineHeader}
+          // The Inbox page's room for the floating dock is the scroll's own end, so the rows pass under the dock (#13).
+          style={inline ? { paddingBottom: inlineBottomPad } : undefined}
         >
           {loadError && (!listShowable || notifications.length === 0) ? (
             /* A failed initial load takes precedence over the "All caught up"
@@ -449,24 +475,14 @@ export function NotificationPanelView({
               )}
             </div>
           )}
+          {inline && pushRow}
         </PullToRefreshWrapper>
 
         {/* Push opt-in lives in a footer row, outside the scroll area, rather
             than as a big button inside the empty state — it is relevant
             whether or not the list is empty, and it is the one thing here
-            that changes what lands in this panel in future. */}
-        {showPushRow && (
-          <ListRow variant="flush"
-            onClick={enablePush}
-            className="min-h-11 px-0 py-0 text-center shrink-0 w-full h-11 inline-flex items-center justify-center gap-1.5 text-ds-12 font-sans font-semibold border-t border-[hsl(var(--olivewood)/0.12)] ctl-tint"
-            style={{
-              color: "hsl(var(--bark))",
-              marginBottom: "var(--safe-area-bottom, 0px)",
-            }}
-          >
-            <BellRing className="w-4 h-4" /> {t("notif.turnOnPush")}
-          </ListRow>
-        )}
+            that changes what lands in this panel in future. On the Inbox page it ends the one scroll instead (#13). */}
+        {!inline && pushRow}
         </div>
   );
   if (inline) return body;

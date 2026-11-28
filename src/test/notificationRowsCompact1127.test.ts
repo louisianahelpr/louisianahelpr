@@ -60,3 +60,42 @@ describe("polish audit 11-27 #13: compact notification rows", () => {
     expect(panel.slice(note, panel.indexOf(">", note))).toContain("text-ds-13");
   });
 });
+
+/**
+ * Polish audit 11-27 #13, the rest: "one page scroll". On the Inbox page the Unread / All row, the rows, the page note and
+ * the push row are ONE scroll (the list's), and the room for the dock is that scroll's end, not padding under a short
+ * box (which left a fixed push footer over a blank band).
+ *
+ * @mutate src/components/NotificationPanelView.tsx |           top={inlineHeader}\n | \n
+ * @mutate src/components/NotificationPanelView.tsx |           {inline && pushRow}\n | \n
+ * @mutate src/components/inbox/InboxNotifications.tsx |         className="flex-1 min-h-0 flex flex-col"\n |         className="flex-1 min-h-0 flex flex-col"\n        style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))" }}\n
+ */
+describe("polish audit 11-27 #13: the Inbox's notifications are one scroll", () => {
+  const inbox = blankComments(readFileSync(resolve(__dirname, "../components/inbox/InboxNotifications.tsx"), "utf8"));
+  const wrapAt = panel.indexOf("<PullToRefreshWrapper");
+  const wrapEnd = panel.indexOf("</PullToRefreshWrapper>");
+  const wrapper = panel.slice(wrapAt, wrapEnd);
+
+  it("is not vacuous", () => {
+    expect(wrapAt).toBeGreaterThan(-1);
+    expect(wrapEnd).toBeGreaterThan(wrapAt);
+    expect(inbox).toContain("<NotificationPanel inline />");
+  });
+
+  it("the Unread / All row scrolls with the rows (the scroller's top), never pinned above it", () => {
+    expect(panel).toContain('data-notif-inline-head=""');
+    expect(wrapper).toContain("top={inlineHeader}");
+    // The chips are drawn once, inside inlineHeader, defined before the panel body.
+    expect(panel.split("{inboxChips}").length - 1).toBe(1);
+    expect(panel.indexOf("{inboxChips}")).toBeLessThan(panel.indexOf("const body = ("));
+  });
+
+  it("the push row ends the scroll on the Inbox page; the dock's room is the scroll's own end", () => {
+    expect(wrapper).toContain("{inline && pushRow}");
+    expect(wrapper).toContain("style={inline ? { paddingBottom: inlineBottomPad } : undefined}");
+    expect(panel.slice(wrapEnd)).toContain("{!inline && pushRow}");
+    const tabpanel = inbox.slice(inbox.indexOf('role="tabpanel"'), inbox.indexOf("<NotificationPanel inline />"));
+    expect(tabpanel.length).toBeGreaterThan(20);
+    expect(tabpanel).not.toMatch(/paddingBottom|bottom-nav-h/);
+  });
+});

@@ -43,7 +43,7 @@ const HPAYOUT = "0000000c-0000-4000-8000-0000000000cc";
 const RAISE = "0000000c-0000-4000-8000-0000000000dd";
 const RAISE2 = "0000000c-0000-4000-8000-0000000000ee";
 
-function env() {
+function env(extra: Record<string, string> = {}) {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
@@ -51,6 +51,7 @@ function env() {
     STRIPE_SECRET_KEY: "sk_live_declutter",
     STRIPE_TEST_SECRET_KEY: "sk_test_declutter",
     STRIPE_WEBHOOK_SECRET: "whsec_live",
+    ...extra,
   });
 }
 const rpcs = (name: string) => (scenario.rpcCalls ?? []).filter((c) => c.name === name);
@@ -310,8 +311,8 @@ describe("stripe-webhook: a raise refund Stripe later failed", () => {
 });
 
 describe("declutter-checkout: raise_pay", () => {
-  async function call(body: Record<string, unknown>) {
-    env();
+  async function call(body: Record<string, unknown>, extraEnv: Record<string, string> = {}) {
+    env(extraEnv);
     scenario.authUser = { id: BUYER, email: "buyer@test.dev" };
     const fn = await loadEdgeFunction("declutter-checkout");
     return fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "raise_pay", ...body } }));
@@ -339,6 +340,41 @@ describe("declutter-checkout: raise_pay", () => {
     expect(params.payment_intent_data.transfer_data).toBeUndefined();
     expect(opts).toEqual({ idempotencyKey: `declutter-raise-${RAISE}` });
     expect(rpcs("declutter_delivery_raise_attach")[0]?.args).toEqual({ p_raise_id: RAISE, p_session_id: "cs_live_raise" });
+  });
+
+  // Phase W (owner 11-27): the website's raise opens Stripe's form in our own sheet; the app keeps the hosted page.
+  // @mutate supabase/functions/declutter-checkout/index.ts |       ...surfaceRedirects(surface, "/declutter?view=cart&raised=1", "/declutter?view=cart", isNativeRequest(body)), |       ...surfaceRedirects("hosted", "/declutter?view=cart&raised=1", "/declutter?view=cart", isNativeRequest(body)),
+  it("phase W: a website raise with the switch on gets an embedded page on the same raise session; the app gets {url}", async () => {
+    for (const native of [false, true]) {
+      resetSupabaseMock();
+      resetStripeMock();
+      scenario.rpc.feature_enabled_for_user = (a: { p_key: string }) => a.p_key === "embedded_checkout" || a.p_key === "declutter";
+      scenario.reads.declutter_orders = { rows: [{ buyer_id: BUYER, seller_id: SELLER }] };
+      scenario.reads.declutter_delivery_raises = { rows: [] };
+      scenario.rpc.declutter_delivery_raise_start = started;
+      scenario.rpc.declutter_delivery_raise_attach = null;
+      stripeMock.checkout.sessions.create.mockResolvedValue(native
+        ? { id: "cs_live_raise", url: "https://checkout.stripe.test/raise", amount_total: 1061 }
+        : { id: "cs_live_raise", ui_mode: "embedded", url: null, client_secret: "cs_live_raise_secret_z", amount_total: 1061 });
+      const res = await call({ order_id: ORDER, raise_cents: 1000, embedded: true, native }, { STRIPE_PUBLISHABLE_KEY: "pk_live_helprTest1" });
+      expect(res.status).toBe(200);
+      const body = JSON.parse(await res.text());
+      const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+      expect(params.line_items.map((l: any) => l.price_data.unit_amount)).toEqual([1061]);
+      expect(params.payment_intent_data.transfer_group).toBe(`declutter_order_${ORDER}`);
+      if (native) {
+        expect(body.url).toBe("https://checkout.stripe.test/raise");
+        expect(params.ui_mode).toBeUndefined();
+        expect(params.success_url).toContain("raised=1");
+        expect(opts).toEqual({ idempotencyKey: `declutter-raise-${RAISE}` });
+      } else {
+        expect(body).toEqual({ client_secret: "cs_live_raise_secret_z", publishable_key: "pk_live_helprTest1", order_id: ORDER, raise_id: RAISE });
+        expect(params.ui_mode).toBe("embedded");
+        expect(params.return_url).toBe("https://www.louisianahelpr.com/declutter?view=cart&raised=1");
+        expect(params.success_url).toBeUndefined();
+        expect(opts).toEqual({ idempotencyKey: `declutter-raise-${RAISE}:embedded` });
+      }
+    }
   });
 
   it("anyone but the order's buyer gets item_not_found and no page", async () => {

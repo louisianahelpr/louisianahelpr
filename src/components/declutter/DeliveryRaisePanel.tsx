@@ -15,7 +15,9 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { startDeliveryRaise, type DeliveryRaise } from "@/lib/declutter/deliveryRaise";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { raiseCardFeeCents, RAISE_MIN_CENTS } from "@/lib/declutter/raiseFee";
-import { openExternalUrl } from "@/lib/openExternalUrl";
+import { useCheckoutPage } from "@/components/payments/useCheckoutPage";
+import { asksForEmbeddedCheckout } from "@/lib/payments/checkoutPage";
+import { useFeature } from "@/hooks/useFeature";
 import { Button } from "@/components/ui/button";
 
 const money = "font-semibold tabular-nums text-[hsl(var(--accent-ink))]";
@@ -35,20 +37,29 @@ export function DeliveryRaisePanel({ orderId }: { orderId: string }) {
   const status = useQuery(deliveryRaiseQuery(orderId));
   const [dollars, setDollars] = useState("10");
   const [opening, setOpening] = useState(false);
+  // Phase W (owner 11-27): on the website, Stripe's form opens inside our own sheet (embedded_checkout switch).
+  const embeddedOn = useFeature("embedded_checkout");
+  const checkoutPage = useCheckoutPage();
   const raise = useMutation({
-    mutationFn: (cents: number) => startDeliveryRaise(orderId, cents),
+    mutationFn: (cents: number) => startDeliveryRaise(orderId, cents, asksForEmbeddedCheckout(embeddedOn)),
     onSuccess: async (res) => {
-      if (res.paid || !res.url) {
+      if (res.paid || !res.page) {
         toast("Your earlier raise went through.");
         void qc.invalidateQueries({ queryKey: ["declutter", "delivery-raise", orderId] });
         return;
       }
       setOpening(true);
-      await openExternalUrl(res.url, () => {
+      try {
+        await checkoutPage.open(res.page, () => {
+          setOpening(false);
+          void qc.invalidateQueries({ queryKey: ["declutter", "delivery-raise", orderId] });
+          void qc.invalidateQueries({ queryKey: ["helpr-tasks"] });
+        });
+      } catch (err) {
+        // The payment sheet could not load (offline, a replaced chunk): Raise is pressable again; onError shows why.
         setOpening(false);
-        void qc.invalidateQueries({ queryKey: ["declutter", "delivery-raise", orderId] });
-        void qc.invalidateQueries({ queryKey: ["helpr-tasks"] });
-      });
+        throw err;
+      }
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -121,6 +132,7 @@ export function DeliveryRaisePanel({ orderId }: { orderId: string }) {
           </Button>
         </form>
       )}
+      {checkoutPage.sheet}
     </section>
   );
 }

@@ -12,7 +12,9 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { TipCostBreakdown, TipPicker, centsLabel } from "@/components/TipCostBreakdown";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyPaidDeliveryTips, startDeliveryTip } from "@/lib/declutter/deliveryTip";
-import { openExternalUrl } from "@/lib/openExternalUrl";
+import { useCheckoutPage } from "@/components/payments/useCheckoutPage";
+import { asksForEmbeddedCheckout } from "@/lib/payments/checkoutPage";
+import { useFeature } from "@/hooks/useFeature";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { tipsNotReadyLine } from "@/hooks/useHelprTakesTips";
@@ -33,17 +35,28 @@ export function DeliveryTipPanel({ taskId, helprFirstName }: { taskId: string; h
   // One id per opening of the prompt (the job tip's rule, ME-007): a retry is one page, a new tip a new one.
   const attempt = useRef<string>(crypto.randomUUID());
   const who = helprFirstName ?? "your Helpr";
+  // Phase W (owner 11-27): on the website, Stripe's form opens inside our own sheet (embedded_checkout switch).
+  const embeddedOn = useFeature("embedded_checkout");
+  const checkoutPage = useCheckoutPage();
   const send = useMutation({
-    mutationFn: (cents: number) => startDeliveryTip(taskId, cents, attempt.current),
-    onSuccess: async (url) => {
+    mutationFn: (cents: number) => startDeliveryTip(taskId, cents, attempt.current, asksForEmbeddedCheckout(embeddedOn)),
+    onSuccess: async (page) => {
       setOpening(true);
-      await openExternalUrl(url, () => {
+      try {
+        await checkoutPage.open(page, () => {
+          setOpening(false);
+          attempt.current = crypto.randomUUID();
+          void qc.invalidateQueries({ queryKey: ["declutter", "delivery-tips", taskId] });
+        });
+      } catch (err) {
+        // The payment sheet could not load: the tip is pressable again; onError shows why.
         setOpening(false);
-        attempt.current = crypto.randomUUID();
-        void qc.invalidateQueries({ queryKey: ["declutter", "delivery-tips", taskId] });
-      });
+        throw err;
+      }
     },
     onError: (err) => {
+      // That attempt's page closed (expired, or closed as the other kind of page): the next Tip is a new attempt.
+      if ((err as { message?: unknown } | null)?.message === "tip_page_closed") attempt.current = crypto.randomUUID();
       if (declutterErrorMessage(err) === DELIVERY_TIP_WAITS_ON_ID) setWaitsOnId(true);
       else toast.error(declutterErrorMessage(err));
     },
@@ -82,6 +95,7 @@ export function DeliveryTipPanel({ taskId, helprFirstName }: { taskId: string; h
         disabled={!valid || busy} onClick={() => send.mutate(cents)}>
         {busy ? "Opening payment…" : valid ? `Tip ${centsLabel(cents)}` : "Tip"}
       </Button>
+      {checkoutPage.sheet}
     </section>
   );
 }

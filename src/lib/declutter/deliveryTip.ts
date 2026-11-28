@@ -8,6 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { invokeDeclutter } from "@/lib/declutter/api";
+import { checkoutPageFrom, type CheckoutPage } from "@/lib/payments/checkoutPage";
 
 export interface DeliveryTip {
   id: string;
@@ -36,8 +37,11 @@ export async function fetchTipsOnMyDeliveries(userId: string): Promise<Map<strin
 }
 
 /** Open the tip's Stripe page; returns its URL. `attemptId` is one per opening of the prompt. */
-export async function startDeliveryTip(taskId: string, tipCents: number, attemptId: string): Promise<string> {
-  const data = await invokeDeclutter("declutter-checkout", { action: "delivery_tip", task_id: taskId, tip_cents: tipCents, tip_attempt_id: attemptId });
-  if (typeof data.url !== "string" || !data.url) throw new Error("payment_unavailable");
-  return data.url;
+export async function startDeliveryTip(taskId: string, tipCents: number, attemptId: string, embedded = false): Promise<CheckoutPage> {
+  const data = await invokeDeclutter("declutter-checkout", { action: "delivery_tip", task_id: taskId, tip_cents: tipCents, tip_attempt_id: attemptId,
+    // Phase W: the website asks for Stripe's form in our own sheet; the server may still answer hosted.
+    ...(embedded ? { embedded: true } : {}) });
+  const page = checkoutPageFrom(data);
+  if (!page) throw new Error("payment_unavailable");
+  return page;
 }

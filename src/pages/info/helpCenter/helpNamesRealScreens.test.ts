@@ -7,7 +7,7 @@
  *
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts |         a: "Go to You › Settings › Account and security.", |         a: "Go to Profile → Account Security.",
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | (/^[A-Z0-9]+$/.test(JOB_CATEGORY_LABELS[value]) ? JOB_CATEGORY_LABELS[value] : JOB_CATEGORY_LABELS[value].toLowerCase()) | JOB_CATEGORY_LABELS[value].toLowerCase()
- * @mutate src/pages/info/helpCenter/helpCenterContent.ts | Turn on Bigger text and buttons in You › Settings. | Enable Senior Mode in You › Settings.
+ * @mutate src/pages/info/helpCenter/helpCenterContent.ts | Turn on Bigger text and buttons in You › Settings › Color and text. | Enable Senior Mode in You › Settings › Color and text.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

@@ -178,4 +178,15 @@ describe("Account and security: Change is a text link on the title line (polish 
     expect(btn.className).not.toMatch(/\bborder-/);
     expect(btn.className).toMatch(/\blink-standard\b/);
   });
+
+  // @mutate src/components/profile/SignInMethodsCard.tsx |                     variant="link"\n                    className="shrink-0 px-0 text-ds-15 font-semibold text-[hsl(var(--bark))]" |                     variant="outline"\n                    className="shrink-0"
+  it("Connect Apple / Connect Google are text links too, not outline pills", async () => {
+    renderTab();
+    const connects = await screen.findAllByRole("button", { name: /^Connect (Apple|Google)$/ });
+    expect(connects.length).toBeGreaterThan(1);
+    for (const c of connects) {
+      expect(c.className).toMatch(/\blink-standard\b/);
+      expect(c.className).not.toMatch(/\bborder-/);
+    }
+  });
 });

@@ -54,7 +54,7 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
   work: [
     { title: "Find work nearby", desc: "Browse jobs near you, see your take-home, then apply." },
     { title: "Get picked", desc: "The person who posted the job picks you, and you accept." },
-    { title: "Get paid when it's done", desc: "Their payment is held safely, then released to you once the work is approved." },
+    { title: "Get paid when it’s done", desc: "Their payment is held safely, then released to you once the work is approved." },
   ],
   // Declutter, true today (OWNER-DECISIONS.md "Posting" and "Declutter handover money", 10-30/11-01): a listing is photos,
   // title, description, price, category and condition; buyers tap Buy now or send an offer; the buyer's "I got it" alone
@@ -62,7 +62,7 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
   sell: [
     { title: "List it in a minute", desc: "Add photos, a title and a garage-sale price." },
     { title: "Neighbors buy or offer", desc: "They tap Buy now or send you an offer. You choose." },
-    { title: "Hand it over, get paid", desc: "Meet up or leave it on the porch. You're paid once the buyer says they got it." },
+    { title: "Hand it over, get paid", desc: "Meet up or leave it on the porch. You’re paid once the buyer says they got it." },
   ],
 };
 

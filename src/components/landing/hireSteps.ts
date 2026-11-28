@@ -6,5 +6,5 @@
 export const HIRE_STEPS = [
   { title: "Post what you need", desc: "Describe the job and set your price." },
   { title: "Pick your Helpr", desc: "See who applied and chat before you hire." },
-  { title: "Pay when it's done", desc: "Your money is held safely until you approve the work." },
+  { title: "Pay when it’s done", desc: "Your money is held safely until you approve the work." },
 ] as const;

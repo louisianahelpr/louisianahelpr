@@ -194,7 +194,7 @@ export const sponsorPage = {
    * The final lineup (owner 2026-11-16: "each person will have their own day" is no longer true; some days have
    * two or three brands, each with its own winner). Source: the owner's 25 Days Sponsor Tracker (const S and D); owner 2026-11-17: every sponsor who said yes by
    * email or Facebook is listed on their tracker day. Owner 2026-11-18 (nothing stale anywhere): lineup.days is exactly
-   * the tracker's calendar (176 giveaways as of 2026-11-20 6:45 PM; 175 after the owner dropped one Dec 5 sponsor on 2026-11-20; 164 after the 2026-11-23 sync: RYSE on 10 days, 7 new sponsors, Popsy Clothing public-off). Check drift with `node scripts/check-25days-lineup.mjs`,
+   * the tracker's calendar (176 giveaways as of 2026-11-20 6:45 PM; 175 after the owner dropped one Dec 5 sponsor on 2026-11-20; 164 after the 2026-11-23 sync: RYSE on 10 days, 7 new sponsors, Popsy Clothing public-off; 167 after the 2026-11-26 sync: Cure Hydration, Escape My Room, Fleurish Forever). Check drift with `node scripts/check-25days-lineup.mjs`,
    * regenerate with `--print` (manual; never in CI).
    * Business names, prizes and Facebook Page links ONLY: never a contact person's name, email or phone (this page and repo are public).
    * Owner 2026-11-19: three sponsors show by their own name (David Rabalais; Tevin Lewis, District 2 Alderman, linked to his own page;
@@ -323,6 +323,15 @@ export const sponsorPage = {
       "Kart Ranch": "https://www.facebook.com/kart.ranch",
       "Adagio Teas": "https://www.facebook.com/adagioteas",
       "SEEN": "https://www.instagram.com/seenskinandhair/",
+      // Placed 2026-11-26 (25days-page-sync-1126): the tracker's socials (fb). Cure Hydration credited as a sponsor (owner 11-26).
+      "Cure Hydration": "https://www.facebook.com/curehydration/",
+      "Escape My Room": "https://www.facebook.com/escapemyroom",
+      "Fleurish Forever": "https://www.facebook.com/fleurishforeverllc",
+      // 11-27 placements: FB pages from each business's own Instagram bio or website (tracker socials.fb).
+      "Luminous Advanced Aesthetics": "https://www.facebook.com/109016033904081",
+      "Miss Claudia's Vintage Clothing & Costumes": "https://www.facebook.com/missclaudiasvintage",
+      "Camellia Point Public House": "https://www.facebook.com/647288261796572",
+      "Jubilant Soapsetions": "https://www.facebook.com/jubilantsoapsetions",
     } as Record<string, string>,
     /**
      * INTERNAL ONLY (owner rule 2026-11-17: "don't tell sponsors their day until it's final"): the page never shows
@@ -345,7 +354,7 @@ export const sponsorPage = {
         day: 2,
         partners: [
           { brand: "Texas Beard Company", prize: "Beard Oil + Balm, winner's choice of scents" },
-          { brand: "World Ballet Company: The Nutcracker", prize: "Pair of Nutcracker tickets, Strand Theatre Shreveport, Dec 8" },
+          { brand: "World Ballet Company: The Nutcracker", prize: "Pair of The Nutcracker Tickets, Strand Theatre Shreveport, Dec 8" },
           { brand: "Cher Bebe Embroidery", prize: "Tea towel of choice + custom wreath sash" },
           { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
           { brand: "Suzi Marques Photography", prize: "Family mini session on Sun Dec 20 at Moncus Park, Lafayette: 15 minutes of photography + 8 professionally edited digital images (one per winner; 6 winners)" },
@@ -385,6 +394,7 @@ export const sponsorPage = {
           { brand: "AllWays Lounge & Cabaret (New Orleans)", prize: "Gift certificate: 2 show tickets + 2 free cocktails" },
           { brand: "Jessica Lanham Photography", prize: "$300 photography gift certificate: covers the $100 session fee + $200 toward any package (one per winner; 4 winners)" },
           { brand: "SEEN", prize: "Travel Trio Kit (2 oz Shampoo, Conditioner and Blow-Out Creme)" },
+          { brand: "Cure Hydration", prize: "Cure Hydration gift pack" },
         ],
       },
       {
@@ -415,7 +425,7 @@ export const sponsorPage = {
         partners: [
           { brand: "RYSE", prize: "2 cases of RYSE Fuel (two 12-packs)" },
           { brand: "Timeless Skin Care", prize: "Skincare package" },
-          { brand: "Written on the River", prize: "Mug or tile with her Louisiana design" },
+          { brand: "Written on the River", prize: "Louisiana tumbler + some stickers" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
           { brand: "Active Beauty", prize: "B.Skin Tight marine collagen + electrolyte drink" },
           { brand: "Candle Bloom Confections", prize: "Candle flower bouquet" },
@@ -478,6 +488,7 @@ export const sponsorPage = {
           { brand: "Faulk's Game Call Co.", prize: "CA-11 Cane Duck Call" },
           { brand: "Cajun Belle Studio", prize: "Alligator earrings" },
           { brand: "Hello Darlin'", prize: "Sweet Hello Package: free 2-hr vintage audio guest book rental ($125)" },
+          { brand: "Luminous Advanced Aesthetics", prize: "$200 Luminous Advanced Aesthetics gift card (facials; Baton Rouge studio)" },
         ],
       },
       {
@@ -501,6 +512,7 @@ export const sponsorPage = {
           { brand: "Cat Lady / CatLadyBox", prize: "$60 digital gift card (Cat Lady Box or catlady.com items)" },
           { brand: "Whimsies from Within", prize: "Mixed media wall hanging ($130)" },
           { brand: "Britt Creates", prize: "Resume refresh + headshot session" },
+          { brand: "Miss Claudia's Vintage Clothing & Costumes", prize: "$20 Miss Claudia's Vintage Clothing & Costumes gift certificate (New Orleans, Magazine St)" },
         ],
       },
       {
@@ -512,6 +524,7 @@ export const sponsorPage = {
           { brand: "3 Redneck Tenors", prize: "Pair of tickets, Feb 26 2027, Strand Theatre Shreveport" },
           { brand: "Forgiven Hearts", prize: "$25 gift certificate" },
           { brand: "The Charmed Page Bookstore", prize: "$25 gift card" },
+          { brand: "Fleurish Forever", prize: "$50 gift card: entry for 2 people at a Thursday night dance class (Scott, LA)" },
         ],
       },
       {
@@ -535,6 +548,7 @@ export const sponsorPage = {
           { brand: "Megan Benoit's Closet", prize: "$30 gift card" },
           { brand: "BIME Beauty", prize: "3-brush set (scalp therapy + self-cleaning brushes)" },
           { brand: "Pixie Dust Biodegradable Glitter (New Orleans)", prize: "$15 store credit (online) + free 2-hour glitter artist party; New Orleans area party, travel fee may apply outside Orleans Parish" },
+          { brand: "Camellia Point Public House", prize: "$25 Camellia Point Public House gift card" },
         ],
       },
       {
@@ -557,6 +571,7 @@ export const sponsorPage = {
           { brand: "Krazy Bull Kreations", prize: "$25 shop credit (freshies)" },
           { brand: "Salty Cat", prize: "Salty Cat starter pack bundle + Salty Cat tote bag" },
           { brand: "Tays Sweet Shop", prize: "$50 gift card for any shippable bakery item (one per day)" },
+          { brand: "Jubilant Soapsetions", prize: "Hand soap with a matching bar soap (Jubilant Soapsetions, scratch-made, Monroe LA)" },
         ],
       },
       {
@@ -581,6 +596,7 @@ export const sponsorPage = {
           { brand: "Ripley's Crawfish", prize: "$25 gift certificate" },
           { brand: "Wicks NOLA Candle Company", prize: "8 oz scented candle" },
           { brand: "Chattanooga Beard Co.", prize: "Beard care gift set" },
+          { brand: "Escape My Room", prize: "Escape room experience for 4 players (New Orleans): $205.70 digital gift card" },
         ],
       },
       {

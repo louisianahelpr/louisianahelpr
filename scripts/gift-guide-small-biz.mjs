@@ -50,9 +50,14 @@ const NO_LOGO = new Set(["sprinkle-in-time-too"]);
  * ~/Desktop/25 Days Logos). Monarch Books, Hair Fashion and Spa, Tiffany Morton and Phyllis Guy showed a beige name box
  * here; Mystic Forests' folder file had app buttons baked in (now the clean crop the sponsors page uses).
  */
-const SPONSOR_PAGE_LOGO = Object.fromEntries(
-  ["monarch-books", "hair-fashion-and-spa", "tiffany-morton-cosmetic-tattooing", "phyllis-guy-dance-center", "mystic-forests-nursery"].map((s) => [s, `/gift-guides/sponsors/${s}.webp`]),
-);
+const SPONSOR_PAGE_LOGO = {
+  ...Object.fromEntries(
+    ["monarch-books", "hair-fashion-and-spa", "tiffany-morton-cosmetic-tattooing", "phyllis-guy-dance-center", "mystic-forests-nursery",
+      // 11-27 placements: the cutouts the sponsors page draws
+      "luminous-advanced-aesthetics", "camellia-point-public-house", "jubilant-soapsetions"].map((s) => [s, `/gift-guides/sponsors/${s}.webp`]),
+  ),
+  "miss-claudias-vintage": "/gift-guides/sponsors/miss-claudias-vintage-clothing-and-costumes.webp",
+};
 const REPO_LOGO = { "david-rabalais-the-fois": "/gift-guides/sponsor-picks/the-fois-poster.webp", ...SPONSOR_PAGE_LOGO };
 /**
  * Words the page says differently: the AllWays Lounge's street ("St. Claude Ave.") reads as the Marigny, since no
@@ -71,6 +76,33 @@ const ADDED = [
     slug: "accesorios-para-ninas", name: "Accesorios Para Niñas", town: "", category: "Kids",
     description: "Handmade hair accessories for little girls.", best_gift: "A set of girls' hair accessories",
     instagram_url: "https://www.instagram.com/accesorios_by_chabe/", shipping: "Ships or local drop-off",
+  },
+  // 25 Days sponsors placed Fri 11-27 (tracker data/sponsors.js); links from each business's own Instagram bio or website.
+  {
+    slug: "luminous-advanced-aesthetics", name: "Luminous Advanced Aesthetics", town: "Baton Rouge", category: "Beauty & Wellness",
+    description: "An advanced aesthetics spa studio: facials, peels and skin treatments with holistic wellness touches.",
+    best_gift: "A Luminous gift card toward a facial", website_url: "https://www.luminousadvancedaesthetics.com/",
+    facebook_url: "https://www.facebook.com/109016033904081", instagram_url: "https://www.instagram.com/luminousadvancedaesthetics/",
+  },
+  {
+    slug: "miss-claudias-vintage", name: "Miss Claudia's Vintage Clothing & Costumes", town: "New Orleans", category: "Fashion & Accessories",
+    description: "Uptown New Orleans vintage shop: fine, fun and unique vintage clothing, costumes and wigs.",
+    best_gift: "A Miss Claudia's gift certificate", website_url: "https://missclaudiasvintage.etsy.com/",
+    facebook_url: "https://www.facebook.com/missclaudiasvintage", instagram_url: "https://www.instagram.com/missclaudiasvintage/",
+    shipping: "Shop in New Orleans; vintage pieces also sold online",
+  },
+  {
+    slug: "camellia-point-public-house", name: "Camellia Point Public House", town: "Slidell", category: "Food & Sweets",
+    description: "A family- and dog-friendly pub with craft beer, cocktails, smash burgers, a playground and live music.",
+    best_gift: "A Camellia Point gift card", facebook_url: "https://www.facebook.com/647288261796572",
+    instagram_url: "https://www.instagram.com/camelliapoint/", shipping: "Local only (at the pub in Slidell)",
+  },
+  {
+    slug: "jubilant-soapsetions", name: "Jubilant Soapsetions", town: "Monroe", category: "Home & Decor",
+    description: "Small-batch, scratch-made bar soaps from plant oils and butters, in custom scents.",
+    best_gift: "A soap bundle", website_url: "https://jubilantsoapsetions.com/",
+    facebook_url: "https://www.facebook.com/jubilantsoapsetions", instagram_url: "https://www.instagram.com/jubilantsoapsetions/",
+    shipping: "Ships (online shop)",
   },
 ];
 
@@ -156,6 +188,9 @@ export const TRACKER_NAME = {
   "hannahbelle-photography": "Hannahbelle Photography", "hello-darlin": "Hello Darlin'",
   "jessica-lanham-photography": "Jessica Lanham Photography", "olivia-grace-photography": "Olivia Grace Photography",
   "suzi-marques-photography": "Suzi Marques Photography",
+  // 11-27 placements (ADDED above)
+  "luminous-advanced-aesthetics": "Luminous Advanced Aesthetics", "miss-claudias-vintage": "Miss Claudia's Vintage Clothing & Costumes",
+  "camellia-point-public-house": "Camellia Point Public House", "jubilant-soapsetions": "Jubilant Soapsetions",
 };
 /** Confirmed in the tracker, but held off this page until the owner says yes (see above). */
 export const HELD = new Set(["sprinkle-in-time-too"]);

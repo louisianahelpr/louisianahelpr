@@ -6,6 +6,7 @@ import { CheckoutRepeatsRow } from "./CheckoutRepeatsRow";
 import { ReviewMediaRows } from "./ReviewMediaRows";
 import "@/lib/i18n/enPostJob";
 import { useLanguage } from "@/lib/i18n/language";
+import { composeJobAddress } from "@/lib/geocode";
 
 /** Q806: CheckoutStep's read-only "Your post at a glance" card, moved out unchanged (a pure move; no money figure here). */
 export function CheckoutGlanceCard({
@@ -94,7 +95,8 @@ export function CheckoutGlanceCard({
             <MapPin className="w-3 h-3" />{tr("postJob.f.row.location")}
           </span>
           <p className="text-ds-13 text-foreground text-left">
-            {[streetAddress, city, addrState, zipCode].filter(Boolean).join(", ")}
+            {/* Polish audit 11-27 #44: "Baton Rouge, LA 70808", no comma between state and ZIP (the shared composer). */}
+            {composeJobAddress({ streetAddress, city, state: addrState, zipCode })}
           </p>
         </div>
 

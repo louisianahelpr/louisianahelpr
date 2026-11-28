@@ -495,8 +495,8 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // enlarge type and tap targets (index.css:2683-2694, 2747-2749) — it
         // enlarges, it does not remove or simplify anything, so "simplifies" is
         // corrected too.
-        // AUD31-58: the switch is "Bigger text and buttons" in You › Settings (SettingsTab), not "Senior Mode".
-        a: "Turn on Bigger text and buttons in You › Settings. It makes the app easier to read and tap: larger type and bigger touch targets throughout.",
+        // AUD31-58: the switch is "Bigger text and buttons", not "Senior Mode"; polish 11-27 #134: it lives only on Color and text.
+        a: "Turn on Bigger text and buttons in You › Settings › Color and text. It makes the app easier to read and tap: larger type and bigger touch targets throughout.",
       },
     ],
   },

@@ -18,9 +18,8 @@ const ROOT = resolve(__dirname, "..", "..");
 const read = (f: string) => blankComments(readFileSync(join(ROOT, f), "utf8"));
 
 describe("bigger text has one name", () => {
-  it("Settings and Accessibility both say Bigger text and buttons", () => {
+  it("the Accessibility switch says Bigger text and buttons (the one switch since polish 11-27 #134)", () => {
     expect(BIGGER_TEXT_LABEL).toBe("Bigger text and buttons");
-    expect(read("src/components/profile/SettingsTab.tsx")).toContain("label={BIGGER_TEXT_LABEL}");
     const a = read("src/components/profile/AccessibilityTab.tsx");
     expect(a).toContain(">{BIGGER_TEXT_LABEL}</p>");
     expect(a).not.toMatch(/>Senior mode</);

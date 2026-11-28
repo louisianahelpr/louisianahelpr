@@ -55,7 +55,7 @@ function Where() {
 function renderSettings() {
   render(
     <MemoryRouter initialEntries={["/profile?tab=settings"]}>
-      <SettingsTab profile={null} seniorMode={false} onToggleSeniorMode={() => {}} onSelectTab={() => {}} onRequestLogout={() => {}} onBack={() => {}} />
+      <SettingsTab profile={null} onSelectTab={() => {}} onRequestLogout={() => {}} onBack={() => {}} />
       <Where />
     </MemoryRouter>,
   );

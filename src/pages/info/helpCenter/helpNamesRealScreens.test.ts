@@ -43,8 +43,8 @@ describe("Help names the screens the app has", () => {
     for (const n of named) expect(ROWS.has(n), n).toBe(true);
   });
 
-  it("the switch Help names is the Settings row's own words", () => {
-    expect(ROWS.has("Bigger text and buttons")).toBe(true);
+  it("the switch Help names is the switch's own words, under a real Settings row (polish 11-27 #134: Color and text)", () => {
+    expect(ROWS.has("Color and text")).toBe(true);
     expect(texts.some((t) => t.includes("Bigger text and buttons"))).toBe(true);
   });
 });

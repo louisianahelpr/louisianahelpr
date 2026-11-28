@@ -38,7 +38,7 @@ afterEach(() => {
 function renderSettings() {
   render(
     <MemoryRouter>
-      <SettingsTab profile={null} seniorMode={false} onToggleSeniorMode={() => {}} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onBack={() => {}} />
+      <SettingsTab profile={null} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onBack={() => {}} />
     </MemoryRouter>,
   );
 }

@@ -62,7 +62,7 @@ describe("the last open section stays on (A3-C13)", () => {
   it("Settings refuses to switch off Jobs while it is the only open section, and says why", () => {
     render(
       <MemoryRouter>
-        <SettingsTab profile={null} seniorMode={false} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onBack={() => {}} />
+        <SettingsTab profile={null} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onBack={() => {}} />
       </MemoryRouter>,
     );
     const sections = screen.getByRole("region", { name: "Your sections" });

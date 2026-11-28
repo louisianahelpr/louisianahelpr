@@ -98,7 +98,7 @@ export function posterFaceAction(
       };
     case "done_review_open":
     case "done_both_open":
-      return { label: "Leave a review", onClick: h.review, tone: "primary" };
+      return { label: "Leave a review", onClick: h.review, tone: "secondary" }; // outline (polish audit 11-27 #111)
     case "done_tip_open":
     case "done_tip_open_review_closed":
       // A crew is tipped member by member, in the card.

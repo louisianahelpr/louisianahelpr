@@ -304,7 +304,9 @@ export function MineJobFace({
           eight full step names fit beside the rail. */}
       {/* A2-L19 (2026-10-29): no bar for a cancelled (or refunded) card. Its "cancelled" tone is eight empty grey
           segments under the word "Cancelled", and the status line above already says "Cancelled": it said it twice. */}
-      {progress && progress.stage !== null && progress.tone !== "cancelled" && (
+      {/* Polish audit 11-27 #111: nor once every step is done (stage 8, jobProgressState): a full bar under the status
+          line's "Finished Fri, Nov 27 at 9:22 AM" said it twice too. */}
+      {progress && progress.stage !== null && progress.tone !== "cancelled" && progress.stage < 8 && (
         <div className="order-2 pt-2 md:order-none md:basis-full md:pt-0" data-mine-face-progress="" onClick={onOpen}>
           <JobProgress progress={progress} barOnly />
         </div>

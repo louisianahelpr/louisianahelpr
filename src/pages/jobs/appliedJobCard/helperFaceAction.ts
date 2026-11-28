@@ -126,7 +126,7 @@ export function helperFaceAction(s: {
   if (s.isMinimalCard || s.isOffered) return null;
   const posterId = s.posterId;
   if (s.owesReview && posterId)
-    return { label: "Leave a review", onClick: () => s.review(posterId), tone: "primary" };
+    return { label: "Leave a review", onClick: () => s.review(posterId), tone: "secondary" }; // outline (polish audit 11-27 #111)
   if (s.isPending) return { label: "View application", onClick: s.manage, tone: "secondary" };
   // THE BUTTON DOES WHAT THE LINE ASKS (owner, 2026-10-23, card critique items 1 and 15).
   const jobId = s.jobId;

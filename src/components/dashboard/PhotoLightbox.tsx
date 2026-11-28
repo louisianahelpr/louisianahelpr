@@ -375,7 +375,8 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
           }}
         >
           <Grid3x3 className="w-4 h-4" />
-          <span className="text-ds-11 font-sans font-semibold tracking-[0.04em] uppercase">
+          {/* Polish audit 11-27 #56: sentence case at 14px (it was the app's only all-caps button). */}
+          <span className="text-ds-14 font-sans font-semibold" data-lightbox-view-all="">
             {mode === "grid" ? "Photo" : "View all"}
           </span>
         </button>

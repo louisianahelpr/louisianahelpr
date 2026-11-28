@@ -24,8 +24,10 @@ export function StepHead({ title, sub }: { title: string; sub?: string }) {
  * One choice from a row of chips. `groups` (the ~32 Declutter categories, owner 2026-10-30) shows the same chips
  * under small headings, still one radio group, so a long list stays easy to scan.
  */
-export function ChipGroup({ label, options, value, onChange, groups, compact = false }: {
+export function ChipGroup({ label, options, value, onChange, groups, compact = false, labelHidden = false }: {
   label: string;
+  /** Polish audit 11-27 #121: the label names the radiogroup but is not drawn (Sell's row heading already says it). */
+  labelHidden?: boolean;
   /**
    * Q2571 (audit 1102a): short chips (percentages) set 12px apart inside, so five fit one row of a 375 card (at 16px
    * the fifth, "75%", wrapped alone onto a second row).
@@ -45,7 +47,7 @@ export function ChipGroup({ label, options, value, onChange, groups, compact = f
   );
   return (
     <div className="space-y-2" role="radiogroup" aria-label={label}>
-      <p className="text-ds-14 font-semibold text-foreground">{label}</p>
+      {!labelHidden && <p className="text-ds-14 font-semibold text-foreground">{label}</p>}
       {groups ? (
         groups.map((g) => (
           <div key={g.heading} className="space-y-1.5" role="group" aria-label={g.heading} data-chip-group={g.heading}>

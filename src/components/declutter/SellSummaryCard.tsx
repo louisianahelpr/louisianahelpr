@@ -15,7 +15,7 @@ import PriceHint from "./DeclutterPriceHint";
 import { AiPriceLine } from "./SellAiDraft";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 import { CategoryDrillDown } from "./CategoryDrillDown";
-import { FieldLabel, SELL_INPUT, SellPriceInput, SellYouGet } from "./SellFormParts";
+import { SELL_INPUT, SellPriceInput, SellYouGet } from "./SellFormParts";
 import { SellTradesRow } from "./SellTradesRow";
 import "@/lib/i18n/enDeclPanels";
 import "@/lib/i18n/enSellSummary";
@@ -136,26 +136,25 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
           {!form.free && <SellPriceInput s={s} />}
         </Row>
         <Row {...row("category")} title={t("sell.category")} value={CATEGORY_LABEL[form.category] ? t(`decl.cat.${form.category}` as MsgKey) : form.category} empty={false}>
-          <CategoryDrillDown label={t("sell.category")} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => { set("category", v); setOpen(() => null); }} />
+          <CategoryDrillDown label={t("sell.category")} groups={CATEGORY_GROUPS} labelHidden value={form.category} onChange={(v) => { set("category", v); setOpen(() => null); }} />
           {/* I1 (Q1836 a): "Other" always works; this sends a missing category to the admin queue (hidden switch suggest_category). */}
           <SuggestCategory area="declutter" />
         </Row>
         <Row {...row("condition")} title={t("sell.condition")} value={CONDITION_LABEL[form.conditionStars] ? t(`decl.cond.${form.conditionStars}` as MsgKey) : ""} empty={false}>
-          <ChipGroup label={t("sell.condition")} options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: t(`decl.cond.${n}` as MsgKey) }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
+          <ChipGroup labelHidden label={t("sell.condition")} options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: t(`decl.cond.${n}` as MsgKey) }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
         </Row>
         {/* Owner 11-08: "Open to trades?", one compact row below Condition (priced listings only). */}
         <SellTradesRow s={s} />
         {/* Not one of the owner's six: asked only when the photo tool didn't answer it (and while it is writing, never guessed). */}
         {!sizeKnown && !busy && (
           <Row {...row("size")} title={t("sell.size")} value="" empty>
-            <ChipGroup label={t("sell.size")} options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: t(`decl.size.${k}`) }))} value="" onChange={(v) => { set("deliverySize", v as DeliverySize); setSizePicked(true); }} />
+            <ChipGroup labelHidden label={t("sell.size")} options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: t(`decl.size.${k}`) }))} value="" onChange={(v) => { set("deliverySize", v as DeliverySize); setSizePicked(true); }} />
           </Row>
         )}
         <Row {...row("description")} title={t("sell.details")} value={form.description.trim()} empty={!form.description.trim()}>
-          <div className="space-y-2">
-            <FieldLabel htmlFor="sell-desc" text={t("sell.anythingElse")} extra={t("sell.optional")} />
-            <Textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder={t("sell.detailsPlaceholder")} />
-          </div>
+          {/* Polish audit 11-27 #121: no inner label under the row heading ("Details" then "Anything else? (optional)");
+              the box is named by the row heading and says what goes in it. */}
+          <Textarea id="sell-desc" aria-labelledby="sell-row-description-title" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder={t("sell.detailsPlaceholder")} />
         </Row>
         {settingsRows}
       </ul>

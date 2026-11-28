@@ -24,9 +24,7 @@ export const enSellSummary = {
   "sell.condition": "Condition",
   "sell.size": "Size",
   "sell.details": "Details",
-  "sell.anythingElse": "Anything else?",
-  "sell.optional": "(optional)",
-  "sell.detailsPlaceholder": "e.g. Works great. Small scuff on the base.",
+  "sell.detailsPlaceholder": "Anything else buyers should know (optional)",
 } as const;
 
 addEnglish(enSellSummary);

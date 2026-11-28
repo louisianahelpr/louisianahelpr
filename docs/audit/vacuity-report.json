@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-27T22:26:59.880Z",
-  "guards": 4554,
-  "registered": 4551,
+  "generated": "2026-11-28T06:26:03.650Z",
+  "guards": 4572,
+  "registered": 4569,
   "unregistered": [
     "src/lib/categorySuggestions.test.ts",
     "src/lib/celebrate.test.ts",
@@ -26,6 +26,7 @@
     "src/test/jobsAudit1121Visual.test.tsx",
     "src/test/nextStepKeepsNameCapital1122.test.ts",
     "src/test/pinRollbackTellsTheInbox.test.ts",
+    "src/test/postJobNoCardsInCards1127.test.ts",
     "src/test/quoteInsertJobMirrorsJobsInsertPolicy.test.ts",
     "src/test/referralCopyOneRule.test.ts"
   ],

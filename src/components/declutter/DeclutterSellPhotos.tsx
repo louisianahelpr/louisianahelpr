@@ -155,12 +155,14 @@ export function SellPhotos({
       )}
       {refusedNote && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink [overflow-wrap:anywhere]" data-photo-refused="">{refusedNote}</p>}
       {aiPanel}
-      {!tipDone && <div className="rounded-[20px] border border-border bg-card p-4">
-        <p className="text-ds-15 font-semibold text-foreground">{free ? "Good photos" : "Photos that sell"}</p>
-        <p className="mt-1 text-ds-14 text-muted-foreground">
-          Daylight, a plain background, and one close-up of any wear. Take your own. Location data is removed from every photo before it's uploaded.
+      {/* Polish audit 11-27 #62 (11-25 #34): the tips are one grey 13px paragraph under the photos, not a bordered card
+          with its own heading above the form. Same words. */}
+      {!tipDone && (
+        <p className="text-ds-13 text-muted-foreground" data-photo-tips="">
+          <span className="font-semibold text-foreground">{free ? "Good photos" : "Photos that sell"}</span>
+          {": "}Daylight, a plain background, and one close-up of any wear. Take your own. Location data is removed from every photo before it’s uploaded.
         </p>
-      </div>}
+      )}
     </div>
   );
 }

@@ -33,22 +33,19 @@ export function useSaverOfferData(userId: string, items: DeclutterItem[] | undef
   return { saves: state.data?.saves ?? null, sends: state.data?.sends ?? null, auto: state.data?.auto ?? null };
 }
 
-export function SaverOfferLine({ item, saves, lastSend, autoPct }: { item: DeclutterItem; saves: number; lastSend: { at: string; sent: number } | undefined; autoPct?: number | null }) {
+export function SaverOfferLine({ item, saves, lastSend }: { item: DeclutterItem; saves: number; lastSend: { at: string; sent: number } | undefined }) {
   const [open, setOpen] = useState(false);
   if (item.status !== "live" || item.current_price_cents < 200) return null;
-  // Owner 2026-11-25 (Depop-style): every live priced listing offers "Auto-offer new savers", saved yet or not.
-  const auto = <AutoLikerOfferRow item={item} pct={autoPct ?? null} />;
+  // Polish audit 11-27 #11: "Auto-offer new savers" left the row for the Manage sheet (AutoLikerOfferRow below, passed
+  // in by Selling), so a row shows a saver line only when someone saved the listing.
   if (lastSend) {
     return (
-      <>
-        <p className="text-ds-13 text-muted-foreground" data-saver-offer-sent="">
-          {lastSend.sent === 1 ? t("dt5.so.sent1") : t("dt5.so.sentN", { n: lastSend.sent })}
-        </p>
-        {auto}
-      </>
+      <p className="text-ds-13 text-muted-foreground" data-saver-offer-sent="">
+        {lastSend.sent === 1 ? t("dt5.so.sent1") : t("dt5.so.sentN", { n: lastSend.sent })}
+      </p>
     );
   }
-  if (saves < 1) return auto;
+  if (saves < 1) return null;
   return (
     <>
       {/* Post-merge check 11-20 #10: a real 44px button, not a 19px underlined link inside the line. */}
@@ -58,7 +55,6 @@ export function SaverOfferLine({ item, saves, lastSend, autoPct }: { item: Declu
           {t("dt5.so.send")}
         </Button>
       </div>
-      {auto}
       {open && <SaverOfferSheet item={item} onClose={() => setOpen(false)} />}
     </>
   );
@@ -67,9 +63,10 @@ export function SaverOfferLine({ item, saves, lastSend, autoPct }: { item: Declu
 /**
  * Owner 2026-11-25 ("they can do auto offers like depop"): "Auto-offer new savers: Off" (or "15% off") with a button that
  * opens a sheet of 10 / 15 / 20% and Turn off. While on, each member who saves the listing gets one private offer at
- * once (declutter_set_auto_liker_offer + the server's save trigger, 20261126002822).
+ * once (declutter_set_auto_liker_offer + the server's save trigger, 20261126002822). Polish audit 11-27 #11: drawn in
+ * the Manage sheet (ManageListingSheet's autoOffer), not on every Selling row. Live priced listings only.
  */
-function AutoLikerOfferRow({ item, pct }: { item: DeclutterItem; pct: number | null }) {
+export function AutoLikerOfferRow({ item, pct }: { item: DeclutterItem; pct: number | null }) {
   const [open, setOpen] = useState(false);
   return (
     <>

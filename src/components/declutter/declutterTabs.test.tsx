@@ -309,7 +309,7 @@ function everything() {
  */
 const BEFORE_ACTIONS = {
   selling: [
-    { role: "link", name: /^Preview\b/ },
+    // Polish audit 11-27 #11: Preview (and Share) are rows in the Manage sheet, opened by the row's "Manage <title>".
     { role: "button", name: /^Finish listing\b/ },
     { role: "button", name: /^Delete\b/ },
     // Board 158: a live listing's "Take down" lives in its Manage sheet (Delete listing / Mark sold elsewhere).

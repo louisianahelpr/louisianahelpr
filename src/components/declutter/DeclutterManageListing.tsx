@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { ShareListingRow } from "./DeclutterShareCard";
+import { ShareListingRow, shareListing } from "./DeclutterShareCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { ListRow, LIST_ROW_FLUSH, LIST_ROW_TINT } from "@/components/ui/ListRow";
@@ -111,6 +111,7 @@ export function ManageListingSheet({
   startOn = "menu",
   suggestDrop = false,
   onDeleted,
+  autoOffer,
 }: {
   item: DeclutterItem;
   coverUrl: string | null;
@@ -121,6 +122,11 @@ export function ManageListingSheet({
   suggestDrop?: boolean;
   /** Audit 11-10 F335: after Delete, the item page leaves (to Selling) instead of showing the dead listing. */
   onDeleted?: () => void;
+  /**
+   * Polish audit 11-27 #11: Selling's "Auto-offer new savers" row, moved off every listing row into this sheet (under
+   * Price). Selling passes it; the seller's own item page has none.
+   */
+  autoOffer?: ReactNode;
 }) {
   const [view, setView] = useState<View>(startOn);
   const close = () => onOpenChange(false);
@@ -178,6 +184,14 @@ export function ManageListingSheet({
                 </Link>
               </li>
               ) : null}
+              {/* Polish audit 11-27 #11: Share moved here from the Selling row's icon button (a live listing only). */}
+              {item.status === "live" && (
+              <li>
+                <ListRow variant="flush" onClick={() => shareListing(item, "listings")} data-manage-share="" trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
+                  <RowText title={t("lp.m.share")}>{t("lp.m.shareBody")}</RowText>
+                </ListRow>
+              </li>
+              )}
               {/* Audit 1028 D1-1: a live listing can be edited (declutter_edit_listing; the owner's review rule). */}
               {item.status === "live" && (
               <li>
@@ -209,6 +223,7 @@ export function ManageListingSheet({
                   onCheckedChange={(on) => drops.mutate(on)}
                 />
               </li>
+              {autoOffer && <li className={ROW} data-manage-auto-offer="">{autoOffer}</li>}
               {/* Smart offers (owner 2026-10-29): Accept offers, Lowest you'll take (with Claude's suggestion), auto answers. */}
               <DeclutterOfferRules itemId={item.id} priceCents={item.current_price_cents} acceptsOffers={item.accepts_offers} floorCents={manage?.floor_price_cents ?? null} rowClassName={ROW} />
               {/* Declutter trades (owner 10-31): this listing's own "Open to trades", beside Accept offers. */}

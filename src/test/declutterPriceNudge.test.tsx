@@ -8,9 +8,9 @@
  * @mutate src/lib/declutter/priceNudge.ts |   const target = Math.floor((currentCents * (100 - PRICE_NUDGE_PCT)) / 100 / 100) * 100; |   const target = Math.round((currentCents * (100 - PRICE_NUDGE_PCT)) / 100);
  * @mutate src/lib/declutter/priceNudge.ts |   if (item.status !== "live" \|\| item.current_price_cents <= 0 \|\| dropsOn \|\| item.is_seed) return false; |   if (item.status !== "live" \|\| dropsOn) return false;
  * @mutate src/lib/declutter/priceNudge.ts |   return Number.isFinite(live) && now - live >= PRICE_NUDGE_DAYS * 86_400_000; |   return Number.isFinite(live);
- * @mutate src/components/declutter/DeclutterPriceNudge.tsx |   if (!priceNudgeDue(item, dropOutlook(item, dropState).planned)) return null; |   if (!priceNudgeDue(item, false)) return null;
+ * @mutate src/components/declutter/DeclutterPriceNudge.tsx |   return items.filter((item) => priceNudgeDue(item, dropOutlook(item, dropStates?.get(item.id)).planned)); |   return items.filter((item) => priceNudgeDue(item, false));
  * @mutate src/components/declutter/DeclutterManageListing.tsx |   const [price, setPrice] = useState(centsToDollars(initialCents ?? item.current_price_cents)); |   const [price, setPrice] = useState(centsToDollars(item.current_price_cents));
- * @mutate src/components/declutter/DeclutterHomeView.tsx |             <PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />\n |
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |       {!searching && <PriceNudgeSummary due={priceNudgeItems(list, myDrops.data)} onOpen={openNudge} />} |
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   usePriceNudgeLink(mine.data, openNudge);\n |
  */
 import { readFileSync } from "node:fs";
@@ -19,7 +19,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 import { priceNudgeDue, priceNudgePath, readPriceNudgeLink, suggestedDropCents } from "@/lib/declutter/priceNudge";
-import { PriceNudgeLine, usePriceNudgeLink } from "@/components/declutter/DeclutterPriceNudge";
+import { PriceNudgeSummary, priceNudgeItems, usePriceNudgeLink } from "@/components/declutter/DeclutterPriceNudge";
 import type { DeclutterItem } from "@/lib/declutter/api";
 
 const NOW = Date.parse("2026-10-30T18:00:00Z");
@@ -60,26 +60,32 @@ describe("CMP-5: which listings are due", () => {
   });
 });
 
-describe("CMP-5: Selling's row and the link", () => {
-  it("a due listing shows one 'Drop the price?' that opens it; a listing with a drop planned shows none", () => {
+// Polish audit 11-27 #11: ONE line above Selling's list ("2 listings haven't sold in 2 weeks. Drop prices"), not a line
+// on every row; its button opens the first due listing.
+describe("CMP-5: Selling's nudge and the link", () => {
+  it("due listings make one line that opens the first; a listing with a drop planned is not counted", () => {
     vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
     const onOpen = vi.fn();
-    const { unmount } = render(<PriceNudgeLine item={item()} dropState={undefined} onOpen={onOpen} />);
-    expect(screen.getByText(/Hasn't sold yet\./)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Drop the price?" }));
-    expect(onOpen).toHaveBeenCalledTimes(1);
+    const planned = item({ id: "planned", sale_mode: "offers" } as Partial<DeclutterItem>);
+    const due = priceNudgeItems([item(), item({ id: "second" } as Partial<DeclutterItem>), planned],
+      new Map([["planned", { sale_mode: "offers", last_price_drop_on: "2026-10-30", drop_pct: 5 }]]));
+    expect(due.map((d) => d.id)).toEqual([ID, "second"]);
+    const { unmount } = render(<PriceNudgeSummary due={due} onOpen={onOpen} />);
+    expect(screen.getByText(/2 listings haven't sold in 2 weeks\./)).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-price-nudge]")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Drop prices" }));
+    expect(onOpen).toHaveBeenCalledWith(ID);
     unmount();
-    // An offers listing with a 5% step: the nightly drop is planned, so no nudge.
-    render(<PriceNudgeLine item={item({ sale_mode: "offers" } as Partial<DeclutterItem>)} dropState={{ sale_mode: "offers", last_price_drop_on: "2026-10-30", drop_pct: 5 }} onOpen={onOpen} />);
-    expect(screen.queryByText(/Hasn't sold yet/)).toBeNull();
+    render(<PriceNudgeSummary due={priceNudgeItems([planned], new Map([["planned", { sale_mode: "offers", last_price_drop_on: "2026-10-30", drop_pct: 5 }]]))} onOpen={onOpen} />);
+    expect(document.querySelector("[data-price-nudge]")).toBeNull();
     vi.useRealTimers();
   });
 
   // Q2638 (audit 1102c R13): "Hasn't sold yet. Drop the price?" read as a warning (terracotta ink); it is a neutral hint.
-  // @mutate src/components/declutter/DeclutterPriceNudge.tsx |     <p className="text-ds-13 text-muted-foreground" data-price-nudge=""> |     <p className="text-ds-13 text-[hsl(var(--sienna-ink))]" data-price-nudge="">
+  // @mutate src/components/declutter/DeclutterPriceNudge.tsx |     <p className="text-ds-13 text-muted-foreground" data-price-nudge={due.length}> |     <p className="text-ds-13 text-[hsl(var(--sienna-ink))]" data-price-nudge={due.length}>
   it("Q2638: the price nudge is in a neutral tone, not the warning ink", () => {
     vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
-    render(<PriceNudgeLine item={item()} dropState={undefined} onOpen={vi.fn()} />);
+    render(<PriceNudgeSummary due={[item()]} onOpen={vi.fn()} />);
     const line = document.querySelector("[data-price-nudge]") as HTMLElement;
     expect(line).not.toBeNull();
     expect(line.className).toContain("text-muted-foreground");
@@ -108,6 +114,6 @@ describe("CMP-5: Selling's row and the link", () => {
     const home = code("src/components/declutter/DeclutterHomeView.tsx");
     expect(home).toContain('startOn={suggestDrop ? "price" : "menu"}');
     expect(home).toContain("usePriceNudgeLink(mine.data, openNudge);");
-    expect(home).toContain("<PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />");
+    expect(home).toContain("{!searching && <PriceNudgeSummary due={priceNudgeItems(list, myDrops.data)} onOpen={openNudge} />}");
   });
 });

@@ -10,7 +10,7 @@
  * @mutate supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql | (o.status = 'open' OR o.auto_liker) | o.status = 'open'
  * @mutate supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql |   IF public.are_users_blocked(NEW.user_id, v_item.seller_id)\n | IF false\n
  * @mutate supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql |   IF v_floor IS NOT NULL AND v_amount < v_floor THEN\n    RETURN NEW; |   IF false THEN\n    RETURN NEW;
- * @mutate src/components/declutter/SaverOffer.tsx |   if (saves < 1) return auto; |   if (saves < 1) return null;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |           autoOffer={managing.status === "live" && managing.current_price_cents >= 200 |           autoOffer={false && managing.current_price_cents >= 200
  * @mutate supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql |      OR public.declutter_seller_out(v_item.seller_id)\n |
  * @mutate supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql |   EXCEPTION WHEN OTHERS THEN | EXCEPTION WHEN division_by_zero THEN
  */
@@ -27,7 +27,8 @@ vi.mock("@/lib/declutter/sellerTools", async (orig) => ({
   setAutoLikerOffer: async (id: string, pct: number | null) => { calls.push([id, pct]); return pct === null ? null : { percent_off: pct, amount_cents: 1800 }; },
 }));
 
-import { SaverOfferLine } from "@/components/declutter/SaverOffer";
+import { AutoLikerOfferRow, SaverOfferLine } from "@/components/declutter/SaverOffer";
+import { blankComments } from "./helpers/blankNonCode";
 
 const FILE = "supabase/migrations/20261126002822_declutter_auto_offer_new_likers.sql";
 const flat = (s: string) => blankSqlComments(s).replace(/\s+/g, " ");
@@ -92,9 +93,11 @@ function wrap(ui: React.ReactNode) {
 
 afterEach(() => { cleanup(); calls.length = 0; });
 
-describe("Auto-offer new savers (Selling row)", () => {
+// Polish audit 11-27 #11: the row lives in the listing's Manage sheet (Selling passes it as autoOffer for a live priced
+// listing), not under every Selling row.
+describe("Auto-offer new savers (Manage sheet row)", () => {
   it("shows on a live priced listing nobody saved yet, and Turn on sends the chosen percent", async () => {
-    wrap(<SaverOfferLine item={ITEM} saves={0} lastSend={undefined} autoPct={null} />);
+    wrap(<AutoLikerOfferRow item={ITEM} pct={null} />);
     expect(screen.getByText("Auto-offer new savers: off.")).toBeTruthy();
     // Inventory floor: the row and its button rendered.
     expect(document.querySelectorAll("[data-auto-liker-offer]").length).toBeGreaterThan(0);
@@ -108,7 +111,7 @@ describe("Auto-offer new savers (Selling row)", () => {
   });
 
   it("says the percent while on, and Turn off sends NULL", async () => {
-    wrap(<SaverOfferLine item={ITEM} saves={2} lastSend={undefined} autoPct={15} />);
+    wrap(<><AutoLikerOfferRow item={ITEM} pct={15} /><SaverOfferLine item={ITEM} saves={2} lastSend={undefined} /></>);
     expect(screen.getByText("Auto-offer new savers: 15% off.")).toBeTruthy();
     expect(screen.getByText("2 people saved this.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Change" }));
@@ -117,9 +120,13 @@ describe("Auto-offer new savers (Selling row)", () => {
     await waitFor(() => expect(calls).toEqual([["i1", null]]));
   });
 
-  it("a free or sold listing shows nothing", () => {
-    wrap(<SaverOfferLine item={{ ...ITEM, current_price_cents: 0 }} saves={0} lastSend={undefined} autoPct={null} />);
-    wrap(<SaverOfferLine item={{ ...ITEM, status: "sold" }} saves={0} lastSend={undefined} autoPct={null} />);
+  it("the Selling row draws no auto-offer line; Selling hands it to Manage for a live listing of $2 or more", () => {
+    wrap(<SaverOfferLine item={ITEM} saves={0} lastSend={undefined} />);
+    wrap(<SaverOfferLine item={{ ...ITEM, current_price_cents: 0 }} saves={0} lastSend={undefined} />);
     expect(document.querySelectorAll("[data-auto-liker-offer]")).toHaveLength(0);
+    const home = blankComments(readFileSync("src/components/declutter/DeclutterHomeView.tsx", "utf8"));
+    expect(home).toMatch(/autoOffer=\{managing\.status === "live" && managing\.current_price_cents >= 200\s*\?\s*<AutoLikerOfferRow item=\{managing\}/);
+    const sheet = blankComments(readFileSync("src/components/declutter/DeclutterManageListing.tsx", "utf8"));
+    expect(sheet).toContain('{autoOffer && <li className={ROW} data-manage-auto-offer="">{autoOffer}</li>}');
   });
 });

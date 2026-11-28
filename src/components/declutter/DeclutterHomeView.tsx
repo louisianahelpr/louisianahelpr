@@ -12,7 +12,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { SaverOfferLine, useSaverOfferData } from "./SaverOffer";
+import { AutoLikerOfferRow, SaverOfferLine, useSaverOfferData } from "./SaverOffer";
 import { BulkBar, BulkHeading, BulkPick, useBulkSelect } from "./BulkActions";
 import "@/lib/i18n/enDeclTop5";
 import { Button } from "@/components/ui/button";
@@ -30,13 +30,12 @@ import { fetchMyCart, fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fet
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyPayouts } from "@/lib/declutter/handover";
 import { listingNextStep, listingRowLine } from "./listingStatusLine";
-import { Eye, Search, Tags } from "lucide-react";
-import { ListingShareButton } from "./DeclutterShareCard";
+import { ChevronRight, Eye, Search, Tags } from "lucide-react";
 import { SellChooserEntry } from "./SellChooserEntry";
 import { useTradedFor } from "./useMyTrades";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
-import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
+import { PriceNudgeSummary, priceNudgeItems, usePriceNudgeLink } from "./DeclutterPriceNudge";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useMyDropsTonight } from "./useMyDropsTonight";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTabHeads";
@@ -249,6 +248,8 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
       <ErrorState variant="inline" title={t("decl.sl.haulFail")} body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
     )}
       {haulOn && !haul.isError && <HaulAwayTooSoonTip rows={haul.data?.rows ?? []} isFree={(id) => freeIds.has(id)} />}
+      {/* Polish audit 11-27 #11: the "drop the price?" nudge once above the list, not on every row. */}
+      {!searching && <PriceNudgeSummary due={priceNudgeItems(list, myDrops.data)} onOpen={openNudge} />}
       {/* Board 26: one card of rows; each row = thumb (the Browse card's photo or category icon), title, ONE status
           line, the price in money ink; the actions sit at the row's right end from sm up (owner 2026-10-28). */}
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" data-selling-list="">
@@ -257,9 +258,12 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
           const thumb = myCover.get(item.id);
           const next = listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id), tradedFor.get(item.id) ?? null);
           const statusLine = listingRowLine(next, drop);
+          // Polish audit 11-27 #11: a live or paused row has one control (the Manage chevron), so it sits on the row's
+          // right at every width; drafts and listings in review keep their labelled buttons under the row on a phone.
+          const oneControl = (item.status === "live" || item.status === "paused") && !haulById.get(item.id);
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className={oneControl ? "flex items-center gap-2" : "flex flex-col gap-3 sm:flex-row sm:items-center"}>
               <BulkPick item={item} selecting={bulk.selecting} picked={bulk.picked.has(item.id)} onToggle={() => bulk.toggle(item.id)}>
               {/* NIGHT-SELL-Sellinglist-4 (night audit 10-30): at 375 the title takes two lines and the row itself opens the
                   item (a draft's opens Finish listing), so View is only a button from sm up. */}
@@ -269,7 +273,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
               >
                 <ListingThumb path={thumb} category={item.category} />
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}>{item.title}</p>
+                  <p className="truncate text-ds-15 font-semibold" title={item.title}>{item.title}</p>
                   <p data-listing-status={item.status} title={statusLine}
                     data-next-step={drop ? undefined : next.who}
                     className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : next.who === "you" ? "font-medium text-foreground" : "text-muted-foreground"}`}
@@ -281,7 +285,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                 </div>
                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} agreed={agreed.get(item.id)} />
               </Link></BulkPick>
-              <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
+              <div className={oneControl ? "flex shrink-0" : "flex flex-wrap gap-2 sm:shrink-0 sm:justify-end"} data-listing-actions="">
                 {item.status === "draft" ? (
                   <Button type="button" size="sm" aria-label={t("decl.sl.finishAria", { title: item.title })} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
                     {t("decl.sl.finish")}
@@ -291,21 +295,20 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                     <Link to={`/declutter/item/${item.id}`} data-free-request-count="">{t("decl.sl.requests", { n: freeAsks.data.get(item.id) ?? 0 })}</Link>
                   </Button>
                 ) : null}
-                {/* LEAD-ONE-PREVIEW (owner 10-31): View and "See what buyers see" are one action, Preview: the listing as buyers read it. */}
-                {item.status !== "draft" && (
-                  // Design audit 11-17 #20: three equal outline buttons were heavy; Manage is the one labelled button,
-                  // Preview and Share are 44px icon buttons (their names stay on aria-label and in the hidden word).
+                {/* Polish audit 11-27 #11: one control per live or paused row, a chevron that opens Manage; Preview and
+                    Share (owner request 11-05) are rows inside it, not two more icon buttons on every row. */}
+                {/* A listing in review has no Manage sheet, so it keeps its own Preview (LEAD-ONE-PREVIEW). */}
+                {item.status === "pending_review" && (
                   <Button asChild variant="outline" size="iconCompact" className="rounded-full" data-listing-preview="">
                     <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}><Eye aria-hidden /><span className="sr-only">{t("decl.sl.preview")}</span></Link>
                   </Button>
                 )}
                 {(item.status === "live" || item.status === "paused") && (
-                  <Button type="button" variant="outline" size="sm" aria-label={t("decl.sl.manageAria", { title: item.title })} onClick={() => { setSuggestDrop(false); setManagingId(item.id); }}>
-                    {t("decl.sl.manage")}
+                  <Button type="button" variant="ghost" size="iconCompact" className="-mr-2 rounded-full text-muted-foreground" data-listing-manage=""
+                    aria-label={t("decl.sl.manageAria", { title: item.title })} onClick={() => { setSuggestDrop(false); setManagingId(item.id); }}>
+                    <ChevronRight aria-hidden className="h-5 w-5" />
                   </Button>
                 )}
-                {/* Owner request 11-05: each item for sale shares its own page (never a paused or unreviewed one). */}
-                {item.status === "live" && <ListingShareButton item={item} />}
                 {(item.status === "draft" || item.status === "pending_review") && (
                   <Button
                     type="button"
@@ -329,8 +332,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
               </div>
             </div>
             {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} optedIn={!!haul.data?.optedIn.has(item.id)} />}
-            <PriceNudgeLine item={item} dropState={myDrops.data?.get(item.id)} onOpen={() => openNudge(item.id)} />
-            <SaverOfferLine item={item} saves={saverOffers.saves?.get(item.id) ?? 0} lastSend={saverOffers.sends?.get(item.id)} autoPct={saverOffers.auto?.get(item.id) ?? null} />
+            <SaverOfferLine item={item} saves={saverOffers.saves?.get(item.id) ?? 0} lastSend={saverOffers.sends?.get(item.id)} />
           </li>
           );
         })}
@@ -349,6 +351,8 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
           coverUrl={myCover.get(managing.id) ? photoPublicUrl(myCover.get(managing.id)!) : null}
           startOn={suggestDrop ? "price" : "menu"}
           suggestDrop={suggestDrop}
+          autoOffer={managing.status === "live" && managing.current_price_cents >= 200
+            ? <AutoLikerOfferRow item={managing} pct={saverOffers.auto?.get(managing.id) ?? null} /> : undefined}
           open
           onOpenChange={(o) => {
             if (!o) setManagingId(null);

@@ -205,6 +205,8 @@ export const esListingParts: Record<keyof typeof enListingParts, string> = {
   "lp.m.tMenu": "Administrar publicación",
   "lp.m.preview": "Vista previa",
   "lp.m.previewBody": "Vea su publicación como la ven los compradores",
+  "lp.m.share": "Compartir",
+  "lp.m.shareBody": "Envíe el enlace o publíquelo en Facebook",
   "lp.m.editBody": "Título, descripción, categoría, estado, tamaño, cómo lo obtienen los compradores",
   "lp.m.gPrice": "Precio",
   "lp.m.gWays": "Cómo llega a los compradores",

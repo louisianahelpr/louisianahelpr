@@ -33,7 +33,9 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { useAgeGate } from "@/hooks/useAgeGate";
 
-const CATEGORY_FILTER_OPTIONS = Object.entries(JOB_CATEGORY_LABELS) as [JobCategory, string][];
+/** Polish audit 11-27 #133: Filter and Sort show from this many saved Helprs (the audit's "hide under 6"). */
+const SAVED_TOOLS_FROM = 6;
+const CATEGORY_FILTER_OPTIONS =Object.entries(JOB_CATEGORY_LABELS) as [JobCategory, string][];
 
 export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
   const navigate = useNavigate();
@@ -238,6 +240,9 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             )}
 
             <div className="flex flex-wrap items-center gap-2">
+              {/* Polish audit 11-27 #133: Filter + Sort for 2 people was more control than list. They show from
+                  SAVED_TOOLS_FROM saved Helprs (and always while a filter is on, so it can be cleared); the count stays. */}
+              {(helpers.length >= SAVED_TOOLS_FROM || !!categoryFilter) && (<>
               {/* Filter — narrows the list to a skill category, next to
                   the sort control (item 26). Highlighted when active so
                   a filtered view doesn't read as a shrinking list with
@@ -340,6 +345,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   })}
                 </PopoverContent>
               </Popover>
+              </>)}
               {/* The list's own readout, on the row with the controls that
                   change it. `aria-live` so a filter or a query announces the
                   new result count instead of the list silently shrinking. */}

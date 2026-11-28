@@ -1,5 +1,6 @@
 /** Self-contained pieces of the paid-order card (split out of DeclutterHandoverViews.tsx to keep it under the size line). */
 import { useQueries } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import type { CartLine } from "@/lib/declutter/api";
 import { fetchItemAddress } from "@/lib/declutter/handover";
@@ -64,18 +65,25 @@ export function DoorPickupTips({ side }: { side: "buyer" | "seller" }) {
  * NIGHT-SELL-soldstates-3 (B18's order): on the seller's open pickup sale, the money note and Message the buyer
  * come AFTER the next actions (DeclutterHandoverViews' OrderCard renders this only when sellerNextFirst).
  */
-export function SellerAfterActions({ order, booking, itemsCents, problemOpen, refunded }: {
+export function SellerAfterActions({ order, booking, itemsCents, problemOpen, refunded, children }: {
   order: PaidOrder;
   booking: { slot_start?: string | null; pickup_day?: string | null } | null | undefined;
   itemsCents: number;
   problemOpen: boolean;
   refunded: boolean;
+  /** Polish audit 11-27 #12: the card's other secondary actions (They didn't show, Report a problem), in the same row. */
+  children?: ReactNode;
 }) {
   return (
-    <div className="space-y-3" data-seller-after-actions="">
+    <div className="space-y-2" data-seller-after-actions="">
       <PickupStatus orderId={order.orderId} handover={order.handover as "porch" | "pickup_home" | "meetup"} side="seller" slot={booking?.slot_start ?? null}
         day={booking?.pickup_day ?? null} itemsCents={itemsCents} problemOpen={problemOpen} refunded={refunded} part="money" />
-      <OrderTalkButton orderId={order.orderId} side={order.side} trade={isTradeOrder(order)} />
+      {/* Polish audit 11-27 #12: one row of 14px text buttons instead of three stacked outline pills; every action stays
+          (each keeps its own rules for when it shows), and the next step above is the card's one filled button. */}
+      <div className="flex flex-wrap items-center gap-x-5" data-sale-secondary="">
+        <OrderTalkButton orderId={order.orderId} side={order.side} trade={isTradeOrder(order)} quiet />
+        {children}
+      </div>
     </div>
   );
 }

@@ -341,12 +341,19 @@ function OrderCard({ order, userId, booking, payout, holdUnknown = false, payout
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} onProblem={problem ? undefined : () => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} held={!!problem} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} askGot={askGot ? askFor?.n ?? 0 : 0} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
-          {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking, porchSeller) ?? booking.slot_start} who={who} />}
-          {booking?.slot_start && !problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery={false} free={order.lines.every((l) => l.price_cents === 0)} />}
-          {sellerNextFirst && <SellerAfterActions order={order} booking={booking} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
-          {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). D2-2: none while a problem is open. */}
-          {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
-            onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking, Date.now(), porchSeller)} />}
+          {/* Polish audit 11-27 #12: on the seller's open pickup sale, They didn't show and Report a problem join Message the
+              buyer in ONE row of text buttons (SellerAfterActions), each with its own rules unchanged. */}
+          {(() => {
+            const noShow = booking?.slot_start && !problem
+              ? <NoShowButton order={order} slotStart={noShowFrom(booking, porchSeller) ?? booking.slot_start} who={who} quiet={sellerNextFirst} /> : null;
+            // D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). D2-2: none while a problem is open.
+            const report = !problem ? <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
+              onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking, Date.now(), porchSeller)} quiet={sellerNextFirst} /> : null;
+            const answer = booking?.slot_start && !problem ? <NoShowAnswer orderId={order.orderId} side={order.side} delivery={false} free={order.lines.every((l) => l.price_cents === 0)} /> : null;
+            return sellerNextFirst
+              ? <>{answer}<SellerAfterActions order={order} booking={booking} itemsCents={items} problemOpen={!!problem} refunded={fullRefund}>{noShow}{report}</SellerAfterActions></>
+              : <>{noShow}{answer}{report}</>;
+          })()}
         </>
       )}
       {/* Area 05 #2 (design audit 11-18): a refunded or cancelled order has nothing to move, so no "Need help moving it?"
@@ -436,7 +443,8 @@ function HandoverPanel({ order, userId, slotStart, askGot = 0, anyProblem, who, 
         {rule(t("dho.rule.now", { done }))}
         <label htmlFor={fileId} className="block text-xs font-medium">{t("dho.photoLabel")}</label>
         <PhotoPickButton id={fileId} picked={photo} disabled={pickedUp.isPending} onPick={setPhoto} />
-        <Button type="button" variant="primary" size="sm" disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
+        {/* Polish audit 11-27 #12: the seller's next step is the card's one full-width 48px filled button. */}
+        <Button type="button" variant="primary" size="md" className="w-full" disabled={pickedUp.isPending} onClick={() => setAsking(true)} data-seller-next-button="">
           {done}
         </Button>
         <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} free={free} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} label={done} />

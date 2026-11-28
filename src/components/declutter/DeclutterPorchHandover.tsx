@@ -202,7 +202,10 @@ export function PickupStatus({
   const money = <MoneyNote orderId={orderId} side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} refunded={refunded} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" handedOverAt={payoutShown ? null : handedOverAt} />;
   if (part === "money") return money;
   const stands = standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null, photoDay: handover === "porch" ? porchPhotoDay({ pickup_day: day, slot_start: slot }) : null });
-  const doneWhen = handedOverAt && stands.who === "info" && stands.text.endsWith(".") ? { ...stands, text: `${stands.text.slice(0, -1)} ${orderWhen(handedOverAt)}.` } : stands;
+  const doneWhen0 = handedOverAt && stands.who === "info" && stands.text.endsWith(".") ? { ...stands, text: `${stands.text.slice(0, -1)} ${orderWhen(handedOverAt)}.` } : stands;
+  // Polish audit 11-27 #12 (date once): on the seller's card a booked time is the booking panel's "Pickup: <day, time>"
+  // line right below, so the Next line drops its " · Pickup <time>" (the order chat still says it: standing()).
+  const doneWhen = side === "seller" && at === 1 && slot ? { ...doneWhen0, by: null } : doneWhen0;
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />

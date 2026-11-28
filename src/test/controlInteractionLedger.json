@@ -37,7 +37,6 @@
     "adhocTint  src/components/admin/userDetail/ActionsTab.tsx:91 <Button>  hover:bg-destructive/10",
     "adhocTint  src/components/auth/SocialAuthButtons.tsx:136 <Button>  hover:bg-muted/40",
     "adhocTint  src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx:212 <button>  hover:bg-secondary/60",
-    "adhocTint  src/components/jobs/ShareJobButton.tsx:310 <Button>  hover:bg-[hsl(var(--bark)/0.20)]",
     "adhocTint  src/components/profile/EarningsForecastCard.tsx:216 <button>  hover:bg-secondary/60",
     "adhocTint  src/components/profile/HelperStreakBadge.tsx:104 <button>  hover:bg-[hsl(var(--gold-warm)/0.22)]",
     "adhocTint  src/components/profile/MonthlyGoalCard.tsx:205 <button>  hover:bg-foreground/10",

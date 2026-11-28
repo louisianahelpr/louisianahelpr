@@ -152,10 +152,13 @@ export function SignInMethodsCard() {
                     {removeLabel}
                   </Button>
                 ) : (
+                  // Polish audit 11-27 #70: Connect is a 15px text link like the email's Change, not two outline pills of
+                  // different widths ("Connect Apple" / "Connect Google") beside rows whose "Connected" has no control.
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="shrink-0"
+                    variant="link"
+                    className="shrink-0 px-0 text-ds-15 font-semibold text-[hsl(var(--bark))]"
+                    data-sign-in-connect={p}
                     disabled={busy !== null}
                     aria-label={t("sim.connectName", { name: NAME[p] })}
                     onClick={() => void connect(p)}

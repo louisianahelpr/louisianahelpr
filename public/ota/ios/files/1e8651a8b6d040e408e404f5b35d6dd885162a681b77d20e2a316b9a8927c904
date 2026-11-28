@@ -1,0 +1,1 @@
+import{cr as e}from"./app-shared-7PFkru2R.js";import{R as t}from"./browse-home-shared-CJkuXnqT.js";import{r as n}from"./react-vendor-DBuF32qy.js";var r=n();function i({kind:n,className:i}){return(0,r.jsx)(`p`,{role:`note`,"data-age-gate-note":n,className:e(`font-sans text-ds-12 leading-snug text-muted-foreground`,i),children:t(n)})}export{i as t};

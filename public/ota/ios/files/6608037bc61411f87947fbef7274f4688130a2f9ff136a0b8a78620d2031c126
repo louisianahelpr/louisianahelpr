@@ -1,0 +1,1 @@
+import"./i18n-enDeclPanels-To6yX63u.js";import{Ut as e}from"./home-shared-KQnhYKjO.js";var t={porch:`Porch pickup`,pickup_home:`Meet at the seller's home`,seller_delivery:`Seller delivers`,delivery:`Helpr delivery`,meetup:`Meet at a safe spot`,ship:`Ship it to me`},n=t=>e(`ho.title.${t}`),r=t=>e(`ho.words.${t}`);export{n,r,t};

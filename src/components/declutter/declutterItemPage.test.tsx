@@ -19,7 +19,7 @@
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {pickupCount > 0 && <span data-seller-pickups | {false && <span data-seller-pickups
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {pickupCount > 0 && <span data-seller-pickups | {pickupCount >= 0 && <span data-seller-pickups
  * @mutate src/components/declutter/DeclutterGuest.tsx |         {c.pickups > 0 && <span data-guest-seller-pickups | {false && <span data-guest-seller-pickups
- * @mutate src/lib/declutter/api.ts | idChecked: row.id_checked === true, pickups: pickupCount(row.pickup_count), | idChecked: row.id_checked === true, pickups: 0,
+ * @mutate src/lib/declutter/api.ts | count: count > 0 ? count : 0, pickups: pickupCount(row.pickup_count), | count: count > 0 ? count : 0, pickups: 0,
  * @mutate src/components/declutter/DeclutterShareCard.tsx |   void shareNative({ title: it.title, text: shareText(it), url: listingLink(it.id) }); |   void shareNative({ title: it.title, text: shareText(it), url: getPublicOrigin() });
  * @mutate src/components/ui/StickyActionBar.tsx | className="fixed inset-x-0 bottom-0 z-40 border-t | className="inset-x-0 bottom-0 z-40 border-t
  * @mutate src/components/ui/StickyActionBar.tsx |   useDockYield(active && phone); |   void phone;
@@ -933,8 +933,9 @@ describe("the photo-first Declutter item page", () => {
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (failed \|\| open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>; |   return <><DeclutterGuestTopBar />{children}</>;
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} free={free} />} |
   // @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_guest_seller_card", { p_item_id: itemId }); |   const res = await supabase.rpc("get_safe_profiles", { user_ids: [itemId] });
-  // F227/F319 (owner 11-11): the guest card is "Dana R.", the rating and ID checked, and nothing else (no photo, no link).
-  // @mutate src/components/declutter/DeclutterGuest.tsx |         {c.idChecked && ( |         {true && (
+  // F227/F319 (owner 11-11): the guest card is "Dana R." and the rating, and nothing else (no photo, no link).
+  // Polish audit 11-27 #128 (owner 11-20: Declutter has no ID check): no "ID checked" badge, even when the server says so.
+  // @mutate src/components/declutter/DeclutterGuest.tsx |         {since && <span data-guest-seller-since="" | <span data-guest-seller-id="">ID checked</span>{since && <span data-guest-seller-since=""
   // @mutate src/components/declutter/DeclutterGuest.tsx |         {c.avg !== null && c.count > 0 && ( |         {false && (
   // @mutate src/components/declutter/DeclutterGuest.tsx |         <span className="block truncate font-semibold">{c.name}</span> |         <a href="/u/x" className="block truncate font-semibold">{c.name}</a>
   it("BUY-16 + owner pick 1 (11-08): a guest sees the REAL Make offer / Buy now, each going to sign up and back; only the small guest seller card (F227); the wall while Declutter isn't open", async () => {
@@ -960,16 +961,17 @@ describe("the photo-first Declutter item page", () => {
     // AUD31-67: the guest has the brand and a way to the rest of Louisiana Helpr.
     expect(within(join).getByRole("link", { name: "Helpr home" })).toHaveAttribute("href", "/");
     // F227/F319 (owner 11-11, narrow exception to BUY-16): the small guest card from declutter_guest_seller_card,
-    // exactly "Dana R.", the rating and ID checked. Never the member card, its photo, join date or profile link, and no
+    // exactly "Dana R." and the rating (no ID badge, #128). Never the member card, its photo, join date or profile link, and no
     // member-only read (get_safe_profiles, get_public_profile_stats) for a guest.
     const seller = await screen.findByText("Dana R.");
     const guestCard = seller.closest("[data-guest-seller]") as HTMLElement;
     expect(guestCard).not.toBeNull();
     // F359d: "12 pickups" (declutter_guest_seller_card.pickup_count, 20261112002528), a count and nothing else.
-    expect(guestCard.textContent).toBe("DSold byDana R.4.5 stars from · 2 reviews12 pickupsID checked");
+    expect(guestCard.textContent).toBe("DSold byDana R.4.5 stars from · 2 reviews12 pickups");
     expect(guestCard.querySelector("[data-guest-seller-pickups]")?.textContent).toBe("12 pickups");
     expect(guestCard.querySelector("[data-guest-seller-rating]")?.textContent).toBe("4.5 stars from · 2 reviews");
-    expect(guestCard.querySelector("[data-guest-seller-id]")?.textContent).toBe("ID checked");
+    expect(guestCard.querySelector("[data-guest-seller-id]")).toBeNull();
+    expect(guestCard).not.toHaveTextContent(/ID checked/);
     expect(guestCard.querySelectorAll("a, img, button")).toHaveLength(0);
     expect(guestCard.closest("a")).toBeNull();
     expect(document.querySelector("[data-seller-card]")).toBeNull();

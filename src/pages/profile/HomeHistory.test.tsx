@@ -1,3 +1,4 @@
+// @mutate src/pages/profile/HomeHistory.tsx |           ? supabase.rpc("get_safe_profiles", { user_ids: helperIds }) |           ? supabase.from("profiles").select("user_id, full_name").in("user_id", helperIds)
 /**
  * /home-history is sold as "your home's permanent service history — who came
  * out, what it cost, and when". These lock the three places it wasn't.
@@ -86,14 +87,21 @@ vi.mock("@/integrations/supabase/client", () => {
               { job_id: "hh-group", helper_id: A2, joined_at: "2025-07-26T01:00:00Z" },
               { job_id: "hh-group", helper_id: A3, joined_at: "2025-07-26T02:00:00Z" },
             ];
-          if (table === "profiles")
-            return [
-              { user_id: USER.id, full_name: "Jane Boudreaux" },
-              { user_id: HELPER, full_name: "Marcus Thibodeaux" },
-              { user_id: A2, full_name: "Renée Beauchêne-Landry" },
-              { user_id: A3, full_name: "Dee Guidry" },
-            ];
+          // As RLS answers on prod (pg_policies, read 2026-11-28): a member reads only their OWN profiles row.
+          // Polish audit 11-27 #132: the old mock handed back the Helprs' rows here too, which hid that every live
+          // record said "done by a Helpr".
+          if (table === "profiles") return [{ user_id: USER.id, full_name: "Jane Boudreaux" }];
           return [];
+        }),
+      rpc: (fn: string, args: { user_ids?: string[] }) =>
+        builder(() => {
+          if (fn !== "get_safe_profiles") return [];
+          const all = [
+            { user_id: HELPER, full_name: "Marcus Thibodeaux" },
+            { user_id: A2, full_name: "Renée Beauchêne-Landry" },
+            { user_id: A3, full_name: "Dee Guidry" },
+          ];
+          return all.filter((r) => (args.user_ids ?? []).includes(r.user_id));
         }),
       auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) },
     },

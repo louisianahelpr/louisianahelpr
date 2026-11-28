@@ -463,6 +463,12 @@
     overflow-x: hidden;
   }
 
+  /* Polish audit 11-27 #107: one word alone on a last line ("nearby.", "one.", "in.", "done.") sitewide. Paragraphs
+     break "pretty" (the last line keeps a partner word) and headings "balance". The LONGHAND text-wrap-style only,
+     never the `text-wrap` shorthand: that one also sets text-wrap-mode and would un-nowrap a truncate/nowrap line. */
+  p, li, dd, figcaption, blockquote { text-wrap-style: pretty; }
+  h1, h2, h3, h4 { text-wrap-style: balance; }
+
   /* iOS Safari / WKWebView auto-zooms the viewport on any input focused with
      computed font-size < 16px. That zoom shifts the layout, breaks fixed
      positioning, and doesn't zoom back — a per-focus UX defect. Enforce a

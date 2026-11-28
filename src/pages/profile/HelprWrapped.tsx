@@ -552,16 +552,8 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                     ? "Share your Wrapped"
                     : "Share your year"}
               </Button>
-              {/* The "See yours" anchor that sat here preventDefault-ed into
-                  nothing — a dead link directly under the real Share button.
-                  A plain caption says the same thing without pretending to
-                  be a second control. */}
-              <p
-                className="text-center text-ds-11 font-sans"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                Share it with the community
-              </p>
+              {/* Polish audit 11-27 #134: no caption under the button ("Share it with the community" repeated "Share your
+                  year" in other words; before that a dead "See yours" anchor sat here). */}
             </div>
           )}
         </div>

@@ -1,0 +1,1 @@
+import{f as e}from"./home-shared-db-DghTudqs.js";import{xi as t}from"./app-shared-BvGdO-ZX.js";var n=e=>[`pet_profiles`,e??null];async function r(n){return t(await e.from(`pet_profiles`).select(`*`).eq(`owner_id`,n).order(`created_at`,{ascending:!0}))}export{n,r as t};

@@ -1,0 +1,1 @@
+import{Ut as e}from"./home-shared-CDtjXUwk.js";import"./i18n-enPushAsk-CiqolOWd.js";var t=[`posted`,`applied`,`listed`,`message`];function n(n){return!n||!t.includes(n)?null:{title:e(`pushAsk.${n}.title`),body:e(`pushAsk.${n}.body`)}}export{t as PUSH_ASK_CONTEXTS,n as pushAskWords};

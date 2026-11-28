@@ -94,6 +94,16 @@ regexes = [
   '''^["']?\$\{?[A-Za-z_][A-Za-z0-9_]*\}?:?["']?$''',
 ]
 
+# Minified bundle code (the OTA files under public/ota/ios/files, 2026-11-27): generic-api-key read
+# `let t=e.client_secret,n=e.publishable_key;` (Embedded Checkout's reader) as a key whose "secret" is the code
+# `n=e.publishable_key`. Only a secret that is a one-to-two-letter variable assigned a property read is allowed.
+[[allowlists]]
+description = "minified property reads"
+regexTarget = "secret"
+regexes = [
+  '''^[A-Za-z_$][A-Za-z0-9_$]?=[A-Za-z_$][A-Za-z0-9_$]?\.[A-Za-z_][A-Za-z0-9_]*$''',
+]
+
 # The MapKit JS token is a VITE_ variable: every browser receives it.
 [[allowlists]]
 description = "public-by-design lines"

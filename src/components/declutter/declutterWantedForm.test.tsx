@@ -125,20 +125,20 @@ describe("the Wanted hub", () => {
 
   it("#13: words typed survive a reload, a broken draft is ignored, and a successful post forgets them", async () => {
     open("/declutter?tab=wanted&post=1");
-    fireEvent.change(await screen.findByLabelText("I'm looking for"), { target: { value: "Oak dresser" } });
+    fireEvent.change(await screen.findByLabelText("Item"), { target: { value: "Oak dresser" } });
     fireEvent.change(screen.getByLabelText("The most you'd pay for the item"), { target: { value: "40" } });
     cleanup();
     open("/declutter?tab=wanted&post=1");
-    expect(await screen.findByLabelText("I'm looking for")).toHaveValue("Oak dresser");
+    expect(await screen.findByLabelText("Item")).toHaveValue("Oak dresser");
     expect(screen.getByLabelText("The most you'd pay for the item")).toHaveValue("40");
     cleanup();
     localStorage.setItem("helpr_wanted_draft", "{not json");
     open("/declutter?tab=wanted&post=1");
-    expect(await screen.findByLabelText("I'm looking for")).toHaveValue("");
+    expect(await screen.findByLabelText("Item")).toHaveValue("");
     cleanup();
     localStorage.setItem("helpr_wanted_draft", JSON.stringify({ what: "Crib", category: "baby_kids", maxPrice: "40", radius: 10 }));
     open("/declutter?tab=wanted&post=1");
-    expect(await screen.findByLabelText("I'm looking for")).toHaveValue("Crib");
+    expect(await screen.findByLabelText("Item")).toHaveValue("Crib");
     fireEvent.click(screen.getByRole("button", { name: "Post wanted" }));
     await waitFor(() => expect(posted.length).toBe(1));
     await screen.findByRole("button", { name: "Post what you're looking for" });
@@ -233,7 +233,7 @@ describe("the Wanted hub", () => {
       "Pick a category.",
       "Set your highest price in whole dollars, $1 to $1,000.",
     ]);
-    const what = within(sheet).getByLabelText("I'm looking for");
+    const what = within(sheet).getByLabelText("Item");
     expect(what).toHaveAttribute("aria-invalid", "true");
     expect(what).toHaveAttribute("aria-describedby", "wanted-what-problem");
     expect(what).toHaveAttribute("aria-required", "true");
@@ -259,7 +259,7 @@ describe("the Wanted hub", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Post what you're looking for" }));
     const sheet = await screen.findByRole("dialog");
     // Area 06b M3 (design audit 11-18): the example reads as one, and the price field starts empty (no grey "30").
-    expect(within(sheet).getByLabelText("I'm looking for")).toHaveAttribute("placeholder", "e.g. kids bike");
+    expect(within(sheet).getByLabelText("Item")).toHaveAttribute("placeholder", "e.g. kids bike");
     expect(sheet.querySelector("#wanted-max")).not.toHaveAttribute("placeholder");
   });
 
@@ -270,7 +270,7 @@ describe("the Wanted hub", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText("Edit your post")).toBeInTheDocument();
-    const what = within(sheet).getByLabelText("I'm looking for");
+    const what = within(sheet).getByLabelText("Item");
     expect(what).toHaveValue("Kids bike");
     expect(within(sheet).getByLabelText("The most you'd pay for the item")).toHaveValue("30");
     fireEvent.change(what, { target: { value: "Blue bike" } });
@@ -391,7 +391,7 @@ describe("the Wanted hub", () => {
     URL.revokeObjectURL = vi.fn();
     const file = new File(["x"], "bike.jpg", { type: "image/jpeg" });
     fireEvent.change(sheet.querySelector('input[type="file"]')!, { target: { files: [file] } });
-    fireEvent.change(within(sheet).getByLabelText("I'm looking for"), { target: { value: "Kids bike" } });
+    fireEvent.change(within(sheet).getByLabelText("Item"), { target: { value: "Kids bike" } });
     fireEvent.change(within(sheet).getByLabelText("The most you'd pay for the item"), { target: { value: "30" } });
     fireEvent.click(within(sheet).getByLabelText("Category"));
     fireEvent.click(within(sheet).getByRole("button", { name: "Family" }));
@@ -410,7 +410,7 @@ describe("the Wanted hub", () => {
   it("opens on the hub, not the form: the pill, Your Wanted posts and Wanted near you, each with an empty state", async () => {
     open();
     expect(await screen.findByRole("button", { name: "Post what you're looking for" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("I'm looking for"), "the form is not inline").toBeNull();
+    expect(screen.queryByLabelText("Item"), "the form is not inline").toBeNull();
     expect(screen.getByRole("heading", { name: "Your Wanted posts" })).toBeInTheDocument();
     expect(await screen.findByText("Each post lasts 30 days, and sellers near you can answer it.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Wanted near you" })).toBeInTheDocument();
@@ -436,14 +436,14 @@ describe("the Wanted hub", () => {
     const draft = () => JSON.parse(localStorage.getItem("helpr_wanted_draft") ?? "{}") as { what?: string; category?: string };
     open("/declutter?tab=wanted&post=1&what=Treadmill&category=sports_outdoors");
     let sheet = await screen.findByRole("dialog");
-    expect((within(sheet).getByLabelText("I'm looking for") as HTMLInputElement).value).toBe("Treadmill");
+    expect((within(sheet).getByLabelText("Item") as HTMLInputElement).value).toBe("Treadmill");
     await waitFor(() => expect(draft().category).toBe("sports_outdoors"));
     await waitFor(() => expect(screen.getByTestId("where").textContent).toBe("/declutter?tab=wanted"));
     cleanup();
     localStorage.removeItem("helpr_wanted_draft");
     open("/declutter?tab=wanted&post=1&what=Rowing%20machine&category=bogus");
     sheet = await screen.findByRole("dialog");
-    expect((within(sheet).getByLabelText("I'm looking for") as HTMLInputElement).value).toBe("Rowing machine");
+    expect((within(sheet).getByLabelText("Item") as HTMLInputElement).value).toBe("Rowing machine");
     await waitFor(() => expect(draft().what).toBe("Rowing machine"));
     expect(draft().category).toBe("");
   });
@@ -467,7 +467,7 @@ describe("the Wanted hub", () => {
     expect(within(sheet).getByText("Your Wanted stays up 30 days. You can edit or close it anytime.")).toBeInTheDocument();
     const price = within(sheet).getByLabelText("The most you'd pay for the item");
     expect(price.className).toContain("--burnt-sienna");
-    fireEvent.change(within(sheet).getByLabelText("I'm looking for"), { target: { value: "Kids bike, 16 inch" } });
+    fireEvent.change(within(sheet).getByLabelText("Item"), { target: { value: "Kids bike, 16 inch" } });
     fireEvent.change(price, { target: { value: "30" } });
     fireEvent.click(within(sheet).getByLabelText("Category"));
     fireEvent.click(within(sheet).getByRole("button", { name: "Family" }));

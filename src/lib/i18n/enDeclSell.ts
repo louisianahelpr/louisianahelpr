@@ -175,7 +175,7 @@ export const enDeclSell = {
   "dsl.w.feeTyped": "A {price} item costs {total} with our fee.",
   "dsl.w.title": "What are you looking for?",
   "dsl.w.editTitle": "Edit your post",
-  "dsl.w.lookingFor": "I'm looking for",
+  "dsl.w.lookingFor": "Item",
   "dsl.w.example": "e.g. kids bike",
   "dsl.w.category": "Category",
   "dsl.w.pickOne": "Pick one",

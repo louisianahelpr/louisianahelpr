@@ -170,7 +170,7 @@ export const esDeclSell: Record<keyof typeof enDeclSell, string> = {
   "dsl.w.feeTyped": "Un artículo de {price} cuesta {total} con nuestra tarifa.",
   "dsl.w.title": "¿Qué está buscando?",
   "dsl.w.editTitle": "Editar su publicación",
-  "dsl.w.lookingFor": "Estoy buscando",
+  "dsl.w.lookingFor": "Artículo",
   "dsl.w.example": "p. ej., bicicleta para niños",
   "dsl.w.category": "Categoría",
   "dsl.w.pickOne": "Elija una",

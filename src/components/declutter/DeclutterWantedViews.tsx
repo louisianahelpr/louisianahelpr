@@ -127,9 +127,10 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
       }}
     >
       <div className="space-y-1">
-        {/* Area 06b M3 (design audit 11-18): the sheet's title already asks "What are you looking for?", so the label is
-            for screen readers only, and the example reads as one ("e.g. kids bike"), never as a filled-in answer. */}
-        <label className="sr-only" htmlFor="wanted-what">{t("dsl.w.lookingFor")}</label>
+        {/* Area 06b M3 (design audit 11-18): the title already asks "What are you looking for?", so the label does not ask
+            again. Polish audit 11-27 #58: a field with only a placeholder had no label at all, so it reads "Item", painted
+            like the other labels; the example still reads as one ("e.g. kids bike"). */}
+        <label className={FIELD_LABEL} htmlFor="wanted-what">{t("dsl.w.lookingFor")}</label>
         <Input id="wanted-what" className="w-full min-w-0" maxLength={60} value={form.what} placeholder={t("dsl.w.example")} enterKeyHint="next" aria-required="true"
           aria-invalid={problems.what ? true : undefined} aria-describedby={problems.what ? "wanted-what-problem" : undefined}
           onChange={(e) => setForm((f) => ({ ...f, what: e.target.value }))} />

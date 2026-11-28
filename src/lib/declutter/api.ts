@@ -566,14 +566,13 @@ export async function fetchGuestSellerFirstName(itemId: string): Promise<string 
   return typeof name === "string" && name.trim() !== "" ? name.trim() : null;
 }
 
-/** F227/F319: what a guest's seller card shows. Exactly these four fields; no photo, id, link or contact. */
+/** F227/F319: what a guest's seller card shows. Name, rating, pickups and public page; no photo, id, link or contact. */
 export interface GuestSellerCard {
   /** "Ann S." (member_display_name on the server): first name + last initial, never the full name. */
   name: string;
   /** The public star average, null while the seller has no public review. */
   avg: number | null;
   count: number;
-  idChecked: boolean;
   /** F359d: completed handovers (20261112002528); 0 before that migration is deployed. A count only. */
   pickups: number;
   /** Item page polish (owner 11-20, 20261120185250): the seller's public /u handle, null with no public page (or before
@@ -585,20 +584,20 @@ export interface GuestSellerCard {
 
 /**
  * F227/F319 (owner 11-11): a guest's small seller card from declutter_guest_seller_card (20261111205821): "Ann S.",
- * the rating and the ID-checked badge, only for a listing a guest can read. Null when the server gives no row, or
+ * the rating and pickups (no ID badge: Declutter has no ID check, owner 11-20), only for a listing a guest can read. Null when the server gives no row, or
  * before the function is deployed (the page then shows no seller card, as before BUY-16's first-name line).
  */
 export async function fetchGuestSellerCard(itemId: string): Promise<GuestSellerCard | null> {
   const res = await supabase.rpc("declutter_guest_seller_card", { p_item_id: itemId });
   if (res.error && isMissingRpcNamed(res.error, "declutter_guest_seller_card")) return null;
   // The function raises nothing of its own (no row instead), so a failure is the transport's: thrown as is.
-  const rows = (unwrap(res) ?? []) as { display_name: string | null; avg_rating: number | string | null; review_count: number | null; id_checked: boolean | null; pickup_count?: number | null; handle?: string | null; member_since?: string | null }[];
+  const rows = (unwrap(res) ?? []) as { display_name: string | null; avg_rating: number | string | null; review_count: number | null; pickup_count?: number | null; handle?: string | null; member_since?: string | null }[];
   const row = rows[0];
   const name = typeof row?.display_name === "string" ? row.display_name.trim() : "";
   if (!row || name === "") return null;
   const count = Number(row.review_count ?? 0);
   const avg = row.avg_rating == null ? null : Number(row.avg_rating);
-  return { name, avg: count > 0 && avg !== null && Number.isFinite(avg) ? avg : null, count: count > 0 ? count : 0, idChecked: row.id_checked === true, pickups: pickupCount(row.pickup_count),
+  return { name, avg: count > 0 && avg !== null && Number.isFinite(avg) ? avg : null, count: count > 0 ? count : 0, pickups: pickupCount(row.pickup_count),
     handle: typeof row.handle === "string" && row.handle.trim() !== "" ? row.handle.trim() : null,
     memberSince: typeof row.member_since === "string" && row.member_since !== "" ? row.member_since : null };
 }

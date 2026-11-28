@@ -12,6 +12,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "@/lib/helprTasks/errorCopy";
 import { invokeDeclutter } from "@/lib/declutter/api";
+import { checkoutPageFrom, type CheckoutPage } from "@/lib/payments/checkoutPage";
 
 export interface DeliveryRaise {
   raise_cents: number;
@@ -54,7 +55,12 @@ export async function fetchDeliveryRaiseStatus(orderId: string): Promise<Deliver
 }
 
 /** Open the raise's Stripe page: its URL, or paid=true when an earlier raise page already went through. */
-export async function startDeliveryRaise(orderId: string, raiseCents: number): Promise<{ url: string | null; paid: boolean }> {
-  const data = await invokeDeclutter("declutter-checkout", { action: "raise_pay", order_id: orderId, raise_cents: raiseCents });
-  return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true };
+export async function startDeliveryRaise(orderId: string, raiseCents: number, embedded = false): Promise<{ page: CheckoutPage | null; paid: boolean }> {
+  const data = await invokeDeclutter("declutter-checkout", { action: "raise_pay", order_id: orderId, raise_cents: raiseCents,
+    // Phase W: the website asks for Stripe's form in our own sheet; the server may still answer hosted.
+    ...(embedded ? { embedded: true } : {}) });
+  const page = data.paid === true ? null : checkoutPageFrom(data);
+  // An embedded answer the client cannot mount is a failure to open, never "paid".
+  if (!page && data.paid !== true) throw new Error("payment_unavailable");
+  return { page, paid: data.paid === true };
 }

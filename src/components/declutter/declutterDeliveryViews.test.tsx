@@ -112,7 +112,7 @@ vi.mock("@/lib/declutter/deliveryRaise", () => ({ fetchDeliveryRaiseStatus: asyn
 vi.mock("@/lib/declutter/deliveryTip", () => ({
   fetchMyPaidDeliveryTips: async () => state.tips,
   fetchTipsOnMyDeliveries: async () => new Map((state.tips as { task_id?: string; tip_cents: number }[]).filter((t) => t.task_id).map((t) => [t.task_id!, t.tip_cents])),
-  startDeliveryTip: async (...a: unknown[]) => { state.calls.push(["tip", ...a]); return "https://checkout.stripe.test/tip"; },
+  startDeliveryTip: async (...a: unknown[]) => { state.calls.push(["tip", ...a]); return { kind: "hosted" as const, url: "https://checkout.stripe.test/tip" }; },
 }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: async (url: string) => { state.calls.push(["open", url]); } }));
 

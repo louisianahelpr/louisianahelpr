@@ -9,6 +9,8 @@
  * @mutate src/components/declutter/DeliveryRaisePanel.tsx |  const fee = valid ? raiseCardFeeCents(cents) : 0; |  const fee = 0;
  * @mutate src/components/declutter/DeliveryRaisePanel.tsx |  const valid = /^\d+$/.test(dollars) && cents >= RAISE_MIN_CENTS && cents <= s.room_cents; |  const valid = /^\d+$/.test(dollars);
  * @mutate src/components/declutter/DeliveryRaisePanel.tsx |  if (!s \|\| (!s.can_raise && s.raises.length === 0)) return null; |  if (!s) return null;
+ * @mutate src/components/declutter/DeliveryRaisePanel.tsx |       {checkoutPage.sheet} |       {null}
+ * @mutate src/components/declutter/DeliveryRaisePanel.tsx | startDeliveryRaise(orderId, cents, asksForEmbeddedCheckout(embeddedOn)) | startDeliveryRaise(orderId, cents, false)
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -20,11 +22,22 @@ const state = vi.hoisted(() => ({
   started: [] as unknown[][],
   opened: [] as string[],
   reads: 0,
+  embeddedOn: false,
+}));
+// Phase W: the switch, and the lazily loaded sheet that mounts Stripe's Embedded Checkout (never Stripe.js in jsdom).
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "embedded_checkout" && state.embeddedOn }));
+vi.mock("@/components/payments/EmbeddedCheckoutSheet", () => ({
+  default: ({ clientSecret }: { clientSecret: string }) => <div data-testid="embedded-sheet" data-secret={clientSecret} />,
 }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/deliveryRaise", () => ({
   fetchDeliveryRaiseStatus: async () => { state.reads++; if (state.error) throw state.error; return state.status; },
-  startDeliveryRaise: async (...a: unknown[]) => { state.started.push(a); return { url: "https://checkout.stripe.test/raise", paid: false }; },
+  startDeliveryRaise: async (...a: unknown[]) => {
+    state.started.push(a);
+    return a[2] === true
+      ? { page: { kind: "embedded" as const, clientSecret: "cs_test_r_secret_1", publishableKey: "pk_test_1" }, paid: false }
+      : { page: { kind: "hosted" as const, url: "https://checkout.stripe.test/raise" }, paid: false };
+  },
 }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: async (url: string) => { state.opened.push(url); } }));
 
@@ -45,6 +58,7 @@ beforeEach(() => {
   state.started = [];
   state.opened = [];
   state.reads = 0;
+  state.embeddedOn = false;
 });
 
 describe("DeliveryRaisePanel", () => {
@@ -58,6 +72,15 @@ describe("DeliveryRaisePanel", () => {
     expect(screen.getByText(/all of it comes back with what you paid for delivery/)).toBeTruthy();
   });
 
+  it("phase W: with the switch on, the raise asks for an embedded page and opens it in our own sheet, not Stripe's site", async () => {
+    state.embeddedOn = true;
+    show();
+    fireEvent.click(await screen.findByRole("button", { name: "Raise the pay" }));
+    expect((await screen.findByTestId("embedded-sheet")).getAttribute("data-secret")).toBe("cs_test_r_secret_1");
+    expect(state.started).toEqual([["o1", 1000, true]]);
+    expect(state.opened).toEqual([]);
+  });
+
   it("sends exactly the raise typed, then opens the payment page", async () => {
     show();
     const input = await screen.findByLabelText("Add to the pay");
@@ -65,7 +88,7 @@ describe("DeliveryRaisePanel", () => {
     expect(screen.getByText("You pay now").nextSibling?.textContent).toBe("$26.06");
     fireEvent.click(screen.getByRole("button", { name: "Raise the pay" }));
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/raise"]));
-    expect(state.started).toEqual([["o1", 2500]]);
+    expect(state.started).toEqual([["o1", 2500, false]]); // false: the embedded_checkout switch reads off here (phase W)
   });
 
   it("under $5 or over what is left to raise cannot be sent", async () => {

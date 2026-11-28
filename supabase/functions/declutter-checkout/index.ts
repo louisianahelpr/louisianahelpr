@@ -879,6 +879,8 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
     console.error(`[declutter-checkout] ${caughtMessage(e)}`);
     return json({ error: TRY_AGAIN }, 503);
   }
+  // Phase W: the website's Stripe form inside our own sheet (each raise is a new page, so nothing to reconcile).
+  const surface = await checkoutSurface(admin, user, body, mode);
   const meta = {
     kind: "declutter_raise",
     raise_id: raise.raise_id,
@@ -908,10 +910,9 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
       payment_intent_data: { metadata: meta, transfer_group: `declutter_order_${orderId}` },
       payment_method_options: threeDSecureOptions(raise.total_cents),
       expires_at: expiresAt,
-      success_url: buildRedirectUrl("/declutter?view=cart&raised=1", isNativeRequest(body)),
-      cancel_url: buildRedirectUrl("/declutter?view=cart", isNativeRequest(body)),
+      ...surfaceRedirects(surface, "/declutter?view=cart&raised=1", "/declutter?view=cart", isNativeRequest(body)),
     },
-    { idempotencyKey: `declutter-raise-${raise.raise_id}${walletRetry ? ":new-wallet" : ""}` },
+    { idempotencyKey: `declutter-raise-${raise.raise_id}${surfaceKeySuffix(surface)}${walletRetry ? ":new-wallet" : ""}` },
   ));
   if (session.amount_total !== raise.total_cents) {
     await expirePage(stripe, session.id);
@@ -924,7 +925,13 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
     await expirePage(stripe, session.id);
     return json({ error: TRY_AGAIN }, 409);
   }
-  return json({ url: session.url, order_id: orderId, raise_id: raise.raise_id });
+  const answer = pageAnswer(session, surface);
+  if (!answer) {
+    await expirePage(stripe, session.id);
+    console.error(`[declutter-checkout] raise session ${session.id} came back without a ${surface} page`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  return json({ ...answer, order_id: orderId, raise_id: raise.raise_id });
 }
 
 type TipStart = { tip_id: string; helpr_id: string | null; tip_cents: number; title: string; payment_status: string; stripe_session_id: string | null; held?: boolean };
@@ -991,6 +998,8 @@ async function deliveryTip(body: Record<string, unknown>, user: { id: string; em
   if (tipIdHold.kind === "waits") return json({ error: "tip_waits_on_identity" }, 409);
   const mode = await stripeModeForParties(admin, [user.id, helprId], { caller: user.id });
   const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
+  // Phase W (owner 11-27): the website's Stripe form inside our own sheet; the app keeps the hosted page.
+  const surface = await checkoutSurface(admin, user, body, mode);
   // A row that already has a page (a retry after Stripe's key window): that page, never a second one.
   if (tip.stripe_session_id) {
     const pageMode = sessionIdMode(tip.stripe_session_id);
@@ -1002,7 +1011,23 @@ async function deliveryTip(body: Record<string, unknown>, user: { id: string; em
       console.error(`[declutter-checkout] tip ${tip.tip_id}: prior page read failed: ${caughtMessage(e)}`);
       return json({ error: TRY_AGAIN }, 500);
     }
-    if (prior.status === "open" && prior.url) return json({ url: prior.url, tip_id: tip.tip_id });
+    if (prior.status === "open") {
+      const again = pageServes(prior, surface) ? pageAnswer(prior, surface) : null;
+      if (again) return json({ ...again, tip_id: tip.tip_id });
+      // Phase W: an open page of the other kind (the switch changed mid-attempt). A tip row keeps ONE page, so this
+      // attempt cannot get a new one: close it, so it can never be paid beside the next attempt's, and ask for a new
+      // attempt (the prompt opened again is a new tip row). A refused close is re-read: paid only when complete.
+      try {
+        await pageStripe.checkout.sessions.expire(tip.stripe_session_id);
+      } catch (e) {
+        // Paid meanwhile, or a Stripe error: logged, and a re-read decides.
+        console.log(JSON.stringify({ event: "declutter_tip_page_expire_refused", session: tip.stripe_session_id, detail: String(e).slice(0, 200) }));
+        const reread = await pageStripe.checkout.sessions.retrieve(tip.stripe_session_id);
+        if (reread.status === "complete") return json({ error: "tip_already_paid" }, 409);
+        return json({ error: TRY_AGAIN }, 503);
+      }
+      return json({ error: "tip_page_closed" }, 409);
+    }
     if (prior.status === "complete") return json({ error: "tip_already_paid" }, 409);
     return json({ error: "tip_page_closed" }, 409);
   }
@@ -1044,9 +1069,8 @@ async function deliveryTip(body: Record<string, unknown>, user: { id: string; em
         metadata: { kind: "declutter_delivery_tip", tip_id: tip.tip_id, tipper_id: user.id, held: held ? "1" : "0", tip_cents: String(q.tipCents), fee_cents: String(q.feeCents), helper_cents: String(q.helperCents) },
       },
       metadata: { kind: "declutter_delivery_tip", tip_id: tip.tip_id, task_id: taskId, tipper_id: user.id, helpr_id: helprId, tip_cents: String(q.tipCents), charge_cents: String(q.chargeCents) },
-      success_url: buildRedirectUrl("/declutter?view=cart&tipped=1", isNativeRequest(body)),
-      cancel_url: buildRedirectUrl("/declutter?view=cart", isNativeRequest(body)),
-    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}${walletRetry ? ":new-wallet" : ""}` }));
+      ...surfaceRedirects(surface, "/declutter?view=cart&tipped=1", "/declutter?view=cart", isNativeRequest(body)),
+    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}${surfaceKeySuffix(surface)}${walletRetry ? ":new-wallet" : ""}` }));
   } catch (tipErr) {
     const refused = await noteDestinationChargeRefused(tipErr, {
       fn: "declutter-checkout", what: "A delivery tip checkout", helperId: helprId, fields: { task_id: taskId, tip_cents: tipCents, held: held ? "yes" : "no" },
@@ -1068,7 +1092,14 @@ async function deliveryTip(body: Record<string, unknown>, user: { id: string; em
     await expirePage(stripe, session.id);
     return json({ error: TRY_AGAIN }, 409);
   }
-  return json({ url: session.url, tip_id: tip.tip_id });
+  const answer = pageAnswer(session, surface);
+  if (!answer) {
+    // Recorded on the row but not showable: closed, and the next attempt is a new tip (tip_page_closed on a retry).
+    await expirePage(stripe, session.id);
+    console.error(`[declutter-checkout] tip ${tip.tip_id}: session ${session.id} came back without a ${surface} page`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  return json({ ...answer, tip_id: tip.tip_id });
 }
 
 /** An ISO time string the database can read, or null. */

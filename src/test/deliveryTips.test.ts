@@ -103,7 +103,12 @@ describe("tips on Declutter deliveries (Q2453)", () => {
     expect(view).toContain('{side === "buyer" && v.status === "confirmed" && <DeliveryTipPanel taskId={taskId} helprFirstName={v.helpr_first_name} />}');
     const panel = src("src/components/declutter/DeliveryTipPanel.tsx");
     expect(panel).toMatch(/import \{ TipCostBreakdown, TipPicker, centsLabel \} from "@\/components\/TipCostBreakdown";/);
-    expect(panel).toContain("startDeliveryTip(taskId, cents, attempt.current)");
+    expect(panel).toContain("startDeliveryTip(taskId, cents, attempt.current, asksForEmbeddedCheckout(embeddedOn))");
+    // Phase W: the page opens through useCheckoutPage (hosted or our own embedded sheet), and the sheet is rendered.
+    expect(panel).toContain("await checkoutPage.open(page, () => {");
+    expect(panel).toContain("{checkoutPage.sheet}");
+    // A closed page (tip_page_closed) renews the attempt, so the next Tip is a new tip row, not the same closed page.
+    expect(panel).toContain('=== "tip_page_closed") attempt.current = crypto.randomUUID();');
     expect(panel).toContain("attempt.current = crypto.randomUUID();");
     expect(panel).not.toMatch(/\bfees?\b/i);
   });

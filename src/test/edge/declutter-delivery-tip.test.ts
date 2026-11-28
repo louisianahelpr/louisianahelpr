@@ -24,7 +24,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |  if (hold.kind === "held" \|\| review.users.has(helprId)) { |  if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |  if (!held && !account) { |  if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |  if (review.users.has(user.id)) return | if (false) return
- * @mutate supabase/functions/declutter-checkout/index.ts |    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}${walletRetry ? ":new-wallet" : ""}` })); |    }));
+ * @mutate supabase/functions/declutter-checkout/index.ts |    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}${surfaceKeySuffix(surface)}${walletRetry ? ":new-wallet" : ""}` })); |    }));
  * @mutate supabase/functions/declutter-checkout/index.ts |  const tipSwitchOff = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (tipSwitchOff) return tipSwitchOff;\n |
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |  if (session.payment_status !== "paid") {\n    logStep("Declutter delivery tip session completed unpaid" |  if (false) {\n    logStep("Declutter delivery tip session completed unpaid"
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |    const back = await holdBackPaidTip(ctx.stripe, supabase, { |    const back = { kind: "not_held" }; void ({
@@ -57,7 +57,7 @@ const TASK = "0000000d-0000-4000-8000-0000000000bb";
 const TIP = "0000000d-0000-4000-8000-0000000000dd";
 const ATTEMPT = "0000000d-0000-4000-8000-0000000000ee";
 
-function env() {
+function env(extra: Record<string, string> = {}) {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
@@ -65,6 +65,7 @@ function env() {
     STRIPE_SECRET_KEY: "sk_live_declutter",
     STRIPE_TEST_SECRET_KEY: "sk_test_declutter",
     STRIPE_WEBHOOK_SECRET: "whsec_live",
+    ...extra,
   });
 }
 const rpcs = (name: string) => (scenario.rpcCalls ?? []).filter((c) => c.name === name);
@@ -82,8 +83,8 @@ beforeEach(() => {
 });
 
 describe("declutter-checkout: delivery_tip", () => {
-  async function call(body: Record<string, unknown> = {}) {
-    env();
+  async function call(body: Record<string, unknown> = {}, extraEnv: Record<string, string> = {}) {
+    env(extraEnv);
     scenario.authUser = { id: BUYER, email: "buyer@test.dev" };
     const fn = await loadEdgeFunction("declutter-checkout");
     return fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" },
@@ -243,6 +244,60 @@ describe("declutter-checkout: delivery_tip", () => {
     const res = await call();
     expect(JSON.parse(await res.text()).url).toBe("https://x/old");
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  // Phase W (owner 11-27): the website's tip opens Stripe's form in our own sheet; the app keeps the hosted page.
+  // @mutate supabase/functions/declutter-checkout/index.ts |       ...surfaceRedirects(surface, "/declutter?view=cart&tipped=1", "/declutter?view=cart", isNativeRequest(body)), |       ...surfaceRedirects("hosted", "/declutter?view=cart&tipped=1", "/declutter?view=cart", isNativeRequest(body)),
+  it("phase W: a website tip with the switch on gets an embedded page with the same money; the app gets {url}", async () => {
+    const PK = { STRIPE_PUBLISHABLE_KEY: "pk_live_helprTest1" };
+    ready();
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_tip", ui_mode: "embedded", url: null, client_secret: "cs_live_tip_secret_t" });
+    const web = JSON.parse(await (await call({ embedded: true }, PK)).text());
+    expect(web).toEqual({ client_secret: "cs_live_tip_secret_t", publishable_key: "pk_live_helprTest1", tip_id: TIP });
+    const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+    const q = tipChargeBreakdown(1000);
+    expect(params.ui_mode).toBe("embedded");
+    expect(params.return_url).toBe("https://www.louisianahelpr.com/declutter?view=cart&tipped=1");
+    expect(params.success_url).toBeUndefined();
+    expect(params.payment_intent_data.transfer_data).toEqual({ destination: "acct_helpr1" });
+    expect(params.payment_intent_data.application_fee_amount).toBe(q.feeCents);
+    expect(opts.idempotencyKey).toBe(`delivery-tip-${TIP}-c${q.chargeCents}:embedded`);
+    resetSupabaseMock();
+    resetStripeMock();
+    ready();
+    const app = JSON.parse(await (await call({ embedded: true, native: true }, PK)).text());
+    expect(app.url).toBe("https://checkout.stripe.test/tip");
+    expect(stripeMock.checkout.sessions.create.mock.calls[0][0].ui_mode).toBeUndefined();
+  });
+
+  // A tip row keeps ONE page: an open page of the other kind is closed and a new attempt asked for, never two pages.
+  // @mutate supabase/functions/declutter-checkout/index.ts |        await pageStripe.checkout.sessions.expire(tip.stripe_session_id); |        void pageStripe;
+  it("phase W: an open tip page of the other kind is closed, and the buyer is asked to open the tip again", async () => {
+    ready();
+    scenario.rpc.helpr_task_tip_start = { ...started, stripe_session_id: "cs_live_old" };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_live_old", url: "https://x/old", status: "open" });
+    const res = await call({ embedded: true }, { STRIPE_PUBLISHABLE_KEY: "pk_live_helprTest1" });
+    expect(res.status).toBe(409);
+    expect(JSON.parse(await res.text()).error).toBe("tip_page_closed");
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_live_old");
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("phase W: an other-kind tip page Stripe will not close is re-read: paid -> tip_already_paid, still open -> try again", async () => {
+    for (const [second, status, error] of [["complete", 409, "tip_already_paid"], ["open", 503, undefined]] as const) {
+      resetSupabaseMock();
+      resetStripeMock();
+      ready();
+      scenario.rpc.helpr_task_tip_start = { ...started, stripe_session_id: "cs_live_old" };
+      stripeMock.checkout.sessions.retrieve
+        .mockResolvedValueOnce({ id: "cs_live_old", url: "https://x/old", status: "open" })
+        .mockResolvedValueOnce({ id: "cs_live_old", url: "https://x/old", status: second });
+      stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("refused"));
+      const res = await call({ embedded: true }, { STRIPE_PUBLISHABLE_KEY: "pk_live_helprTest1" });
+      expect(res.status).toBe(status);
+      if (error) expect(JSON.parse(await res.text()).error).toBe(error);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    }
   });
 
   it("a tip already paid opens nothing", async () => {

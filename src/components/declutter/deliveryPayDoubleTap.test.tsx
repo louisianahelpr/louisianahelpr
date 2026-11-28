@@ -55,7 +55,7 @@ describe("delivery pay buttons start one payment per tap burst (Q2709)", () => {
     fireEvent.click(busy);
     fireEvent.submit(form);
     await new Promise((r) => setTimeout(r, 20));
-    expect(h.raises).toEqual([["o1", 1000]]);
+    expect(h.raises).toEqual([["o1", 1000, false]]); // false: signed out here, so no embedded page is asked for (phase W)
   });
 
   it("Tip: a double tap starts one tip, the button disabled while it opens", async () => {

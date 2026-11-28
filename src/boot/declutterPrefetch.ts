@@ -51,6 +51,7 @@ export const FIRST_SCREEN_SWITCH_KEYS = [
   "declutter_shipping",
   "ai_support_answers",
   "sponsor_25days",
+  "embedded_checkout",
 ];
 export const DECLUTTER_PREFETCH_KEY = "__lhDeclutterPrefetch";
 

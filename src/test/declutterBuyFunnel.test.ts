@@ -13,7 +13,7 @@
  * @mutate src/lib/declutter/api.ts |   if (page) trackFunnel("checkout_opened" |   if (false) trackFunnel("checkout_opened"
  * @mutate src/lib/declutter/itemViews.ts |     trackFunnel("item_view", { itemId }); |
  * @mutate src/components/declutter/DeclutterPaySettling.tsx |   useEffect(() => { trackStripeReturn(location.search); }, [location.search]); |
- * @mutate supabase/functions/declutter-checkout/index.ts | "/declutter?view=cart&back=1", native), | "/declutter?view=cart", native),
+ * @mutate supabase/functions/declutter-checkout/index.ts |         cancel_url: buildRedirectUrl("/declutter?view=cart&back=1", native), |         cancel_url: buildRedirectUrl("/declutter?view=cart", native),
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (answer.result === "paid") await recordDeclutterFunnel(ctx, "paid", orderId); |
  * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     await recordDeclutterFunnel(ctx, "payment_failed", pi.metadata?.order_id, err?.code ?? null, err?.decline_code ?? null); |     await recordDeclutterFunnel(ctx, "payment_failed", pi.metadata?.order_id, null, null);
  * @mutate src/lib/declutter/stripeReturn.ts |   if (seen.has(key)) return; |
@@ -54,10 +54,11 @@ describe("H3: the Declutter buy funnel is wired end to end", () => {
 
   it("Stripe's pages come back marked: paid=1&order on success, back=1 on cancel", () => {
     const checkout = src("supabase/functions/declutter-checkout/index.ts");
-    expect(checkout).toContain('...surfaceRedirects(surface, `/declutter?view=cart&paid=1&order=${order.order_id}`, "/declutter?view=cart&back=1", native),');
+    expect(checkout).toContain('success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native),');
+    expect(checkout).toContain('cancel_url: buildRedirectUrl("/declutter?view=cart&back=1", native),');
     // surfaceRedirects: hosted = success_url + cancel_url (back=1); embedded = return_url only (the sheet's close is the back).
     const redirects = src("supabase/functions/_shared/embeddedCheckout.ts");
-    expect(redirects).toContain('{ success_url: buildRedirectUrl(successPath, native), cancel_url: buildRedirectUrl(cancelPath, native) }');
+    expect(redirects).toContain('return surface === "embedded" ? { ui_mode: "embedded", return_url: returnUrl } : hosted;');
   });
 
   it("a return is recorded once per page session, with its order when paid", () => {

@@ -132,6 +132,6 @@ describe("Q2106 S5 Pay body", () => {
     expect(lastBody()).not.toHaveProperty("gift_card_id");
     invoke.mockResolvedValueOnce({ data: { paid: true, gift_cents: 805 }, error: null });
     expect(await startCheckoutPayment("s1", "porch", null, null, null, null, "11111111-1111-4111-8111-111111111111"))
-      .toEqual({ url: null, paid: true, giftCents: 805 });
+      .toEqual({ page: null, paid: true, giftCents: 805 });
   });
 });

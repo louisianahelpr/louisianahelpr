@@ -215,6 +215,10 @@ const CONNECT_AT_CALLER: Record<string, RegExp> = {
 /** The retrieves that do NOT go through either classifier, each with why: EXACT. */
 // @two-way src/test/stripeStoredIdRetrieveClassified.test.ts:toEqual(Object.keys(EXEMPT).sort())
 const EXEMPT: Record<string, string> = {
+  // Phase W (11-27): refusedExpireAnswer re-reads a Declutter page after Stripe refused to expire it. Every caller
+  // passes stripeOf(sessionId) (or the tip's pageStripe), the client of the mode the id's own cs_test_/cs_live_ prefix
+  // names, and a failed read throws to the function's 5xx, never "paid".
+  "declutter-checkout/index.ts::stripe.checkout.sessions.retrieve(sessionId)": "Phase W refused-expire re-read: the stripe client is always stripeOf(sessionId), picked by the id's own mode prefix, so a test-mode id never meets the live key; a failed read is a 5xx (try again), never 'paid'",
   // Q2225: an id the ADMIN typed (never a stored one), read only to warn before "Mark settled by hand". A missing
   // id in the payee's mode is read once with the other key and reported as other_mode or not_found, so a test-mode
   // id under the live key is answered, not thrown.

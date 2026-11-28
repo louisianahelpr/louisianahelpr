@@ -16,7 +16,7 @@
  * before. A failed switch read is "off" (featureEnabledForUser fails closed), so a failure here can only ever fall
  * back to the hosted page, never refuse a payment.
  */
-import { buildRedirectUrl, isNativeRequest } from "./appUrl.ts";
+import { isNativeRequest } from "./appUrl.ts";
 import { featureEnabledForUser, type FeatureSwitchClient, type VerifiedUser } from "./featureSwitch.ts";
 import { sessionIdMode, type StripeMode } from "./stripeMode.ts";
 
@@ -66,16 +66,17 @@ export async function checkoutSurface(
  * The redirect half of `checkout.sessions.create`'s params. Embedded: Stripe sends the buyer's tab to `return_url`
  * (our own page, never tagged native: only the website mounts it) once paid; there is no cancel page, the sheet's
  * own close button is the way back. Hosted: exactly today's pair.
+ *
+ * The caller builds every URL with buildRedirectUrl on a LITERAL path (src/test/deepLinkOneRouter.test.ts proves each
+ * one is a route the app serves), so this only picks: `hosted` is today's {success_url, cancel_url} as built,
+ * `returnUrl` the embedded return page (built with native = false).
  */
 export function surfaceRedirects(
   surface: CheckoutSurface,
-  successPath: string,
-  cancelPath: string,
-  native: boolean,
+  hosted: { success_url: string; cancel_url: string },
+  returnUrl: string,
 ): { ui_mode: "embedded"; return_url: string } | { success_url: string; cancel_url: string } {
-  return surface === "embedded"
-    ? { ui_mode: "embedded", return_url: buildRedirectUrl(successPath, false) }
-    : { success_url: buildRedirectUrl(successPath, native), cancel_url: buildRedirectUrl(cancelPath, native) };
+  return surface === "embedded" ? { ui_mode: "embedded", return_url: returnUrl } : hosted;
 }
 
 /** Suffix for an idempotency key, so two taps in one second asking for different surfaces never share a key. */

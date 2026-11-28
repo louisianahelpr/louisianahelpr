@@ -247,7 +247,7 @@ describe("declutter-checkout: delivery_tip", () => {
   });
 
   // Phase W (owner 11-27): the website's tip opens Stripe's form in our own sheet; the app keeps the hosted page.
-  // @mutate supabase/functions/declutter-checkout/index.ts |       ...surfaceRedirects(surface, "/declutter?view=cart&tipped=1", "/declutter?view=cart", isNativeRequest(body)), |       ...surfaceRedirects("hosted", "/declutter?view=cart&tipped=1", "/declutter?view=cart", isNativeRequest(body)),
+  // @mutate supabase/functions/declutter-checkout/index.ts |       ...surfaceRedirects(surface, {\n        success_url: buildRedirectUrl("/declutter?view=cart&tipped=1", isNativeRequest(body)), |       ...surfaceRedirects("hosted", {\n        success_url: buildRedirectUrl("/declutter?view=cart&tipped=1", isNativeRequest(body)),
   it("phase W: a website tip with the switch on gets an embedded page with the same money; the app gets {url}", async () => {
     const PK = { STRIPE_PUBLISHABLE_KEY: "pk_live_helprTest1" };
     ready();

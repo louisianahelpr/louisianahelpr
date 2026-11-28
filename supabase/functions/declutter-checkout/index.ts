@@ -696,7 +696,10 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       // when the buyer has other paid orders in their handover (BoughtWhatNext, justPaidOrder).
       // H3 (audit 11-08): back=1 on the cancel page lets the app record a return from Stripe's page that did not pay
       // (funnel). Embedded (phase W): the return page is the same success page; closing our sheet is the way back.
-      ...surfaceRedirects(surface, `/declutter?view=cart&paid=1&order=${order.order_id}`, "/declutter?view=cart&back=1", native),
+      ...surfaceRedirects(surface, {
+        success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native),
+        cancel_url: buildRedirectUrl("/declutter?view=cart&back=1", native),
+      }, buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, false)),
     },
     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${surfaceKeySuffix(surface)}${walletRetry ? ":new-wallet" : ""}` },
     ), { adoptTagged: true });
@@ -910,7 +913,10 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
       payment_intent_data: { metadata: meta, transfer_group: `declutter_order_${orderId}` },
       payment_method_options: threeDSecureOptions(raise.total_cents),
       expires_at: expiresAt,
-      ...surfaceRedirects(surface, "/declutter?view=cart&raised=1", "/declutter?view=cart", isNativeRequest(body)),
+      ...surfaceRedirects(surface, {
+        success_url: buildRedirectUrl("/declutter?view=cart&raised=1", isNativeRequest(body)),
+        cancel_url: buildRedirectUrl("/declutter?view=cart", isNativeRequest(body)),
+      }, buildRedirectUrl("/declutter?view=cart&raised=1", false)),
     },
     { idempotencyKey: `declutter-raise-${raise.raise_id}${surfaceKeySuffix(surface)}${walletRetry ? ":new-wallet" : ""}` },
   ));
@@ -1069,7 +1075,10 @@ async function deliveryTip(body: Record<string, unknown>, user: { id: string; em
         metadata: { kind: "declutter_delivery_tip", tip_id: tip.tip_id, tipper_id: user.id, held: held ? "1" : "0", tip_cents: String(q.tipCents), fee_cents: String(q.feeCents), helper_cents: String(q.helperCents) },
       },
       metadata: { kind: "declutter_delivery_tip", tip_id: tip.tip_id, task_id: taskId, tipper_id: user.id, helpr_id: helprId, tip_cents: String(q.tipCents), charge_cents: String(q.chargeCents) },
-      ...surfaceRedirects(surface, "/declutter?view=cart&tipped=1", "/declutter?view=cart", isNativeRequest(body)),
+      ...surfaceRedirects(surface, {
+        success_url: buildRedirectUrl("/declutter?view=cart&tipped=1", isNativeRequest(body)),
+        cancel_url: buildRedirectUrl("/declutter?view=cart", isNativeRequest(body)),
+      }, buildRedirectUrl("/declutter?view=cart&tipped=1", false)),
     }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}${surfaceKeySuffix(surface)}${walletRetry ? ":new-wallet" : ""}` }));
   } catch (tipErr) {
     const refused = await noteDestinationChargeRefused(tipErr, {

@@ -38,7 +38,7 @@ vi.mock("@/lib/declutter/stopSellerDelivery", () => ({
 import { ListingDefaultsCard } from "./DeclutterListingDefaults";
 
 const BASE: SellerDefaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, acceptsOffers: true, handovers: ["porch", "seller_delivery"] };
-const NOTE = "Off. Your listings stop offering delivery; orders already placed are kept.";
+const NOTE = "Your listings stop offering delivery; orders already placed are kept.";
 
 function show() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

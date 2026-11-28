@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/DeclutterOfferRules.tsx | {on ? t("lp.or.onLine") : t("lp.or.offLine")} | {on ? "Buyers can offer less than your price" : t("lp.or.offLine")}
  * @mutate src/components/declutter/DeclutterOfferRules.tsx | font-semibold">{t("lp.or.auto")}</span> | font-semibold">Answer offers for me</span>
  * @mutate src/components/declutter/DeclutterOfferRules.tsx | {floorCents == null ? t("lp.or.notSet") : formatPrice(floorCents)} | {floorCents == null ? "Not set" : formatPrice(floorCents)}
- * @mutate src/components/declutter/DeclutterTradeRules.tsx | {on ? t("lp.ld.tradesOn") : t("lp.ld.tradesOff")}</span> | {on ? t("lp.ld.tradesOn") : "Off. Buyers can't offer a trade."}</span>
+ * @mutate src/components/declutter/DeclutterTradeRules.tsx | {on ? t("lp.ld.tradesOn") : t("lp.ld.tradesOff")}</span> | {on ? t("lp.ld.tradesOn") : "Buyers can't offer a trade."}</span>
  * @mutate src/components/declutter/DeclutterTradeRules.tsx | {t("lp.ld.tradesTitle")}</span> | Open to trades</span>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -54,7 +54,7 @@ describe("Manage listing's own rows follow the member's language (F260q)", () =>
 
   it("English: the old words", async () => {
     const { container } = wrap(rows());
-    expect(await screen.findByText("Off. Buyers can't offer a trade.")).toBeTruthy();
+    expect(await screen.findByText("Buyers can't offer a trade.")).toBeTruthy();
     for (const w of ["Accept offers", "Buyers can offer less than your price", "Lowest you'll take", "Not set", "Suggest one", "Answer offers for me", "Open to trades"]) {
       expect(container.textContent, w).toContain(w);
     }
@@ -64,7 +64,7 @@ describe("Manage listing's own rows follow the member's language (F260q)", () =>
     setLang("es");
     await ensureLangLoaded();
     const { container } = wrap(rows());
-    expect(await screen.findByText("Apagado. Los compradores no pueden ofrecer un cambio.")).toBeTruthy();
+    expect(await screen.findByText("Los compradores no pueden ofrecer un cambio.")).toBeTruthy();
     for (const w of ["Aceptar ofertas", "Los compradores pueden ofrecer menos que su precio", "Lo menos que acepta", "Sin fijar", "Sugerir uno", "Responder ofertas por mí", "Abierto a cambios"]) {
       expect(container.textContent, w).toContain(w);
     }

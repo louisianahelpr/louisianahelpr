@@ -8,7 +8,7 @@
  * Not yet: the tax statements (TaxStatementsCheck), the saved draft's step form (DeclutterSellView) and the post steps.
  *
  * @mutate src/components/declutter/SellTradesRow.tsx | >{t("sf.tradesTitle")}< | >Open to trades?<
- * @mutate src/components/declutter/SellFormParts.tsx | >{t(offersWanted ? "sf.offersOn" : "sf.offersOff")}</span> | >{offersWanted ? "Buyers can offer a lower price, and you say yes or no." : "Off. Buyers pay your price with Buy now; no offers."}</span>
+ * @mutate src/components/declutter/SellFormParts.tsx | >{t(offersWanted ? "sf.offersOn" : "sf.offersOff")}</span> | >{offersWanted ? "Buyers can offer a lower price, and you say yes or no." : "Buyers pay your price with Buy now; no offers."}</span>
  * @mutate src/components/declutter/SellFormParts.tsx |       {t("sf.youGet")}\n |       You get if it sells today\n
  * @mutate src/components/declutter/CategoryDrillDown.tsx | const headingWords = (h: CategoryGroupHeading) => t(HEADING_KEY[h]); | const headingWords = (h: CategoryGroupHeading) => h;
  * @mutate src/components/declutter/CategoryDrillDown.tsx | const catWords = (k: string) => (CATEGORY_LABEL[k] ? t(`decl.cat.${k}` as MsgKey) : k); | const catWords = (k: string) => CATEGORY_LABEL[k] ?? k;

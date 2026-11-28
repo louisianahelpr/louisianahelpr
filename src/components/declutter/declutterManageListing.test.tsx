@@ -29,7 +29,7 @@
  * F260q (owner 11-11 "Spanish EVERYTHING now"): Manage listing and the seller's panel read enListingParts lp.m.*.
  * @mutate src/components/declutter/DeclutterManageListing.tsx | <SheetHero title={t(view === "edit" ? "lp.m.tEdit" : view === "price" ? "lp.m.tPrice" : view === "sold" ? "lp.m.tSold" : view === "delete" ? "lp.m.tDelete" : "lp.m.tMenu")} /> | <SheetHero title="Manage listing" />
  * @mutate src/components/declutter/DeclutterManageListing.tsx | <ManageGroup title={t("lp.m.gWays")}> | <ManageGroup title="How it gets to buyers">
- * @mutate src/components/declutter/DeclutterManageListing.tsx | : stopped ? t("lp.m.dropsStopped", { price: itemPriceLabel(item.current_price_cents) }) : t("lp.m.dropsOn")} | : stopped ? t("lp.m.dropsStopped", { price: itemPriceLabel(item.current_price_cents) }) : "On. It drops each evening, never below your lowest price."}
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | : stopped ? t("lp.m.dropsStopped", { price: itemPriceLabel(item.current_price_cents) }) : t("lp.m.dropsOn")} | : stopped ? t("lp.m.dropsStopped", { price: itemPriceLabel(item.current_price_cents) }) : "It drops each evening, never below your lowest price."}
  * @mutate src/components/declutter/DeclutterManageListing.tsx | {t("lp.m.now", { price: itemPriceLabel(item.current_price_cents) })} | Now {itemPriceLabel(item.current_price_cents)}
  * @mutate src/components/declutter/DeclutterManageListing.tsx | <RowText title={t("lp.m.soldElsewhere")}>{t("lp.m.soldBody")}</RowText> | <RowText title="Mark sold elsewhere">Takes it down and keeps it in your history; no fees</RowText>
  * @mutate src/components/declutter/DeclutterManageListing.tsx | {t(paused ? "lp.m.paused" : free ? "lp.m.freeUp" : "lp.m.forSale")} | {paused ? "Paused" : free ? "Your free item is up" : "Your listing is for sale"}
@@ -136,10 +136,10 @@ describe("Smart offers rows (owner 2026-10-29)", () => {
   // Area 06 M9 (11-18): with no lowest price, the drops row says to set one, and "Lowest you'll take" is where to.
   // @mutate src/components/declutter/DeclutterManageListing.tsx | {noFloor ? t("lp.m.dropsNoFloor") : listedOff | {listedOff
   // @mutate src/components/declutter/DeclutterOfferRules.tsx |       {on && floorCents == null && ( |       {on && (
-  it("no lowest price: drops read 'Off. Set a lowest price first.'", async () => {
+  it("no lowest price: drops read 'Set a lowest price first.'", async () => {
     noFloorRow = true;
     sheet({ accepts_offers: true });
-    expect(await screen.findByText("Off. Set a lowest price first.")).toBeTruthy();
+    expect(await screen.findByText("Set a lowest price first.")).toBeTruthy();
     expect(screen.getByText("Lowest you'll take")).toBeTruthy();
     expect(screen.queryByText(/never below your lowest price/)).toBeNull();
   });
@@ -308,7 +308,7 @@ describe("Manage a listing (board 158)", () => {
     const sw = await screen.findByRole("switch", { name: DROPS_SWITCH_LABEL });
     await waitFor(() => expect((sw as HTMLButtonElement).disabled).toBe(false));
     expect(sw).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText("On. It drops each evening, never below your lowest price.")).toBeTruthy();
+    expect(screen.getByText("It drops each evening, never below your lowest price.")).toBeTruthy();
     expect(screen.queryByText("Stop price drops")).toBeNull();
     fireEvent.click(sw);
     await waitFor(() => expect(calls).toContainEqual(["drops", "i1", false]));
@@ -319,7 +319,7 @@ describe("Manage a listing (board 158)", () => {
     const off = await screen.findByRole("switch", { name: DROPS_SWITCH_LABEL });
     await waitFor(() => expect((off as HTMLButtonElement).disabled).toBe(false));
     expect(off).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByText("Off. It stays at $38.")).toBeTruthy();
+    expect(screen.getByText("It stays at $38.")).toBeTruthy();
     fireEvent.click(off);
     await waitFor(() => expect(calls).toContainEqual(["drops", "i1", true]));
   });
@@ -456,7 +456,7 @@ describe("Manage listing in Spanish (F260q)", () => {
       expect(screen.getByText("Marcar vendido en otro lado")).toBeTruthy();
       expect(screen.getByText("Lo retira y lo guarda en su historial; sin cargos")).toBeTruthy();
       expect(await screen.findByText(/^Ahora \$38/)).toBeTruthy();
-      expect(await screen.findByText("Encendido. Baja cada tarde, nunca menos de su precio más bajo.")).toBeTruthy();
+      expect(await screen.findByText("Baja cada tarde, nunca menos de su precio más bajo.")).toBeTruthy();
       const text = document.body.textContent ?? "";
       expect(text).not.toMatch(/Manage listing|How it gets to buyers|Mark sold elsewhere|See your listing|It drops each evening|Change price or lowest/);
       cleanup();

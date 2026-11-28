@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/SellingSettingsRows.tsx | text-foreground">{t("lp.sr.from")}</p> | text-foreground">From your settings</p>
  * @mutate src/components/declutter/SellingSettingsRows.tsx | title={t("lp.sr.drops")} | title="Price drops"
  * @mutate src/components/declutter/SellingSettingsRows.tsx | (w === "porch" ? t("lp.sr.porch") : wayTitle(w)) | (w === "porch" ? "Porch" : wayTitle(w))
- * @mutate src/components/declutter/BunchChoices.tsx | {drops ? t("lp.b.dropsOn", { pct: dropPct, floor: floorPct }) : t("lp.b.dropsOff")} | {drops ? t("lp.b.dropsOn", { pct: dropPct, floor: floorPct }) : "Off. Each priced item stays at its price."}
+ * @mutate src/components/declutter/BunchChoices.tsx | {drops ? t("lp.b.dropsOn", { pct: dropPct, floor: floorPct }) : t("lp.b.dropsOff")} | {drops ? t("lp.b.dropsOn", { pct: dropPct, floor: floorPct }) : "Each priced item stays at its price."}
  * @mutate src/components/declutter/BunchChoices.tsx | font-semibold">{t("lp.keepUpTitle")}</span> | font-semibold">Keep it up until it sells</span>
  * @mutate src/components/declutter/DeclutterBunchListStep.tsx |   return t("lp.b.takes", { time }); |   return `Takes about ${time}. Keep this page open.`;
  * @mutate src/components/declutter/DeclutterBunchListStep.tsx | font-semibold">{t("lp.b.usualHead")}</h3> | font-semibold">Your usual pickup times</h3>
@@ -76,10 +76,10 @@ describe("listing settings rows, Sell a bunch and Listing defaults follow the me
   it("English reads the old words, word for word", async () => {
     expect(enListingParts["lp.ld.offersTitle"]).toBe("Accept offers");
     expect(enListingParts["lp.ld.offersOn"]).toBe("Buyers can offer a lower price, and you say yes or no.");
-    expect(enListingParts["lp.ld.offersOff"]).toBe("Off. Buyers pay your price with Buy now; no offers.");
+    expect(enListingParts["lp.ld.offersOff"]).toBe("Buyers pay your price with Buy now; no offers.");
     expect(enListingParts["lp.ld.tradesTitle"]).toBe("Open to trades");
     expect(enListingParts["lp.ld.tradesOn"]).toBe("Buyers can offer one of their listings in trade. No money changes hands.");
-    expect(enListingParts["lp.ld.tradesOff"]).toBe("Off. Buyers can't offer a trade.");
+    expect(enListingParts["lp.ld.tradesOff"]).toBe("Buyers can't offer a trade.");
     expect(dayWords([6, 0])).toBe("Sundays and Saturdays");
     expect(dayWords([1, 3, 5])).toBe("Mondays, Wednesdays and Fridays");
     expect(makeFreeValue(null)).toBe("Off"); // design audit 11-17 #21
@@ -89,7 +89,7 @@ describe("listing settings rows, Sell a bunch and Listing defaults follow the me
     expect(screen.getByText("From your settings")).toBeTruthy();
     expect(screen.getByText("10% each evening, lowest 50% of each price")).toBeTruthy();
     expect(screen.getByText("After 14 days")).toBeTruthy();
-    expect(screen.getAllByText("Off. Each priced item stays at its price.").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Each priced item stays at its price.").length).toBeGreaterThan(0);
     expect(screen.getByText("3. List 2 items")).toBeTruthy();
     expect(screen.getByRole("button", { name: "List 2 items" })).toBeTruthy();
     expect(screen.getByText("Takes about 1 minute. Keep this page open.")).toBeTruthy();

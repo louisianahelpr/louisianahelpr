@@ -6,7 +6,7 @@
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | {rewriting ? t("lp.bc.writing") : noWords ? t("lp.bc.writeForMe") : t("lp.bc.writeAgain")} | {rewriting ? t("lp.bc.writing") : noWords ? "Write it for me" : t("lp.bc.writeAgain")}
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | htmlFor={`title-${id}`}>{t("lp.bc.title")}</label> | htmlFor={`title-${id}`}>Title</label>
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | {on ? t("lp.ld.offersOn") : t("lp.ld.offersOff")}</span> | {on ? "Buyers can offer a lower price, and you say yes or no." : t("lp.ld.offersOff")}</span>
- * @mutate src/components/declutter/DeclutterBunchCard.tsx | {on ? t("lp.ld.tradesOn") : t("lp.ld.tradesOff")}</span> | {on ? t("lp.ld.tradesOn") : "Off. Buyers can't offer a trade."}</span>
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | {on ? t("lp.ld.tradesOn") : t("lp.ld.tradesOff")}</span> | {on ? t("lp.ld.tradesOn") : "Buyers can't offer a trade."}</span>
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | onClick={onDrop}>{t("lp.bc.drop")}</Button> | onClick={onDrop}>Don't sell this</Button>
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | t("lp.b.item", { n: index + 1 }); | `Item ${index + 1}`;
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | <option key={s} value={s}>{t(`decl.cond.${s}` as MsgKey)}</option> | <option key={s} value={s}>{String(s)}</option>
@@ -46,7 +46,7 @@ describe("Sell a bunch's item card follows the member's language (F260q)", () =>
 
   it("English: the old words", () => {
     const { container } = show();
-    for (const w of ["Write it for me", "Title", "Price ($)", "Give it away free", "Accept offers", "Buyers can offer a lower price, and you say yes or no.", "Open to trades", "Off. Buyers can't offer a trade.", "Condition", "Description", "Same thing as another item?", "Don't sell this"]) {
+    for (const w of ["Write it for me", "Title", "Price ($)", "Give it away free", "Accept offers", "Buyers can offer a lower price, and you say yes or no.", "Open to trades", "Buyers can't offer a trade.", "Condition", "Description", "Same thing as another item?", "Don't sell this"]) {
       expect(container.textContent, w).toContain(w);
     }
     expect(screen.getByRole("button", { name: "Don't sell Item 3" })).toBeTruthy();
@@ -56,7 +56,7 @@ describe("Sell a bunch's item card follows the member's language (F260q)", () =>
     setLang("es");
     await ensureLangLoaded();
     const { container } = show();
-    for (const w of ["Escríbalo por mí", "Título", "Precio ($)", "Regalarlo", "Aceptar ofertas", "Los compradores pueden ofrecer un precio más bajo", "Abierto a cambios", "Apagado. Los compradores no pueden ofrecer un cambio.", "Estado", "Descripción", "¿Es lo mismo que otro artículo?", "No vender esto"]) {
+    for (const w of ["Escríbalo por mí", "Título", "Precio ($)", "Regalarlo", "Aceptar ofertas", "Los compradores pueden ofrecer un precio más bajo", "Abierto a cambios", "Los compradores no pueden ofrecer un cambio.", "Estado", "Descripción", "¿Es lo mismo que otro artículo?", "No vender esto"]) {
       expect(container.textContent, w).toContain(w);
     }
     expect(screen.getByRole("button", { name: "No vender Artículo 3" })).toBeTruthy();

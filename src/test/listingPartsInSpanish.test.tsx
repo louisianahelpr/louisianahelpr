@@ -95,7 +95,7 @@ describe("the listing-setting parts follow the member's language (F260q)", () =>
     show();
     expect(KEEP_UP_TITLE).toBe("Keep it up until it sells");
     expect(DROPS_SWITCH_LABEL).toBe("Lower the price over time");
-    expect(keepUpSettingLine(false)).toBe("Off. It's up for 30 days at a time, up to 4 times (about 4 months). We'll remind you before each round ends.");
+    expect(keepUpSettingLine(false)).toBe("It's up for 30 days at a time, up to 4 times (about 4 months). We'll remind you before each round ends.");
     expect(autoFreeExplainer(14)).toBe("If it hasn't sold by day 14, it becomes free and anyone nearby can claim it. Already past day 14? It becomes free tonight.");
     expect(autoFreeSaved(7)).toBe("If it hasn't sold by day 7, it becomes free.");
     expect(screen.getByText("If it doesn't sell, make it free after")).toBeTruthy();

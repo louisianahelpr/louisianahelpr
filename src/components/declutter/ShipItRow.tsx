@@ -27,6 +27,8 @@ export function ShipItRow({ itemId, small, category, rowClassName }: { itemId: s
   const on = useFeature("declutter_shipping");
   const qc = useQueryClient();
   const [ticked, setTicked] = useState(false);
+  // Polish audit 11-27 #120: the box tapped before the restricted-items tick; the tick then sends it (never before).
+  const [pending, setPending] = useState<ShipPreset | null>(null);
   const allowed = small && !SHIP_PICKUP_ONLY_CATEGORIES.has(category);
   const key = ["declutter", "ship-options", itemId];
   const state = useQuery({ queryKey: key, queryFn: () => fetchShipOptions(itemId), enabled: on && allowed });
@@ -49,23 +51,32 @@ export function ShipItRow({ itemId, small, category, rowClassName }: { itemId: s
     if (save.isPending || value === (cur.preset ?? OFF)) return;
     const preset = value === OFF ? null : (value as ShipPreset);
     if (preset !== null && !confirmed) {
-      toast.error(t("lp.sh.tickFirst"));
+      // Polish audit 11-27 #120: the tick shows only once a box is picked, under the chips; nothing is sent until it.
+      setPending(preset);
       return;
     }
+    setPending(null);
     save.mutate(preset);
+  };
+  const tick = (v: boolean) => {
+    setTicked(v);
+    if (v && pending && !save.isPending) {
+      save.mutate(pending);
+      setPending(null);
+    }
   };
   return (
     <li className={`${rowClassName} flex-col items-stretch`} data-ship-it-row="">
       <div className="space-y-2">
-        {cur.preset === null && (
-          <label className="flex min-h-11 items-start gap-3 text-ds-13">
-            <Checkbox checked={ticked} onCheckedChange={(v) => setTicked(v === true)} aria-labelledby={`ship-restricted-${itemId}`} />
+        <ChipGroup label={t("lp.sh.label")} options={choices()} value={pending ?? cur.preset ?? OFF} onChange={pick} />
+        {cur.preset === null && pending !== null && (
+          <label className="flex min-h-11 items-start gap-3 text-ds-13" data-ship-restricted="">
+            <Checkbox checked={ticked} onCheckedChange={(v) => tick(v === true)} aria-labelledby={`ship-restricted-${itemId}`} />
             <span id={`ship-restricted-${itemId}`}>
               {t("lp.sh.restricted")}
             </span>
           </label>
         )}
-        <ChipGroup label={t("lp.sh.label")} options={choices()} value={cur.preset ?? OFF} onChange={pick} />
         <p className="text-ds-13 text-muted-foreground">{t("lp.sh.line")}</p>
       </div>
     </li>

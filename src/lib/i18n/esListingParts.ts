@@ -289,7 +289,6 @@ export const esListingParts: Record<keyof typeof enListingParts, string> = {
   "lp.sh.offToast": "El envío está apagado para este artículo.",
   "lp.sh.onToast": "Guardado. Los compradores en Luisiana pueden pedir que se lo envíen.",
   "lp.sh.loadFail": "No pudimos cargar este ajuste.",
-  "lp.sh.tickFirst": "Primero confirme que nada en él está en la lista de artículos restringidos de USPS.",
   "lp.sh.restricted": "Nada en él está en la lista de restringidos de USPS: ni aerosoles, perfume, esmalte de uñas, baterías, fósforos ni encendedores.",
   "lp.sh.label": "Enviarlo",
   "lp.sh.p.envelope": "Sobre, hasta 8 oz",

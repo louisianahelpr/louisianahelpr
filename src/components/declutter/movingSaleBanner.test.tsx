@@ -69,18 +69,15 @@ beforeEach(() => {
 });
 
 describe("board 164: the moving sale, as a buyer sees it", () => {
-  it("area + move-out line, the list price bold over the incl.-fee price and the title, Share sale shares the profile", async () => {
+  it("area + move-out line, the one price (fee included) bold over the title, Share sale shares the profile", async () => {
     renderIt();
     expect(await screen.findByText("Delcambre · Moving out Nov 1. 2 items for sale.")).toBeInTheDocument();
-    // Owner 11-09 (reverses pick 2 of 11-08): the list price $120 is the bold one, in ink; "$126.70 incl. fee" small and
-    // grey under it, then the title (11-07: both numbers stay).
-    const list = screen.getByText("$120");
+    // Owner 11-27 ("One price, fee included"): $120 shows as $126.70, bold in ink, then the title; no second line.
+    const list = screen.getByText("$126.70");
     expect(list.className).toMatch(/\bfont-bold\b/);
     expect(list.className).toMatch(/\btext-foreground\b/);
-    expect(list.nextElementSibling?.textContent).toBe("$126.70 incl. fee");
-    expect(list.nextElementSibling?.className).toMatch(/\btext-muted-foreground\b/);
-    expect(list.nextElementSibling?.className).not.toMatch(/\bfont-bold\b/);
-    expect(list.nextElementSibling?.nextElementSibling?.textContent).toBe("Sofa, 3 seat");
+    expect(screen.queryByText("$120")).toBeNull();
+    expect(list.nextElementSibling?.textContent).toBe("Sofa, 3 seat");
     fireEvent.click(screen.getByRole("button", { name: "Share sale" }));
     await waitFor(() => expect(shared).toEqual([expect.objectContaining({ url: "https://louisianahelpr.com/user/s1" })]));
   });

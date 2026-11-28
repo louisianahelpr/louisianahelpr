@@ -173,7 +173,6 @@ export const enDeclSell = {
   "dsl.sw.emptyWaiting": "Nothing waiting to be paid right now",
   "dsl.w.sellersSee": "Sellers near you see your first name and last initial, what you want and your max price, never your address.",
   "dsl.w.feeTyped": "A {price} item costs {total} with our fee.",
-  "dsl.w.feeExample": "For example, a {price} item costs {total} with our fee.",
   "dsl.w.title": "What are you looking for?",
   "dsl.w.editTitle": "Edit your post",
   "dsl.w.lookingFor": "I'm looking for",

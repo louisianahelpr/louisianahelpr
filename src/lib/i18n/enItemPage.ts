@@ -7,7 +7,6 @@
 import { addEnglish } from "./enRegistry";
 
 export const enItemPage = {
-  "ip.inclFee": "incl. fee",
   "ip.protected": "Protected: pay in the app, 24 hours to report a problem.",
   "ip.protectedPorch": "Protected: pay in the app, pick up from the porch, 24 hours to report a problem.",
   // Declutter top 5 #3 (owner 11-19, 20261120012729): "in demand" lines, real counts past a threshold only.

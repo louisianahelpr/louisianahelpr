@@ -16,7 +16,7 @@ describe("Declutter's sheets name no setup fee (owner 2026-11-20)", () => {
     expect(read("src/components/declutter/DeclutterWantedViews.tsx")).not.toContain("ONBOARDING_FEE_CENTS");
     for (const [file, words] of [["src/lib/i18n/enDeclSell.ts", /setup fee|\{setup\}/i], ["src/lib/i18n/esDeclSell.ts", /inscripción|\{setup\}/i]] as const) {
       const src = read(file);
-      for (const key of ["dsl.w.feeTyped", "dsl.w.feeExample"]) {
+      for (const key of ["dsl.w.feeTyped"]) {
         const line = src.split("\n").find((l) => l.includes(`"${key}":`)) ?? "";
         expect(line, `${file} ${key}`).toMatch(/\{total\}/);
         expect(line, `${file} ${key}`).not.toMatch(words);

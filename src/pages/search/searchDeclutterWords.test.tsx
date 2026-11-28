@@ -59,7 +59,8 @@ describe("Search's Declutter hits use Declutter's words", () => {
     const free = await screen.findByRole("link", { name: /Zip bag 1/ });
     expect(free).toHaveTextContent("Free");
     expect(free).not.toHaveTextContent("$0");
-    expect(screen.getByRole("link", { name: /Zip bag 2/ })).toHaveTextContent("$12.50");
+    // Owner 11-27 ("One price, fee included"): $12.50 shows as the buyer's total, $13.83, the card's figure.
+    expect(screen.getByRole("link", { name: /Zip bag 2/ })).toHaveTextContent("$13.83");
   });
 
   it('more hits than a section shows: "See more", never "See 20 of 59"', async () => {

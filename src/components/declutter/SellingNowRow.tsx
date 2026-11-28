@@ -14,8 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPhotos, fetchSellerItems, photoPublicUrl } from "@/lib/declutter/api";
 import { fetchSellerMovingSale } from "@/lib/declutter/movingSale";
-import { itemPriceLabel } from "@/lib/declutter/distance";
-import { PriceInclFee } from "./PriceInclFee";
+import { buyerPriceLabel } from "./BuyerPrice";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
@@ -70,9 +69,8 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
                 )}
               </div>
               <div className="min-w-0">
-                {/* Owner 11-09 (reverses pick 2 of 11-08): the list price is the bold one; "$X.XX incl. fee" small under it. */}
-                <p className="text-ds-14 font-bold tabular-nums text-foreground">{itemPriceLabel(it.current_price_cents)}</p>
-                <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-12 font-medium tabular-nums text-muted-foreground" />
+                {/* Owner 11-27 (polish audit #2, "One price, fee included"): ONE price, the buyer's total with the fee in it. */}
+                <p className="text-ds-14 font-bold tabular-nums text-foreground">{buyerPriceLabel(it.current_price_cents)}</p>
                 {/* Area 06b M2: the title wraps to two lines, never cut to "Kids b…". */}
                 <p className="text-ds-13 line-clamp-2 [overflow-wrap:anywhere]" data-selling-now-title="" title={it.title}>{it.title}</p>
               </div>

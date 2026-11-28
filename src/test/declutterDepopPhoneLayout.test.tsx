@@ -1,7 +1,7 @@
 /*
  * GUARD (owner 2026-11-14, Depop/Vinted phone audit, ~/.lh-shots/depop-vinted-audit-1114/FINDINGS.md items 7, 8, 9):
  *   A. Browse/search cards on a phone: 2 columns 8px apart, a 3:4 photo with the heart (44px) on its corner, and TWO
- *      text lines under it: the title (one line) and the bold price ("incl. fee" beside it, the 11-07 rule). The
+ *      text lines under it: the title and the bold price (one price, fee included, owner 11-27). The
  *      "condition · distance" line shows from lg only. Free still says Free.
  *   B. A phone search shows the query as a heading with a compact Filter | Sort bar right above the cards: Filter opens
  *      the one filter sheet, Sort offers the sheet's own sort choices. Desktop keeps its header row.
@@ -59,7 +59,7 @@ describe("A. Declutter cards on a phone (Depop/Vinted item 8)", () => {
     expect(heart.className.split(/\s+/)).toEqual(expect.arrayContaining(["h-11", "w-11", "absolute"]));
   });
 
-  it("text below lg: the title (two lines at most, owner 11-20) then the bold price with incl. fee beside it; the meta line from lg only", () => {
+  it("text below lg: the title (two lines at most, owner 11-20) then the one bold price; the meta line from lg only", () => {
     const { container } = card();
     const title = container.querySelector("[data-card-title]") as HTMLElement;
     expect(title.className).toMatch(/\bline-clamp-2\b/);
@@ -67,11 +67,12 @@ describe("A. Declutter cards on a phone (Depop/Vinted item 8)", () => {
     expect(place.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "lg:flex"]));
     const price = container.querySelector("[data-card-price]") as HTMLElement;
     const pc = price.className.split(/\s+/);
-    // One row below lg (wrapping only when too narrow), the stacked desktop column from lg.
-    expect(pc).toEqual(expect.arrayContaining(["flex-wrap", "lg:flex-col"]));
+    // One row (wrapping only when too narrow).
+    expect(pc).toContain("flex-wrap");
     expect(pc).not.toContain("flex-col");
     expect(price.querySelector("[data-card-base-price]")?.className).toMatch(/\bfont-bold\b/);
-    expect(price.querySelector("[data-price-incl-fee]")?.textContent).toMatch(/incl\. fee$/);
+    // Owner 11-27: one price, fee included; no second "incl. fee" figure.
+    expect(price.textContent).not.toMatch(/incl\. fee/);
     // Visible below lg: the title and the price, nothing else (the place line is hidden).
     const shown = [...container.querySelectorAll("[data-card-title], [data-card-place], [data-card-price]")]
       .filter((e) => !(e as HTMLElement).className.split(/\s+/).includes("hidden"));
@@ -97,10 +98,10 @@ describe("A. Declutter cards on a phone (Depop/Vinted item 8)", () => {
     expect(container.querySelector("[data-card-away-phone]")).toBeNull();
   });
 
-  it("Free still says Free, with no incl.-fee figure", () => {
+  it("Free still says Free, and nothing else", () => {
     const { container } = card({}, { price_cents: 0, current_price_cents: 0 });
     expect(container.querySelector("[data-card-free]")?.textContent).toBe("Free");
-    expect(container.querySelector("[data-price-incl-fee]")).toBeNull();
+    expect(container.querySelector("[data-card-base-price]")).toBeNull();
   });
 });
 

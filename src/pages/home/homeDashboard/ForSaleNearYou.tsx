@@ -18,7 +18,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { readItems } from "@/lib/declutter/myReads";
 import { fetchPhotos, photoCardUrl, type DeclutterItem } from "@/lib/declutter/api";
-import { formatPrice, nearestFirst } from "@/lib/declutter/distance";
+import { nearestFirst } from "@/lib/declutter/distance";
+import { buyerPriceLabel } from "@/components/declutter/BuyerPrice";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { PRICE_PAID } from "@/components/ui/designScale";
@@ -53,7 +54,7 @@ function ForSaleTile({ item, photoPath }: { item: DeclutterItem; photoPath: stri
           <img loading="lazy" decoding="async" src={photoCardUrl(photoPath)} alt={item.title} onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
         )}
       </span>
-      <span className={`mt-1.5 block text-ds-15 ${PRICE_PAID}`}>{item.current_price_cents === 0 ? t("home.ns.free") : formatPrice(item.current_price_cents)}</span>
+      <span className={`mt-1.5 block text-ds-15 ${PRICE_PAID}`}>{buyerPriceLabel(item.current_price_cents, t("home.ns.free"))}</span>
       <span className="block truncate text-ds-13 text-foreground" title={item.title}>{item.title}</span>
       {item.area_label && <span className="block truncate text-ds-12 text-muted-foreground" title={item.area_label}>{item.area_label}</span>}
     </Link>

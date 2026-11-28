@@ -168,7 +168,6 @@ export const esDeclSell: Record<keyof typeof enDeclSell, string> = {
   "dsl.sw.emptyWaiting": "Nada pendiente de pago por ahora",
   "dsl.w.sellersSee": "Los vendedores cercanos ven su nombre y la inicial de su apellido, lo que busca y su precio máximo, nunca su dirección.",
   "dsl.w.feeTyped": "Un artículo de {price} cuesta {total} con nuestra tarifa.",
-  "dsl.w.feeExample": "Por ejemplo, un artículo de {price} cuesta {total} con nuestra tarifa.",
   "dsl.w.title": "¿Qué está buscando?",
   "dsl.w.editTitle": "Editar su publicación",
   "dsl.w.lookingFor": "Estoy buscando",

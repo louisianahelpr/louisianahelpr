@@ -23,7 +23,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { centsToDollars, minOfferCents, OFFER_CHIP_PERCENTS, offerChipCents } from "@/lib/declutter/money";
 import { BuyerTotal } from "./BuyerTotal";
-import { PriceInclFee, inclFeeText } from "./PriceInclFee";
+import { oneItemTotalDollars } from "./BuyerPrice";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, cardCancelledFromState, offerAmountFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
@@ -120,7 +120,7 @@ const CARD_POLL_MS = 1_500;
  */
 function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize }) {
   const { t } = useLanguage();
-  // Owner pick 2 (11-08, one price story): the item's "$X incl. fee" right above is the price; the button says
+  // Owner pick 2 (11-08, one price story): the item's price right above (fee included, owner 11-27) is the price; the button says
   // "Buy now" and names no second figure.
   // Audit BUY-3 stays: on an item the seller offers only delivered (way "none"), the pickup price is a figure nobody can
   // pay, so the label names the least it costs delivered (the least a Helpr delivery can cost, one road mile).
@@ -426,13 +426,13 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
               const chip = offerChipCents(item.current_price_cents, pct);
               if (chip === null) return null;
               return (
-                // Owner 11-11 (F358, the 11-09 rule as on the item page): the offer itself is the big figure and what the
-                // buyer would pay, "$X incl. fee", sits small under it. Display only: the offer sent is still `chip`.
-                <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={t("offer.chipAria", { pct, total: inclFeeText(chip), amount: formatPrice(chip) })}
+                // Owner 11-27 (polish audit #2, "One price, fee included"): the tile shows ONE price, what the buyer would
+                // pay with the fee in it (the item page's figure is the same kind), no second "incl. fee" line. The bill
+                // under the field still itemizes the offer and the total. Display only: the offer sent is still `chip`.
+                <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={t("offer.chipAria", { pct, total: `${oneItemTotalDollars(chip)} ${t("offer.inclFee")}`, amount: formatPrice(chip) })}
                   className="flex-col justify-center rounded-2xl px-2 py-1 leading-tight" onClick={() => setAmount(centsToDollars(chip))}>
                   <span>{t("offer.pctOff", { pct })}</span>
-                  <span className="block text-ds-13 font-bold tabular-nums" data-offer-chip-amount="">{formatPrice(chip)}</span>
-                  <PriceInclFee priceCents={chip} className="block text-ds-11 font-normal tabular-nums text-muted-foreground" />
+                  <span className="block text-ds-13 font-bold tabular-nums" data-offer-chip-amount="">{oneItemTotalDollars(chip)}</span>
                 </ChoicePill>
               );
             })}

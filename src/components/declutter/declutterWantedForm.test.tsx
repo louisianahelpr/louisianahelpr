@@ -37,8 +37,9 @@
  * @mutate src/lib/declutter/wanted.ts |   if (!f.category) out.category = "Pick a category."; |   if (!f.category && what === null) out.category = "Pick a category.";
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <FieldProblem id="wanted-what-problem" text={problems.what} /> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | {feeLine(form.maxPrice)} |
- * Q2578 (audit 1102a): the empty field's line is an example, not "A $30 item".
- * @mutate src/components/declutter/DeclutterWantedViews.tsx | return t(valid ? "dsl.w.feeTyped" : "dsl.w.feeExample", | return t("dsl.w.feeTyped",
+ * Q2578 (audit 1102a), then polish audit 11-27 #2 (owner): with nothing typed there is no fee line at all (the
+ * "For example, a $30 item costs $32.20" line is deleted).
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (!valid) return null; |   if (!valid) return t("dsl.w.feeTyped", { price: "$30", total: "$32.20" });
  * @mutate src/lib/i18n/enDeclSell.ts | "dsl.w.example": "e.g. kids bike" | "dsl.w.example": "Kids bike"
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | inputMode="numeric" value={form.maxPrice} enterKeyHint | inputMode="numeric" value={form.maxPrice} placeholder="30" enterKeyHint
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |   useEffect(() => { saveWantedDraft(form); }, [form, editing]);
@@ -246,8 +247,9 @@ describe("the Wanted hub", () => {
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Post what you're looking for" }));
     const sheet = await screen.findByRole("dialog");
-    // Q2578: with nothing typed the line is an example, so the grey placeholder 30 never reads as a set price.
-    expect(sheet.querySelector("[data-wanted-fee]")!.textContent).toMatch(/^For example, a \$30 item costs \$32\.20 with our fee\./);
+    // Polish audit 11-27 #2 (owner): with nothing typed there is no fee line (the "$30 item costs $32.20" example is gone).
+    expect(sheet.querySelector("[data-wanted-fee]")).toBeNull();
+    expect(sheet.textContent).not.toMatch(/For example/);
     fireEvent.change(within(sheet).getByLabelText("The most you'd pay for the item"), { target: { value: "100" } });
     expect(sheet.querySelector("[data-wanted-fee]")!.textContent).toMatch(/^A \$100 item costs \$105\.70 with our fee\./);
   });

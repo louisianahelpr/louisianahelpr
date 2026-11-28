@@ -24,8 +24,10 @@
  * @mutate src/components/landing/FreshDeclutterStrip.tsx |   const shown = items.slice(0, FRESH_DECLUTTER_LIMIT); |   const shown = items;
  *
  * D006 (landing design audit 11-10): every card said "Porch pickup" and "Like new". The tag shows only when the grid
- * mixes porch and non-porch items; the town replaces the condition; a two-line 16px title; the LIST price first at 20px
- * and the incl.-fee line smaller (13px). D017: the landing asks for a 640x800 thumbnail.
+ * mixes porch and non-porch items; the town replaces the condition; a two-line title (15px, polish audit 11-27 #2);
+ * ONE price, the buyer's total with the fee in it (owner 11-27). D017: the landing asks for a 640x800 thumbnail.
+ * @mutate src/components/landing/FreshDeclutterSection.tsx | export const FRESH_DECLUTTER_LIMIT = 6; | export const FRESH_DECLUTTER_LIMIT = 12;
+ * @mutate src/components/landing/FreshDeclutterSection.tsx | export const FRESH_GRID = "grid grid-cols-2 | export const FRESH_GRID = "grid grid-cols-3
  * @mutate src/components/landing/FreshDeclutterStrip.tsx |   return items.some((i) => i.porch_ok) && items.some((i) => !i.porch_ok); |   return items.some((i) => i.porch_ok);
  * @mutate src/components/landing/FreshDeclutterStrip.tsx | {it.area_label \|\| "\u00a0"} | {it.condition_stars}
  * @mutate src/components/landing/FreshDeclutterSection.tsx | export const FRESH_PRICE = "text-ds-16 leading-tight"; | export const FRESH_PRICE = "text-ds-20 leading-tight";
@@ -72,7 +74,8 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     const strip = screen.getByTestId("landing-fresh-declutter");
     expect(within(strip).getByRole("heading", { name: "Popular on Declutter" })).toBeTruthy();
     const cards = within(screen.getByTestId("landing-fresh-declutter-list")).getAllByRole("listitem");
-    expect(FRESH_DECLUTTER_LIMIT).toBe(12); // owner 11-18 ("Make these smaller"): 12 small cards (was 8, owner 11-08)
+    expect(FRESH_DECLUTTER_LIMIT).toBe(6); // polish audit 11-27 #2: 6 cards, 2 across on a phone (was 12, owner 11-18)
+    expect(screen.getByTestId("landing-fresh-declutter-list").className.split(" ")).toEqual(expect.arrayContaining(["grid-cols-2", "lg:grid-cols-6"]));
     expect(cards.length).toBe(FRESH_DECLUTTER_LIMIT); // never more than the limit, even when handed more
     // Every card is a browse-style card (data-item-card), all shown at every width.
     expect(cards.every((c) => c.querySelector("[data-item-card]") && !c.className.includes("hidden"))).toBe(true);
@@ -81,19 +84,19 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     // D006: item 1 alone is porch pickup, so the tag tells it apart; nobody else wears it.
     expect(cards[0].querySelector("[data-card-porch]")).toBeTruthy();
     expect(cards.slice(1).every((c) => !c.querySelector("[data-card-porch]"))).toBe(true);
-    expect(cards[1].querySelector("[data-card-price]")?.textContent).toContain("$20");
+    // Owner 11-27 ("One price, fee included"): $20 shows as $21.70, the one-item checkout total, and nothing else.
+    expect(cards[1].querySelector("[data-card-price]")?.textContent).toBe("$21.70");
     // D006: the town, not the condition ("Like new" on nearly every card); no town keeps the line's height.
     expect(cards.every((c) => !c.querySelector("[data-card-condition]"))).toBe(true);
     expect(cards[0].querySelector("[data-card-town]")?.textContent).toBe("Town 1");
     expect(cards[1].querySelector("[data-card-town]")?.textContent).toBe("\u00a0");
-    // D006: list price first and biggest on the card, the incl.-fee line under it smaller; two-line titles. Owner 11-18
-    // ("Make these smaller"): 16px price, 13px title (were 20 and 15).
+    // One 16px price line, no incl.-fee line under it; two-line 15px titles (polish audit 11-27 #2).
     const base = cards[1].querySelector("[data-card-base-price]") as HTMLElement;
     expect(base.className.split(" ")).toContain("text-ds-16");
     const priceLines = [...(cards[1].querySelector("[data-card-price]") as HTMLElement).children];
-    expect(priceLines[0]).toBe(base);
-    expect(priceLines[1]?.textContent).toMatch(/incl\. fee/);
-    expect((cards[1].querySelector("[data-card-title]") as HTMLElement).className).toMatch(/\bline-clamp-2\b.*\btext-ds-13\b/);
+    expect(priceLines).toEqual([base]);
+    expect(strip.textContent).not.toMatch(/incl\. fee/);
+    expect((cards[1].querySelector("[data-card-title]") as HTMLElement).className).toMatch(/\bline-clamp-2\b.*\btext-ds-15\b/);
     // A display class beside line-clamp-2 overrides its -webkit-box, so the clamp did nothing (WebKit 375 after-shot
     // 11-10: a four-line title). Never one on the title.
     expect((cards[1].querySelector("[data-card-title]") as HTMLElement).className.split(/\s+/)).not.toEqual(expect.arrayContaining(["block"]));

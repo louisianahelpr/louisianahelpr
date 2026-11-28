@@ -14,7 +14,7 @@
  * @mutate src/components/declutter/SellingNowRow.tsx | className="text-ds-13 line-clamp-2 [overflow-wrap:anywhere]" data-selling-now-title="" | className="text-ds-13 truncate" data-selling-now-title=""
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | ${unsaved ? "sticky bottom-safe-nav | ${false ? "sticky bottom-safe-nav
  * @mutate src/components/declutter/DeclutterItemView.tsx | {t("dsl.item.publicPage")} |
- * @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && !isSeller && (\n                  <PriceInclFee | {it.current_price_cents > 0 && (\n                  <PriceInclFee
+ * @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && isSeller && ( | {it.current_price_cents > 0 && (
  * @mutate src/components/declutter/DeclutterItemView.tsx | {!(isSeller && it.status === "live") && ( | {true && (
  * @mutate src/components/declutter/DeclutterManageListing.tsx | <Button type="button" size="sm" className="rounded-full" data-manage-listing="" | <Button type="button" variant="outline" size="sm" className="rounded-full" data-manage-listing=""
  * @mutate src/components/declutter/DeclutterMineViews.tsx | quietWhenEmpty={!pricedLive} |
@@ -65,8 +65,8 @@ describe("area 06b: Declutter selling gaps", () => {
     const src = code(FILES.item);
     expect(src).toMatch(/\{isSeller && \(\s*<Link to=\{memberProfilePath\(it\.seller_id\)\}[^>]*>\s*\{t\("dsl\.item\.publicPage"\)\}/);
     expect(src).toContain('t("dsl.item.buyersPay", { amount: oneItemTotalDollars(it.current_price_cents) })');
-    // The bare "incl. fee" is a buyer's line only.
-    expect(src).toMatch(/\{it\.current_price_cents > 0 && !isSeller && \(\s*<PriceInclFee/);
+    // "Buyers pay $X" is the seller's line only (a buyer's price already has the fee in it, owner 11-27).
+    expect(src).toMatch(/\{it\.current_price_cents > 0 && isSeller && \(\s*<span data-item-buyers-pay=""/);
     expect(enDeclutter["dsl.item.buyersPay"]).toBe("Buyers pay {amount} with the fee");
     expect(esDeclutter["dsl.item.buyersPay"]).toContain("{amount}");
     expect(enDeclutter["dsl.item.publicPage"]).toBe("See your public page");

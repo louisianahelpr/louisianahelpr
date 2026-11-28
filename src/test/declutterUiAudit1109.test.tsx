@@ -60,9 +60,10 @@ describe("F050 / L008: every Declutter card link is named by what it shows (titl
   // L008 (landing audit 11-09): an aria-label of "<title>, $X.XX incl. fee" hid the card's other visible words (axe
   // label-content-name-mismatch on /declutter, the item page's rows and the landing strip). The card is named by its own
   // text, which holds the title, the list price and the incl.-fee price, so the name and what a sighted person reads agree.
-  it("a paid card's name holds the title, the list price and the incl.-fee price; a free one says Free", () => {
+  // Owner 11-27 ("One price, fee included"): the card shows one price, the buyer's total ($3 -> $3.85).
+  it("a paid card's name holds the title and its one price; a free one says Free", () => {
     const paid = render(<MemoryRouter><ItemCard item={card()} miles={null} approximate={false} /></MemoryRouter>);
-    const link = paid.getByRole("link", { name: /Kinetic Sand SquishBlossom Set.*\$3.*\$\d+\.\d{2} incl\. fee/ });
+    const link = paid.getByRole("link", { name: /Kinetic Sand SquishBlossom Set.*\$3\.85/ });
     expect(link.hasAttribute("aria-label")).toBe(false);
     paid.unmount();
     const free = render(<MemoryRouter><ItemCard item={card({ price_cents: 0, current_price_cents: 0 })} miles={null} approximate={false} /></MemoryRouter>);

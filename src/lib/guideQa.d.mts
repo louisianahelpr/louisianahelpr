@@ -6,6 +6,7 @@ export interface QaShop { name: string; town?: string; category?: string; ships?
 export const QA_PAGES: string[];
 export const QA_TITLE: string;
 export const QA_BYLINE: { gifts: string; other: string };
+export const QA_NAMED: number;
 export function shortDate(day: string | undefined): string;
 export function updatedLine(day: string | undefined): string;
 export function toQaPick(p: { name: string; price?: number; priceAt?: string; priceFrom?: boolean; badges?: readonly string[]; brand?: string; href?: string }): QaPick;

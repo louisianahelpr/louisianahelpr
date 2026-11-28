@@ -1,1 +1,0 @@
-import e from"./ProtectedRoute-CkTn04pq.js";import{Nr as t}from"./app-shared-BNxeUDUs.js";import{r as n}from"./react-vendor-DBuF32qy.js";var r=n();function i({children:n,fallback:i}){let{user:a,isReady:o}=t();return!o||a?(0,r.jsx)(e,{fallback:i,children:n}):(0,r.jsx)(r.Fragment,{children:n})}export{i as default};

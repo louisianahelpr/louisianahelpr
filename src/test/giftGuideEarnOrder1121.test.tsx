@@ -20,7 +20,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 const tracked = vi.hoisted(() => [] as [string, Record<string, unknown>][]);
 vi.mock("@/lib/analytics", async (orig) => ({ ...(await orig<object>()), track: (e: string, p: Record<string, unknown>) => tracked.push([e, p]) }));
 
-/** The ranks under test: on Her, the dearest pick of "$25 to $50" gets rank 1, the dearest "Under $25" pick rank 2. */
+/** The ranks under test: on Her, the dearest pick of "$25–$50" gets rank 1, the dearest "Under $25" pick rank 2. */
 const planted = vi.hoisted(() => ({ top25: "", top0: "" }));
 vi.mock("@/content/giftGuideEarnRank.json", async () => {
   const her = (await import("@/content/giftGuidePicks/her.json")).default as { picks: { href: string; price?: number; priceRank?: number }[] };
@@ -120,7 +120,7 @@ describe("Her's default order puts the clicked picks first in their own section"
     const { container } = renderAt("/gift-guides/her");
     openPriceSections(container);
     const top = sections(container);
-    const s25 = top.find((s) => s.title === "$25 to $50")!;
+    const s25 = top.find((s) => s.title === "$25–$50")!;
     const s0 = top.find((s) => s.title === "Under $25")!;
     expect(s25.hrefs.length).toBeGreaterThan(2);
     expect(s25.hrefs[0]).toBe(planted.top25);
@@ -132,7 +132,7 @@ describe("Her's default order puts the clicked picks first in their own section"
     // Same sections, same order, same members: only the order inside a section moved.
     expect(low.map((s) => s.title)).toEqual(top.map((s) => s.title));
     for (const [i, s] of low.entries()) expect([...s.hrefs].sort()).toEqual([...top[i].hrefs].sort());
-    const l25 = low.find((s) => s.title === "$25 to $50")!;
+    const l25 = low.find((s) => s.title === "$25–$50")!;
     expect(l25.hrefs[l25.hrefs.length - 1]).toBe(planted.top25); // the dearest of its section, last in price order
     expect(l25.hrefs.slice(0, -1)).toEqual(s25.hrefs.slice(1));
 

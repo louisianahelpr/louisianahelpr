@@ -1,4 +1,5 @@
 // @mutate src/components/postjob/CheckoutGlanceCard.tsx | className="text-ds-13 text-foreground leading-relaxed line-clamp-3 text-left" | className="text-ds-13 text-foreground leading-relaxed line-clamp-3 text-right"
+// @mutate src/components/postjob/CheckoutGlanceCard.tsx | {composeJobAddress({ streetAddress, city, state: addrState, zipCode })} | {[streetAddress, city, addrState, zipCode].filter(Boolean).join(", ")}
 /**
  * Owner, 2026-10-01, on the Post a job "Order Summary" (review) screen:
  * "Remove detail and review and pay at the top. Category should be seperate
@@ -118,11 +119,12 @@ describe("Order Summary review card (owner 2026-10-01)", () => {
     expect((details!.children[1] as HTMLElement).className).toMatch(/\btext-left\b/);
   });
 
+  // Polish audit 11-27 #44: "Delcambre, LA 70528", no comma between the state and the ZIP.
   it("Location shows the address only, never a parish", () => {
     render(<CheckoutStepView form={makeForm()} />);
     const loc = glanceRows().find((r) => /Location/.test((r.children[0] as HTMLElement).textContent ?? ""));
     expect(loc).toBeDefined();
-    expect((loc!.children[1] as HTMLElement).textContent?.trim()).toBe("314 Lynn St, Delcambre, LA, 70528");
+    expect((loc!.children[1] as HTMLElement).textContent?.trim()).toBe("314 Lynn St, Delcambre, LA 70528");
     for (const row of glanceRows()) expect(row.textContent).not.toMatch(/parish/i);
   });
 });

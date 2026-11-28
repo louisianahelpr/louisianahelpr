@@ -1,1 +1,0 @@
-import{o as e}from"./tanstack-Dt62v76_.js";import{N as t,z as n}from"./decl-item-first--Y1EXDFR.js";var r=[`declutter`,`trades`];function i(n,i){return e({queryKey:[...r,n,i],queryFn:()=>t(n,i),enabled:!!i})}function a(e){let t=i(`seller`,e).data,r=i(`buyer`,e).data;return n([...t??[],...r??[]])}export{a as n,i as t};

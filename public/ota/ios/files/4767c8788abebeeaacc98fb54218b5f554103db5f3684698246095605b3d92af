@@ -1,1 +1,0 @@
-import{o as e}from"./notificationFeed-vu-5E4BB.js";import{t}from"./arrivalAlert-CazQT_DL.js";import{dt as n,ft as r}from"./app-shared-B7IosoRB.js";var i=0,a=null;function o(){i+=1,i===1&&(a=e(t),n()&&r());let o=!1;return()=>{o||(o=!0,--i,i===0&&(a?.(),a=null))}}export{o as holdArrivalAlerts};

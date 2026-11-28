@@ -10,6 +10,7 @@
  * @mutate src/components/declutter/SellTradesRow.tsx | >{t("sf.tradesTitle")}< | >Open to trades?<
  * @mutate src/components/declutter/SellFormParts.tsx | >{t(offersWanted ? "sf.offersOn" : "sf.offersOff")}</span> | >{offersWanted ? "Buyers can offer a lower price, and you say yes or no." : "Buyers pay your price with Buy now; no offers."}</span>
  * @mutate src/components/declutter/SellFormParts.tsx |       {t("sf.youGet")}\n |       You get if it sells today\n
+ * @mutate src/components/declutter/SellFormParts.tsx | <div className="flex min-h-11 items-center gap-3 border-t border-border py-2 pt-3" data-sell-offers | <div className="flex min-h-11 items-center gap-3 py-2" data-sell-offers
  * @mutate src/components/declutter/CategoryDrillDown.tsx | const headingWords = (h: CategoryGroupHeading) => t(HEADING_KEY[h]); | const headingWords = (h: CategoryGroupHeading) => h;
  * @mutate src/components/declutter/CategoryDrillDown.tsx | const catWords = (k: string) => (CATEGORY_LABEL[k] ? t(`decl.cat.${k}` as MsgKey) : k); | const catWords = (k: string) => CATEGORY_LABEL[k] ?? k;
  * @mutate src/components/declutter/CategoryDrillDown.tsx |   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() |   return s.toLowerCase()
@@ -109,6 +110,8 @@ describe("the sell screen follows the member's language (F260q)", () => {
     expect(screen.getByRole("textbox", { name: "Precio" })).toBeTruthy();
     expect(screen.getByText(/^Los artículos gratis se piden/)).toBeTruthy();
     expect(screen.getByText("Aceptar ofertas")).toBeTruthy();
+    // Polish audit 11-27 #62 (11-25 #35): Accept offers is its own row under a hairline.
+    expect(document.querySelector("[data-sell-offers]")?.className).toMatch(/\bborder-t\b/);
     expect(screen.getByText(/^Los compradores pueden ofrecer un precio más bajo/)).toBeTruthy();
     expect(screen.getByText("Antes de publicar")).toBeTruthy();
     expect(document.body.textContent).toMatch(/\$20(\.00)?/);

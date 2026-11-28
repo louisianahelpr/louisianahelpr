@@ -105,8 +105,9 @@ export function SellOffersToggle({ s }: { s: SellFlow }) {
   const { form, offersWanted, setOffersWanted } = s;
   if (form.free) return null;
   return (
-    // Design audit 11-17 #21: a flat row like "Open to trades?", not a card inside the price card.
-    <div className="flex min-h-11 items-center gap-3 py-2" data-sell-offers={offersWanted ? "on" : "off"}>
+    // Design audit 11-17 #21: a flat row like "Open to trades?", not a card inside the price card. Polish audit 11-27 #62
+    // (11-25 #35): a hairline above it, so it reads as its own row under the price lines (no divider before).
+    <div className="flex min-h-11 items-center gap-3 border-t border-border py-2 pt-3" data-sell-offers={offersWanted ? "on" : "off"}>
       <label htmlFor="sell-offers" className="min-w-0 flex-1">
         <span className="block text-ds-15 font-semibold text-foreground">{t("sf.offersTitle")}</span>
         <span className="block text-ds-13 text-muted-foreground">{t(offersWanted ? "sf.offersOn" : "sf.offersOff")}</span>

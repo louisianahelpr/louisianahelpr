@@ -29,6 +29,9 @@ interface RationaleCopy {
   icon: string;
   title: string;
   body: string;
+  /** Polish audit 11-27 #46: the words for a signed-out guest when `body` promises something only an account has
+   *  (the location rows: "saved to your profile"). A guest has no profile, so the sheet never says it to them. */
+  guestBody?: string;
   cta: string;
 }
 
@@ -57,6 +60,7 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
     // database keeps: get_helper_distances_from_job returns a BAND, never a
     // distance (migration 20260907051731).
     body: "We use your location to show jobs near you, rank them by how close they are, and confirm Helpr arrival. It's only checked while you're using the app, and your most recent location is saved to your profile so nearby jobs still work next time. Other people only ever see a rough distance range, never your exact location.",
+    guestBody: "We use your location to show jobs near you and rank them by how close they are. It's only checked while you're using the app. Other people only ever see a rough distance range, never your exact location.",
     cta: "Share location",
   },
   // Declutter's own reason for the SAME location read (useUserLocation with
@@ -68,6 +72,7 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
     icon: "📍",
     title: "Location",
     body: "Declutter uses your location to show how far away each item is and to list the nearest items first. It's only checked while you're using the app, and your most recent location is saved to your profile. Other people never see your exact location.",
+    guestBody: "Declutter uses your location to show how far away each item is and to list the nearest items first. It's only checked while you're using the app. Other people never see your exact location.",
     cta: "Share location",
   },
   contacts: {
@@ -329,7 +334,8 @@ export function usePermissionRationaleState() {
   // sync
   if (state !== externalState) setLocal(externalState);
   // Owner 11-20: an ask in context keeps the kind's icon and button, with its own question and line.
-  const base = state.kind ? (state.words ? { ...COPY[state.kind], ...state.words } : COPY[state.kind]) : null;
+  // An ask in context brings its own line, so the kind's guest line (#46) does not replace it.
+  const base = state.kind ? (state.words ? { ...COPY[state.kind], ...state.words, guestBody: undefined } : COPY[state.kind]) : null;
   // 5.1.1(iv): the one button says what it does next (the OS prompt follows), not "Turn on notifications".
   const copy = base && state.continueOnly ? { ...base, cta: "Continue" } : base;
   return { state, subscribe, copy, setState };

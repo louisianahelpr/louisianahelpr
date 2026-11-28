@@ -18,10 +18,13 @@ import {
   __resolveRationale,
   __markRationaleShown,
 } from "@/hooks/usePermissionRationale";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 export function PermissionRationaleDialog() {
   const { state, subscribe, copy } = usePermissionRationaleState();
   const [, force] = useState(0);
+  // Polish audit 11-27 #46: a signed-out guest gets the kind's guest line (no "saved to your profile").
+  const { user } = useAuthReady();
 
   useEffect(() => subscribe(() => force((n) => n + 1)), [subscribe]);
   if (!state.open || !copy) return null;
@@ -80,7 +83,7 @@ export function PermissionRationaleDialog() {
           className="font-sans text-ds-12 leading-relaxed"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          {copy.body}
+          {!user && copy.guestBody ? copy.guestBody : copy.body}
         </p>
         {/* Plain DialogFooter. The className restated the footer's own
             `flex-col-reverse sm:flex-row gap-2`, and the `h-11` pinned both

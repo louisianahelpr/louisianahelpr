@@ -10,11 +10,15 @@ import { PRICE_DROP_RUN_UTC, dropStepCents } from "@/lib/declutter/priceDrop";
 import { enListingParts } from "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
 
-/** A step's Bodoni question and its one-line helper (spec §1.2, §3 "Step-by-step flows"). */
+/**
+ * A step's Bodoni question and its one-line helper (spec §1.2, §3 "Step-by-step flows"). 20px, one size under the
+ * 28px page title (polish audit 11-27 #62, 11-25 #33: "Sell an item" 28px sat over "Show it off" 32px), as Post a job's
+ * step question already is (design audit r2 #4). Guard: src/test/sellStepHeadsUnderTitle1127.test.tsx.
+ */
 export function StepHead({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="space-y-1">
-      <h2 id="sell-step" className="font-display font-moment text-ds-32 font-semibold leading-tight text-foreground">{title}</h2>
+      <h2 id="sell-step" className="font-display font-moment text-ds-20 font-semibold leading-tight text-foreground">{title}</h2>
       {sub && <p className="text-ds-14 text-muted-foreground">{sub}</p>}
     </div>
   );

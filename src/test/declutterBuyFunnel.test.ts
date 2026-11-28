@@ -10,10 +10,10 @@
  * back marked, and the admin card reads the counts.
  *
  * @mutate src/lib/declutter/api.ts |   trackFunnel("buy_now_tap", { itemId }); // H3 (audit 11-08) |
- * @mutate src/lib/declutter/api.ts |   if (typeof data.url === "string") trackFunnel("checkout_opened" |   if (false) trackFunnel("checkout_opened"
+ * @mutate src/lib/declutter/api.ts |   if (page) trackFunnel("checkout_opened" |   if (false) trackFunnel("checkout_opened"
  * @mutate src/lib/declutter/itemViews.ts |     trackFunnel("item_view", { itemId }); |
  * @mutate src/components/declutter/DeclutterPaySettling.tsx |   useEffect(() => { trackStripeReturn(location.search); }, [location.search]); |
- * @mutate supabase/functions/declutter-checkout/index.ts |       cancel_url: buildRedirectUrl("/declutter?view=cart&back=1", native), |       cancel_url: buildRedirectUrl("/declutter?view=cart", native),
+ * @mutate supabase/functions/declutter-checkout/index.ts | "/declutter?view=cart&back=1", native), | "/declutter?view=cart", native),
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (answer.result === "paid") await recordDeclutterFunnel(ctx, "paid", orderId); |
  * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     await recordDeclutterFunnel(ctx, "payment_failed", pi.metadata?.order_id, err?.code ?? null, err?.decline_code ?? null); |     await recordDeclutterFunnel(ctx, "payment_failed", pi.metadata?.order_id, null, null);
  * @mutate src/lib/declutter/stripeReturn.ts |   if (seen.has(key)) return; |
@@ -44,7 +44,9 @@ describe("H3: the Declutter buy funnel is wired end to end", () => {
   it("each step is sent from the place it describes", () => {
     const api = src("src/lib/declutter/api.ts");
     expect(api).toMatch(/export async function buyNow\(itemId: string, seenPriceCents: number\): Promise<string> \{\s*trackFunnel\("buy_now_tap", \{ itemId \}\);/);
-    expect(api).toContain('if (typeof data.url === "string") trackFunnel("checkout_opened", { orderId: typeof data.order_id === "string" ? data.order_id : null });');
+    // Phase W: either page kind (hosted url or embedded client secret) counts as opened.
+    expect(api).toContain('const page = data.paid === true ? null : checkoutPageFrom(data);');
+    expect(api).toContain('if (page) trackFunnel("checkout_opened", { orderId: typeof data.order_id === "string" ? data.order_id : null });');
     expect(src("src/lib/declutter/itemViews.ts")).toMatch(/sent\.add\(key\);\s*void sendItemView\(itemId, signedIn\);\s*trackFunnel\("item_view", \{ itemId \}\);/);
     expect(src("src/components/declutter/DeclutterPaySettling.tsx")).toContain("useEffect(() => { trackStripeReturn(location.search); }, [location.search]);");
     expect(src("src/components/declutter/DeclutterTradeViews.tsx")).toContain('trackFunnel("returned_from_stripe", { detail: "back" })');
@@ -52,8 +54,10 @@ describe("H3: the Declutter buy funnel is wired end to end", () => {
 
   it("Stripe's pages come back marked: paid=1&order on success, back=1 on cancel", () => {
     const checkout = src("supabase/functions/declutter-checkout/index.ts");
-    expect(checkout).toContain('success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native),');
-    expect(checkout).toContain('cancel_url: buildRedirectUrl("/declutter?view=cart&back=1", native),');
+    expect(checkout).toContain('...surfaceRedirects(surface, `/declutter?view=cart&paid=1&order=${order.order_id}`, "/declutter?view=cart&back=1", native),');
+    // surfaceRedirects: hosted = success_url + cancel_url (back=1); embedded = return_url only (the sheet's close is the back).
+    const redirects = src("supabase/functions/_shared/embeddedCheckout.ts");
+    expect(redirects).toContain('{ success_url: buildRedirectUrl(successPath, native), cancel_url: buildRedirectUrl(cancelPath, native) }');
   });
 
   it("a return is recorded once per page session, with its order when paid", () => {

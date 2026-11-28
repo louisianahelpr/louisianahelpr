@@ -70,12 +70,17 @@ description = "Google API key (AIza)"
 regex = '''\bAIza[0-9A-Za-z_-]{35}'''
 
 # Public by design: the Supabase publishable key and the legacy anon JWT ship
-# in the web bundle; runs of x are docs placeholders.
+# in the web bundle; runs of x are docs placeholders. A Stripe PUBLISHABLE key
+# (pk_) is what Stripe.js hands every browser (Embedded Checkout, phase W
+# 2026-11-27: supabase/functions/_shared/embeddedCheckout.ts); it can only make
+# tokens, never read or move money. Secret and restricted keys (sk_/rk_) stay
+# caught by lh-stripe-secret-key above.
 [[allowlists]]
 description = "public-by-design values and placeholders"
 regexTarget = "match"
 regexes = [
   '''sb_publishable_[A-Za-z0-9_-]+''',
+  '''\bpk_(?:live|test)_[A-Za-z0-9]{20,}''',
   '''eyJ[A-Za-z0-9_-]*\.ey[A-Za-z0-9_-]*(?:InJvbGUiOiJhbm9u|Jyb2xlIjoiYW5v|icm9sZSI6ImFub24i)''',
   '''(?:x{8,}|X{8,})''',
 ]

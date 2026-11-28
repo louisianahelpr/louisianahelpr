@@ -29,6 +29,7 @@ import { readItems, type ItemRead } from "@/lib/declutter/myReads";
 import { takeItemPhotosPrefetch, takeItemPrefetch } from "@/lib/declutter/itemPrefetchTake";
 import { takeFirstScreenDropStates, takeFirstScreenItems, takeFirstScreenPhotos, takeFirstScreenWatching } from "@/lib/declutter/bootPrefetch";
 import { takeGuestDropStates, takeGuestItems, takeGuestPhotos } from "@/lib/declutter/guestBootPrefetch";
+import { checkoutPageFrom, type CheckoutPage } from "@/lib/payments/checkoutPage";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
 /** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
@@ -1666,7 +1667,8 @@ export async function fetchItemsCanShip(itemIds: string[], sellerId: string): Pr
 
 /** Check out one seller's cart lines (row 38): the Stripe page's URL, or paid=true when it already went through. */
 export async function startCheckoutPayment(sellerId: string, handover: Handover, slotStart?: string | null, handoff?: "leave" | "hand" | null,
-  expectedDeliveryCents?: number | null, quoteId?: string | null, giftCardId?: string | null): Promise<{ url: string | null; paid: boolean; giftCents: number }> {
+  expectedDeliveryCents?: number | null, quoteId?: string | null, giftCardId?: string | null,
+  embedded = false): Promise<{ page: CheckoutPage | null; paid: boolean; giftCents: number }> {
   // A seller delivery carries the picked time (held while the payment page is open), the buyer's door choice
   // and the delivery price the screen showed ("Free" = 0): a different frozen price stops before Stripe.
   track(AhaEvent.DeclutterCheckoutStarted, { kind: "pay", handover }); // flow audit 11-23 (A2)
@@ -1686,11 +1688,17 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
     // Q2106 S5: the buyer's own gift card pays first (declutter-checkout redeems it); the page charges the rest, and a
     // gift that covers it all answers paid:true with no page.
     ...(giftCardId ? { gift_card_id: giftCardId } : {}),
+    // Phase W (owner 11-27): the website asks for Stripe's form inside our own sheet; the server may still answer
+    // with the hosted page (checkoutPage.ts), and the app never asks (asksForEmbeddedCheckout).
+    ...(embedded ? { embedded: true } : {}),
   });
+  const page = data.paid === true ? null : checkoutPageFrom(data);
+  // An embedded answer the client cannot mount (a key of the other Stripe mode) is a failure to open, never "paid".
+  if (!page && data.paid !== true && typeof data.client_secret === "string") throw new Error("payment_unavailable");
   // H3 (audit 11-08): Stripe's page is about to open for this order.
-  if (typeof data.url === "string") trackFunnel("checkout_opened", { orderId: typeof data.order_id === "string" ? data.order_id : null });
+  if (page) trackFunnel("checkout_opened", { orderId: typeof data.order_id === "string" ? data.order_id : null });
   if (data.paid === true) track(AhaEvent.DeclutterCheckoutCompleted, { via: "gift_card" });
-  return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true,
+  return { page, paid: data.paid === true,
     giftCents: typeof data.gift_cents === "number" && Number.isInteger(data.gift_cents) ? data.gift_cents : 0 };
 }
 

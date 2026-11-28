@@ -18,7 +18,9 @@
  *      does not;
  *   4. requires_action: the challenge runs on Stripe's HOSTED Checkout page
  *      (web: a navigation; native: the in-app browser sheet opened by
- *      openExternalUrl), so no client code may confirm a PaymentIntent itself;
+ *      openExternalUrl; website, phase W 11-27: Stripe's EMBEDDED Checkout iframe,
+ *      mounted by the one module allowed to load Stripe.js), so no client code
+ *      may confirm a PaymentIntent itself;
  *      and a poster who walked away from a challenge (session still open, PI
  *      `requires_action`) is never told the payment is "still being processed"
  *      for 24h (the "Finish paying" retry it had was removed 2026-09-27; a
@@ -29,6 +31,7 @@
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | payment_method_options: threeDSecureOptions(chargeCents), | payment_method_options: undefined,
  * @mutate supabase/functions/create-payment/index.ts | const abandonedChallenge = prior.status === "open" && priorPi?.status === "requires_action"; | const abandonedChallenge = false;
  * @mutate supabase/functions/create-payment/index.ts |               await stripe.paymentIntents.cancel(priorPi.id); |               void priorPi;
+ * @mutate src/components/payments/EmbeddedCheckoutSheet.tsx | <EmbeddedCheckout /> | <PaymentElement />
  * @mutate supabase/functions/charge-recurring-visits/index.ts | if (!paidRow && totalCents >= THREE_D_SECURE_MIN_CENTS && !earlierChargeToAdopt) { | if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -187,11 +190,20 @@ describe("3D Secure on large card charges (Q202)", () => {
       .filter((f) => existsSync(f));
     expect(files.length).toBeGreaterThan(200);
     const offenders = files.filter((f) =>
-      /@stripe\/stripe-js|\.confirmCardPayment\(|\.handleNextAction\(|\.handleCardAction\(|stripe\.confirmPayment\(/.test(
+      /\.confirmCardPayment\(|\.handleNextAction\(|\.handleCardAction\(|stripe\.confirmPayment\(|\.confirmSetup\(|\.initCheckout\(/.test(
         blankComments(readFileSync(f, "utf8")),
       ),
     );
     expect(offenders).toEqual([]);
+    // Phase W (owner 11-27): the website mounts Stripe's EMBEDDED Checkout, a Stripe-hosted iframe that runs the card
+    // form and any 3D Secure challenge itself; our code still confirms nothing. Stripe.js is loaded by exactly ONE
+    // module, the sheet that mounts it, so no second module can grow a client-side confirm unnoticed. Exact both ways.
+    const stripeJsLoaders = files.filter((f) => /@stripe\/(stripe-js|react-stripe-js)/.test(blankComments(readFileSync(f, "utf8"))))
+      .map((f) => f.slice(ROOT.length + 1)).sort();
+    expect(stripeJsLoaders).toEqual(["src/components/payments/EmbeddedCheckoutSheet.tsx"]);
+    const sheet = blankComments(readFileSync(join(ROOT, "src/components/payments/EmbeddedCheckoutSheet.tsx"), "utf8"));
+    expect(sheet).toMatch(/<EmbeddedCheckout\s*\/>/);
+    expect(sheet).not.toMatch(/PaymentElement|CardElement|useStripe\(|useElements\(/);
     // The money hand-off opens Stripe in the in-app browser sheet on native.
     const opener = readFileSync(join(ROOT, "src/lib/openExternalUrl.ts"), "utf8");
     expect(opener).toMatch(/Browser\.open\(/);

@@ -33,6 +33,8 @@
  * @mutate src/components/notificationPanel/NotificationTrigger.tsx |   return count > 0 ? `${name}, ${formatUnreadBadge(count)} unread` : name; |   return name;
  * @mutate src/components/MobileNav.tsx | : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : soon | : soon
  * @mutate src/components/MobileNav.tsx |         {" "}\n        <span data-dock-label |         <span data-dock-label
+ * Polish audit 11-27 #117: the dock's count uses the shared 99+ cap (it said "9+" beside "Needs you · 17").
+ * @mutate src/components/MobileNav.tsx |   return formatUnreadBadge(n); |   return n > 9 ? "9+" : String(n);
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 // The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
@@ -166,9 +168,15 @@ describe("3 + 4. the bottom bar: You is a person icon; olive active, --alert bad
   it("the Jobs to-do badge is --alert with white text", () => {
     todo.jobs = 12;
     renderDock("/home");
-    const badge = [...screen.getByRole("button", { name: "9+ Jobs" }).querySelectorAll("span")].find((s) => s.textContent === "9+");
-    expect(badge, "a 9+ badge on Jobs").toBeTruthy();
+    const badge = [...screen.getByRole("button", { name: "12 Jobs" }).querySelectorAll("span")].find((s) => s.textContent === "12");
+    expect(badge, "a 12 badge on Jobs (polish audit 11-27 #117: the real count up to 99)").toBeTruthy();
     expect(badge!.getAttribute("style")).toContain("hsl(var(--alert))");
+  });
+
+  it("the dock caps at 99+, the shared cap (polish audit 11-27 #117)", () => {
+    todo.jobs = 120;
+    renderDock("/home");
+    expect(screen.getByRole("button", { name: "99+ Jobs" }).querySelector("[data-dock-badge]")?.textContent).toBe("99+");
   });
 
   it("the top row's Inbox count badge is --alert with white text, and its name holds the count (owner 11-15)", async () => {

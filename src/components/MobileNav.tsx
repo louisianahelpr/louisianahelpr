@@ -38,6 +38,7 @@ import { useDockScrollState } from "@/components/mobileNav/useDockScrollState";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
 import { hideUnopenedInApp } from "@/lib/hideUnopenedInApp";
+import { formatUnreadBadge } from "@/lib/format";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const { t: tr } = useLanguage(); // Spanish option (2026-10-29): the dock's words come from the dictionary.
@@ -554,9 +555,13 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 MobileNav.displayName = "MobileNav";
 
 
-/** The dock badge's visible count (also the start of the tab's name, WCAG 2.5.3). */
+/**
+ * The dock badge's visible count (also the start of the tab's name, WCAG 2.5.3). Polish audit 11-27 #117: the shared
+ * 99+ cap, as the top bar's Inbox and the desktop rail (design audit area 02 #16): the tab said "9+" while the Jobs
+ * chip said "Needs you · 17".
+ */
 function dockBadgeText(n: number): string {
-  return n > 9 ? "9+" : String(n);
+  return formatUnreadBadge(n);
 }
 
 export default MobileNav;

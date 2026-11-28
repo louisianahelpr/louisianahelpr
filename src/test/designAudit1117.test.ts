@@ -51,8 +51,10 @@ describe("design audit 11-17", () => {
   it("#10: the Wanted sheet's labels are the shared 13 px semibold, the photo label included", () => {
     const w = src("src/components/declutter/DeclutterWantedViews.tsx");
     expect(w).toContain('const FIELD_LABEL = "block text-ds-13 font-semibold text-foreground/80";');
-    // Area 06b M3: the first ("I'm looking for") is screen-reader only, so three painted labels share the size.
-    expect((w.match(/className=\{FIELD_LABEL\}/g) ?? []).length).toBeGreaterThan(2);
+    // Polish audit 11-27 #58: the first field's label ("Item") is painted too, so four labels share the size.
+    // @mutate src/components/declutter/DeclutterWantedViews.tsx | <label className={FIELD_LABEL} htmlFor="wanted-what"> | <label className="sr-only" htmlFor="wanted-what">
+    expect((w.match(/className=\{FIELD_LABEL\}/g) ?? []).length).toBeGreaterThan(3);
+    expect(w).toContain('<label className={FIELD_LABEL} htmlFor="wanted-what">');
     expect(w).not.toMatch(/text-ds-15 font-semibold" htmlFor=/);
     expect(src("src/components/declutter/DeclutterProblemPhotos.tsx")).toContain('<p className="text-ds-13 font-semibold text-foreground/80" data-photos-label={fieldLabel ? "field" : undefined}>{t("dsl.photos.label"');
   });

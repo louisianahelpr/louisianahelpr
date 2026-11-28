@@ -494,8 +494,10 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       </BunchSection>
       )}
 
+      {/* Polish audit 11-27 #130: "1. Add photos" with no step 2 read as unfinished; a step number shows only once the
+          steps after it do (the address step or the items to check). */}
       {!allListed && (
-      <BunchSection id="bunch-photos" title={t("lp.bv.photosHead", { step: firstStep })}>
+      <BunchSection id="bunch-photos" title={firstStep === 1 && items.length === 0 ? t("lp.bv.addPhotos") : t("lp.bv.photosHead", { step: firstStep })}>
         <p className="text-xs text-muted-foreground">{t("lp.bv.pickAll", { max: BUNCH_MAX_PHOTOS })}</p>
         <HiddenFileInput ref={fileRef} accept="image/*" multiple id="bunch-files" aria-label={t("lp.bv.addPhotos")} disabled={blocked} onChange={(e) => void onPhotos(e.target.files)} />
         {blocked ? (

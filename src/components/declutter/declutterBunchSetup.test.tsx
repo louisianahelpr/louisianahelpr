@@ -66,7 +66,10 @@ describe("Sell a bunch: where buyers pick up starts from the last listing", () =
     state.last = LAST;
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={qc}><MemoryRouter><AfterSavedPickup><BunchFlow /></AfterSavedPickup></MemoryRouter></QueryClientProvider>);
-    await screen.findByRole("heading", { name: "1. Add photos" });
+    // Polish audit 11-27 #130: the photo step is the only step shown, so it has no lone "1." (steps number once more show).
+    // @mutate src/components/declutter/DeclutterBunchView.tsx | title={firstStep === 1 && items.length === 0 ? t("lp.bv.addPhotos") : | title={
+    await screen.findByRole("heading", { name: "Add photos" });
+    expect(screen.queryByRole("heading", { name: /^1\. / })).toBeNull();
     expect(screen.queryByLabelText("Pickup address")).toBeNull();
     expect(screen.queryByLabelText("Area buyers see")).toBeNull();
     await settle();
@@ -115,7 +118,7 @@ describe("F342 bunchWhereNeverFolds: the Where step draws once and never folds a
     const seen = new MutationObserver((rs) => { records.push(...rs); });
     seen.observe(container, { childList: true, subtree: true });
     render(<QueryClientProvider client={qc}><MemoryRouter><AfterSavedPickup><BunchFlow /></AfterSavedPickup></MemoryRouter></QueryClientProvider>, { container });
-    await screen.findByRole("heading", { name: "1. Add photos" });
+    await screen.findByRole("heading", { name: "Add photos" });
     await settle();
     records.push(...seen.takeRecords());
     seen.disconnect();

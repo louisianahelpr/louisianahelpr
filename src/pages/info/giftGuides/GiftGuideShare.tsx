@@ -42,6 +42,8 @@ const HEART = "M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.7 4.5 7.2 4.5c2 0 3.6 1.1 4.8
 const SHARE = "M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5";
 const SEARCH = "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4";
 const CLOSE = "M6 6l12 12M18 6 6 18";
+/** The 25 Days sponsors page: its rows are businesses, not priced gifts (polish audit 11-27 #148). */
+const SPONSORS_SLUG = "25-days-sponsors";
 const SLIDERS = "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4";
 
 /** The 25 Days sponsors page's Filter: its sections to jump to and the price limits (owner 2026-11-21). */
@@ -463,7 +465,8 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
                 </Link>
               </li>
             ))}
-            {foundItems.length > 0 && <li className="gg-search-head" aria-hidden="true">{G.searchItemsTitle}</li>}
+            {/* Polish audit 11-27 #148: the group heading only beside another group (a lone "GIFTS" named nothing). */}
+            {foundItems.length > 0 && found.length > 0 && <li className="gg-search-head" aria-hidden="true">{G.searchItemsTitle}</li>}
             {foundItems.map((item) => {
               const [name, slug, , , image] = item;
               // Holiday audit 1121 #7: the price beside the guide, by the card's own rule (fresh, rounded).
@@ -475,7 +478,7 @@ export function GiftGuideTools({ path, title, image, many = false, myList = fals
                   {image && <img className="gg-search-thumb gg-search-thumb-item" loading="lazy" decoding="async" src={image} alt="" width={36} height={36} />}
                   <span className="gg-search-item">
                     <span className="gg-search-item-name">{name}</span>
-                    <small>{G.searchItemIn(guideBySlug(slug)?.title ?? "")}{dollars !== null && <span data-gift-found-price="">{` · ${G.priceApprox(dollars)}`}</span>}</small>
+                    <small>{slug === SPONSORS_SLUG ? G.searchLocalShop : G.searchItemIn(guideBySlug(slug)?.title ?? "")}{dollars !== null && <span data-gift-found-price="">{` · ${G.priceApprox(dollars)}`}</span>}</small>
                   </span>
                 </Link>
               </li>

@@ -13,7 +13,7 @@
  *
  * @mutate src/components/DesktopSidebarNav.tsx |     { path: "/gift-guides", icon: Gift, label: "Holiday gift guides", nested: true }, |
  * @mutate src/components/DesktopSidebarNav.tsx | (sec.key === "jobs" \|\| sec.key === "declutter" ? i + 1 : at) | (at)
- * @mutate src/components/profile/profileLanding/YouMenu.tsx |           to="/gift-guides"\n          data-testid="you-gift-guides" |           to="/profile"\n          data-testid="you-gift-guides"
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx |             to="/gift-guides"\n            data-testid="you-gift-guides" |             to="/profile"\n            data-testid="you-gift-guides"
  * @mutate src/App.tsx | <Route path="/gift-guides/:slug" element={<RouteErrorBoundary>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</RouteErrorBoundary>} /> | <Route path="/gift-guides/:slug" element={<RouteErrorBoundary><MarketingRedirect>{routeEl(<PageTransition><GiftGuides /></PageTransition>)}</MarketingRedirect></RouteErrorBoundary>} />
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

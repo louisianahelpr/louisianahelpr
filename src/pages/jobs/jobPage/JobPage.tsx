@@ -298,8 +298,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     const lead: RowAction = faceIs === "message" && msg ? msg
       : faceIs === "working" ? { ...work, label: doneLocked ? work.label : hiredFace.label }
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
-    // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered; nor on
-    // a paid job (F287), nor waiting on approval (polish 11-27 #112: back covers it). "See the case" leads when a step is due.
+    // No Open in Jobs on a cancelled job (L27 JA-F2), a paid one (F287) or one awaiting approval (polish 11-27 #112).
     const waitingApproval = !!job.helper_completed_at && !job.poster_completed_at;
     const extras = [faceIs === "step" ? seeCase : null, msg, job.status === "cancelled" || job.payment_status === "released" || waitingApproval ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
     // Continue another day: a set day the Helpr has not confirmed leads; "Not finished? Set a day" sits with the others.

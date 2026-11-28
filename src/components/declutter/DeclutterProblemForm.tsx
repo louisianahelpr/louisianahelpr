@@ -30,7 +30,7 @@ const WANTS_REASONS: readonly ProblemReason[] = ["damaged", "not_as_described", 
 
 /** `trigger={false}`: the caller has its own "Report a problem" button (seller delivery), so this one shows only the open form (#51). */
 /** `triggerLabel`: owner 11-11 (F382), after a seller says no to a refund the same report reads "Ask Louisiana Helpr to look". */
-export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange, trigger = true, triggerLabel = "Report a problem" }: { orderId: string; side: "buyer" | "seller"; stage: ProblemStage; open?: boolean; onOpenChange?: (open: boolean) => void; trigger?: boolean; triggerLabel?: string }) {
+export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange, trigger = true, triggerLabel = "Report a problem", quiet = false }: { orderId: string; side: "buyer" | "seller"; stage: ProblemStage; open?: boolean; onOpenChange?: (open: boolean) => void; trigger?: boolean; triggerLabel?: string; /** Polish audit 11-27 #12: the trigger is a 14px text button in the seller card's secondary row. */ quiet?: boolean }) {
   const qc = useQueryClient();
   const [openState, setOpenState] = useState(false);
   // Controlled from the order card when "Something's not right" opens it (board 159).
@@ -63,9 +63,10 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (!open) return trigger ? <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => setOpen(true)}>{triggerLabel}</Button> : null;
+  if (!open) return trigger ? <Button type="button" variant={quiet ? "link" : "outline"} size="sm" className={quiet ? "px-0 text-ds-14 font-semibold" : "text-sm font-semibold"} onClick={() => setOpen(true)}>{triggerLabel}</Button> : null;
   return (
-    <div ref={formRef} className="space-y-2 rounded-xl border border-border p-3">
+    // basis-full: opened from the seller card's row of text buttons, the form takes the whole row.
+    <div ref={formRef} className="w-full basis-full space-y-2 rounded-xl border border-border p-3">
       {/* F388: the floating "+ Sell" pill sat on the photos row next to Send; it steps aside while the form is open. */}
       <HideSectionCreateFab />
       {/* BUY-35: the shared pick-one list, as Jobs' dispute and Declutter's refund use. */}

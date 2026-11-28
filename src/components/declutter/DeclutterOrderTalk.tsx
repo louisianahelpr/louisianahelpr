@@ -47,12 +47,12 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString(getLang() === "e
 const dayKey = (iso: string) => new Date(iso).toDateString();
 
 /** "Message the seller" / "Message the buyer" on a paid order card: puts ?order_talk=<order id> on the address. */
-export function OrderTalkButton(props: { orderId: string; side: "buyer" | "seller"; trade?: boolean }) {
+export function OrderTalkButton(props: { orderId: string; side: "buyer" | "seller"; trade?: boolean; /** Polish audit 11-27 #12: a 14px text button in the seller card's secondary row. */ quiet?: boolean }) {
   // The app always renders cards inside the router; a card rendered alone (unit tests of other card parts) has none.
   return useInRouterContext() ? <OrderTalkLinkButton {...props} /> : null;
 }
 
-function OrderTalkLinkButton({ orderId, side, trade = false }: { orderId: string; side: "buyer" | "seller"; trade?: boolean }) {
+function OrderTalkLinkButton({ orderId, side, trade = false, quiet = false }: { orderId: string; side: "buyer" | "seller"; trade?: boolean; quiet?: boolean }) {
   const [params, setParams] = useSearchParams();
   const open = () => {
     const next = new URLSearchParams(params);
@@ -61,7 +61,7 @@ function OrderTalkLinkButton({ orderId, side, trade = false }: { orderId: string
   };
   return (
     // Q2634 (audit 1102c R9): the card's other secondary button, Get help now, is the small outline; this matches it.
-    <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={open}>
+    <Button type="button" variant={quiet ? "link" : "outline"} size="sm" className={quiet ? "px-0 text-ds-14 font-semibold" : "rounded-full"} onClick={open}>
       {/* Lead 11-08: a trade has no buyer or seller to speak of; both sides talk about the trade. */}
       {trade ? tr("cp.ot.msgTrade") : side === "buyer" ? tr("cp.ot.msgSeller") : tr("cp.ot.msgBuyer")}
     </Button>

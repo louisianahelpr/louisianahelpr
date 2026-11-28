@@ -61,7 +61,8 @@ export function NoShowAnswer({ orderId, side, delivery, free }: { orderId: strin
   );
 }
 
-export function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: string; who: string }) {
+/** `quiet` (polish audit 11-27 #12): a 14px text button in the seller card's one row of secondary actions. */
+export function NoShowButton({ order, slotStart, who, quiet = false }: { order: PaidOrder; slotStart: string; who: string; quiet?: boolean }) {
   const qc = useQueryClient();
   const [asking, setAsking] = useState(false);
   const report = useMutation({
@@ -77,7 +78,7 @@ export function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slot
   if (handover.data?.no_show_reported_at || handover.data?.seller_confirmed_at) return null;
   return (
     <div>
-      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={report.isPending} onClick={() => setAsking(true)}>
+      <Button type="button" variant={quiet ? "link" : "outline"} size="sm" className={quiet ? "px-0 text-ds-14 font-semibold" : "text-sm font-semibold"} disabled={report.isPending} onClick={() => setAsking(true)} data-no-show-button="">
         They didn't show
       </Button>
       <NoShowSheet open={asking} onOpenChange={setAsking} side={order.side} who={who} free={order.lines.every((l) => l.price_cents === 0)} pending={report.isPending} onConfirm={() => report.mutate()} />

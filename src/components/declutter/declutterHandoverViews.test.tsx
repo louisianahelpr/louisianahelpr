@@ -669,7 +669,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // that are neighbours in the card's stacked body share one line with no gap, so each action sits in its own block.
   // A wrapper with no box of its own (display: contents, or a fragment) counts as its children.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   return (\n    <div>\n      <Button type="button" variant="primary" size="sm" disabled={confirm.isPending} |   return (\n    <div style={{ display: "contents" }}>\n      <Button type="button" variant="primary" size="sm" disabled={confirm.isPending}
-  // @mutate src/components/declutter/DeclutterNoShowAnswer.tsx |     <div>\n      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={report.isPending} |     <div style={{ display: "contents" }}>\n      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={report.isPending}
+  // @mutate src/components/declutter/DeclutterNoShowAnswer.tsx |     <div>\n      <Button type="button" variant={quiet ? "link" : "outline"} size="sm" |     <div style={{ display: "contents" }}>\n      <Button type="button" variant={quiet ? "link" : "outline"} size="sm"
   it("no two action buttons sit edge to edge in the card body, either side (D1-12)", async () => {
     const boxes = (el: Element): Element[] => (getComputedStyle(el).display === "contents" ? [...el.children].flatMap(boxes) : [el]);
     let checked = 0;
@@ -1269,6 +1269,7 @@ describe("#6: a free claim never reads like a paid order", () => {
     expect(card.textContent).not.toMatch(/Claimed/);
   });
 
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | const doneWhen = side === "seller" && at === 1 && slot ? { ...doneWhen0, by: null } : doneWhen0; | const doneWhen = doneWhen0;
   it("each side, each pickup kind and step: the card and its sheets have no money words, and the first step says Claimed", async () => {
     let read = 0;
     for (const handover of ["porch", "pickup_home"] as const) {
@@ -1279,7 +1280,10 @@ describe("#6: a free claim never reads like a paid order", () => {
           const { container, unmount } = show([free({ handover, my_side: side })]);
           const card = (await screen.findByText("Claimed")).closest("article")!;
           // Wait for the booking read: a booked door pickup moves to its second step.
-          if (at !== null && handover === "pickup_home") await waitFor(() => expect(card.textContent).toMatch(side === "buyer" ? /Pickup .* · at the door/ : /Next: have it ready at the door · Pickup /));
+          // Polish audit 11-27 #12 (date once): the seller's Next line no longer repeats the booked time the booking
+          // panel's "Pickup:" line says right below it.
+          if (at !== null && handover === "pickup_home") await waitFor(() => expect(card.textContent).toMatch(side === "buyer" ? /Pickup .* · at the door/ : /Next: have it ready at the door/));
+          if (at !== null && handover === "pickup_home" && side === "seller") expect(card.textContent).not.toMatch(/ready at the door · Pickup /);
           const name = side === "buyer" ? "I got it" : "Picked up";
           // BUY-17: a porch buyer's "I got it" waits for the porch photo (none here), so it is greyed out, never opened.
           const acts = side === "buyer" ? at !== null && handover !== "porch" : handover === "pickup_home" && at === 30;
@@ -1418,7 +1422,7 @@ describe("#2: the buyer books from the seller's pickup times", () => {
 // order waits for pickup. Its button shows once the booked pickup is over (the "They didn't show" moment: 15 minutes
 // after a booked time, the end of a porch day). The one exception: the place has no pickup times left (LEAD-PLACE-TIMES; was: no pickup days
 // left), so the buyer cannot book at all. The "I got it" sheet's "Something's not right" (the handover itself) still opens the form (159).
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |  if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking, Date.now(), porchSeller)} /> |  if (!o) setAtHandover(false); }} />
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |  if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking, Date.now(), porchSeller)} quiet={sellerNextFirst} /> |  if (!o) setAtHandover(false); }} quiet={sellerNextFirst} />
 // @mutate src/components/declutter/DeclutterPorchDay.tsx |   return !!from && now >= new Date(from).getTime() + 15 * 60_000; |   return !!from && now >= new Date(from).getTime();
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | noTimes={order.handover === "porch" && order.side === "buyer" ? <ProblemForm | noTimes={false ? <ProblemForm
 describe("D2-9: no Report a problem while the order waits for pickup", () => {
@@ -1480,7 +1484,7 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
   // no "Report a problem" (the server refuses the no-show until porch_until: declutter_report_no_show); after it, both.
   // @mutate src/components/declutter/DeclutterPorchDay.tsx |   if (porchSeller) { |   if (false) {
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const porchSeller = order.handover === "porch" && order.side === "seller"; |   const porchSeller = false;
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | trigger={pickupTimeOver(booking, Date.now(), porchSeller)} /> | trigger={pickupTimeOver(booking)} />
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | trigger={pickupTimeOver(booking, Date.now(), porchSeller)} quiet= | trigger={pickupTimeOver(booking)} quiet=
   // @mutate src/components/declutter/DeclutterPorchDay.tsx | const until = booking.porch_until ? new Date(booking.porch_until) : | const until = false ? new Date(booking.porch_until ?? "") :
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {!(booking.porch_until && booking.porch_mode !== "all_day" && !posted) && <p | {<p
   it("Q2627: porch out until a time: the seller's They didn't show and Report a problem wait until it is over", async () => {
@@ -1585,8 +1589,8 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && !view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />} |
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch" |           {false ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch"
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemForm={problem ? null : <ProblemForm | problemForm={false ? null : <ProblemForm
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen} |           {<ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {booking?.slot_start && !problem && <NoShowButton | {booking?.slot_start && <NoShowButton
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | const report = !problem ? <ProblemForm | const report = true ? <ProblemForm
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | const noShow = booking?.slot_start && !problem | const noShow = booking?.slot_start && true
 // @mutate src/components/declutter/declutterPayoutWords.ts | if (problemOpen && payout.status === "pending") return | if (false) return
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payoutLine(payout, !!problem, { | {payoutLine(payout, false, {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const { problems, settled: problemsSettled, answered: problemsAnswered } = useOpenProblemsRead(ids); |   const problems = new Map<string, OpenProblem>(); const problemsSettled = true; const problemsAnswered = true;

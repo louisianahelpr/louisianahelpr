@@ -142,4 +142,36 @@ describe("NIGHT-SELL-soldstates-3: the seller's open sale leads with the next ac
     expect(card.querySelectorAll("[data-talk]")).toHaveLength(1);
     expect(card.querySelector("[data-order-body]")!.lastElementChild!.contains(talk)).toBe(true);
   });
+
+  // Polish audit 11-27 #12 (Selling sale cards stacked 5 pill buttons of different widths): the seller's next step
+  // ("Picked up") is the card's ONE full-width 48px filled button; Message the buyer, They didn't show and Report a
+  // problem are one row of 14px text buttons (each keeps its own rules for when it shows); the date is said once.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | variant="primary" size="md" className="w-full" disabled={pickedUp.isPending} | variant="primary" size="sm" disabled={pickedUp.isPending}
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} quiet={sellerNextFirst} /> : null; | who={who} /> : null;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | porchSeller)} quiet={sellerNextFirst} /> : null; | porchSeller)} /> : null;
+  // @mutate src/components/declutter/DeclutterOrderBits.tsx |         {children}\n |
+  it("polish #12: a door pickup past its time has one full-width Picked up and one row of text buttons", async () => {
+    state.cart = [line({ handover: "pickup_home" })];
+    state.bookings = [{ order_id: "o1", slot_start: new Date(Date.now() - 2 * 3600_000).toISOString(), status: "booked", pickup_day: null }];
+    show();
+    const next = await screen.findByRole("button", { name: "Picked up" });
+    const card = next.closest("article")!;
+    expect(next.className.split(/\s+/)).toEqual(expect.arrayContaining(["w-full", "h-12", "btn-grad-primary"]));
+    const row = card.querySelector("[data-sale-secondary]") as HTMLElement;
+    expect(row).not.toBeNull();
+    const noShow = await within(card).findByRole("button", { name: "They didn't show" });
+    const report = within(card).getByRole("button", { name: "Report a problem" });
+    for (const b of [noShow, report]) {
+      expect(row.contains(b), b.textContent ?? "").toBe(true);
+      expect(b.className.split(/\s+/), b.textContent ?? "").toEqual(expect.arrayContaining(["link-standard", "text-ds-14"]));
+      expect(b.className, b.textContent ?? "").not.toMatch(/border-\[1\.5px\]/);
+    }
+    expect(row.contains(card.querySelector("[data-talk]"))).toBe(true);
+    // Every button on the card that is not the next step or Move is a text button: no second pill.
+    const filled = Array.from(card.querySelectorAll("button")).filter((b) => b.className.includes("btn-grad-primary"));
+    expect(filled).toEqual([next]);
+    // Date once: the Next line does not repeat the booked time that the "Pickup:" line below gives.
+    expect(card.textContent).toMatch(/Next: have it ready at the door/);
+    expect(card.textContent).not.toMatch(/ready at the door · Pickup /);
+  });
 });

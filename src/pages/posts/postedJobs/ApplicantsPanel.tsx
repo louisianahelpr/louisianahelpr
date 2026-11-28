@@ -164,6 +164,8 @@ export function ApplicantsPanel({
       >
         <AppPage
           title="Applicants"
+          // Polish audit 11-27 #113: back stays pinned while the list scrolls (compactHeaderKeepsBack1127).
+          stickyHeader
           onBack={() => setSelectedJob(null)}
           titleActions={
             /* Reach, on demand. This readout used to sit on the job card

@@ -5,7 +5,7 @@
  *    id to jump to; the full arrival check is src/test/giftGuideVisual1123.test.tsx.)
  *  - Four results lay out two by two, so one is never left alone on a row.
  *
- * @mutate src/content/giftQuiz.ts | { id: "50-75", label: "$50 to $75", min: 50, max: 74 }, | { id: "50-100", label: "$50 to $100", min: 50, max: 99 },
+ * @mutate src/content/giftQuiz.ts | { id: "50-75", label: "$50–$75", min: 50, max: 74 }, | { id: "50-100", label: "$50 to $100", min: 50, max: 99 },
  * @mutate src/pages/info/giftGuides/GiftGuideFinder.tsx |     <section aria-labelledby={FINDER_TITLE_ID} | <section id={FINDER_ID} aria-labelledby={FINDER_TITLE_ID}
  * @mutate src/pages/info/giftGuides/giftGuidesStyles.ts | .gg-quiz-list[data-quiz-count="4"]{grid-template-columns:repeat(2,minmax(0,1fr))} | .gg-quiz-list[data-quiz-count="4"]{grid-template-columns:repeat(3,minmax(0,1fr))}
  * @mutate src/pages/info/giftGuides/GiftGuideFinder.tsx | data-quiz-count={shown.length} | data-quiz-x={shown.length}

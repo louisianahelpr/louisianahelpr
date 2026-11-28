@@ -203,11 +203,11 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
     // Owner 11-21: "Each guide should have sections that go by price 25 50 75 100+".
     // Owner 11-23 ("Under 10"): "Stocking stuffers under $10" opens every guide.
     const STOCKING = "Stocking stuffers under $10";
-    const order = [STOCKING, "Under $25", "$25 to $50", "$50 to $75", "$75 to $100", "$100 and up"];
+    const order = [STOCKING, "Under $25", "$25–$50", "$50–$75", "$75–$100", "$100+"];
     expect(low.length, slug).toBeGreaterThan(2);
     expect(low[0].title, slug).toBe(STOCKING);
     expect(low.map((x) => x.title), slug).toEqual(order.filter((t) => low.some((x) => x.title === t)));
-    const bounds: Record<string, [number, number]> = { [STOCKING]: [1, 9], "Under $25": [10, 24], "$25 to $50": [25, 49], "$50 to $75": [50, 74], "$75 to $100": [75, 99], "$100 and up": [100, 1e9] };
+    const bounds: Record<string, [number, number]> = { [STOCKING]: [1, 9], "Under $25": [10, 24], "$25–$50": [25, 49], "$50–$75": [50, 74], "$75–$100": [75, 99], "$100+": [100, 1e9] };
     for (const x of low) {
       expect(x.labelled, x.title).toBe(true);
       expect(x.count, x.title).toBe(` (${x.dollars.length})`);
@@ -256,7 +256,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // Guides audit 1126 (scripts/giftGuidePrices1126.mjs): Jack Black lip balm ($8.50) in, the gun patches ($9.99, ~$10)
       // out of Stocking stuffers; the Palmetto knife ($26.95) moves from Under $25 to $25 to $50.
       // Him owner pick 11-26 (HIM_OWNER_1126_ROWS): the $19.99 power bank from her Walmart Creator screenshots, Under $25.
-      him: { "Stocking stuffers under $10": 23, "Under $25": 48, "$25 to $50": 53, "$50 to $75": 25, "$75 to $100": 13, "$100 and up": 49 },
+      him: { "Stocking stuffers under $10": 23, "Under $25": 48, "$25–$50": 53, "$50–$75": 25, "$75–$100": 13, "$100+": 49 },
       // 11-22 (owner adds, scripts/giftGuideOwnerAdds1122.mjs): Kids gained the two Camp Snap 2 colors ($60); Her gained
       // EADEM ($24), Crown Affair and Camp Snap 2 ($59, $60), CS-Pro, Serta and Aera ($79, from $85, $98), CS-8, Coravin
       // and Sleep Crown ($159, $199, $289). Batch 2: Her + 3 STIL under $25, Lemme, Nest, STIL binder and Emi Jay ($25-$50),
@@ -320,7 +320,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // TikTok Shop adds 11-26 (tiktok-adds-1126): the $19.99 Crocs Jibbitz Super Hyper Me Bows Under $25.
       // Trending adds 11-26 (KIDS_TRENDING_1126_ROWS, trending-adds2-1126): the $15 Grinch Tonie Under $25, the $28 Owala Disney
       // Princess FreeSip $25 to $50; the Nex Playground ($209, now Walmart) stays $100 and up.
-      kids: { "Stocking stuffers under $10": 46, "Under $25": 123, "$25 to $50": 48, "$50 to $75": 20, "$75 to $100": 10, "$100 and up": 31 },
+      kids: { "Stocking stuffers under $10": 46, "Under $25": 123, "$25–$50": 48, "$50–$75": 20, "$75–$100": 10, "$100+": 31 },
       // Batch 2c: Her + Good Molecules ($18), BISSELL Little Green Mini, Drowsy, Diptyque ($80-$90), Madewell, Oura ($158, $399).
       // 11-22 (owner 11-22 screenshot list, builder-guide-adds-2): Her + Pilot G2, the L'Oreal mask, the Mom book, Loop,
       // Mrs. Meyer's, Downy, Scrub Mommy, the croc makeup bag, Anker, the Stanley food jar, Dae, Touchland and the LUSH bar
@@ -368,7 +368,7 @@ describe("price sections (owner 11-21: \"they all need to be sorted in sections 
       // TikTok Shop adds 11-26 (tiktok-adds-1126): the $38 Glow Recipe Fruit Babies Glow & Soothe Kit $25 to $50.
       // Trending adds 11-26 (HER_TRENDING_1126_ROWS, trending-adds2-1126): the $6.30 Kitsch dermaplaners are a stocking stuffer;
       // the $13.23 medicube pads, $17.60 Kitsch bonnet and $18 LANEIGE mask Under $25.
-      her: { "Stocking stuffers under $10": 26, "Under $25": 83, "$25 to $50": 72, "$50 to $75": 22, "$75 to $100": 16, "$100 and up": 40 },
+      her: { "Stocking stuffers under $10": 26, "Under $25": 83, "$25–$50": 72, "$50–$75": 22, "$75–$100": 16, "$100+": 40 },
     };
     expect(Object.fromEntries(low.map((x) => [x.title, x.dollars.length])), slug).toEqual(COUNTS[slug]);
   });

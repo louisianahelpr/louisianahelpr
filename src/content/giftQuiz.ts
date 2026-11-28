@@ -7,7 +7,7 @@ import { EARN_RANKS } from "@/content/giftGuideEarnOrder";
  * few things. The whole point of a quiz is to ask questions to narrow down the list"). One question per screen:
  *   1. who: Her, Him or Kids (Mom and Dad are gone: they were Her and Him again);
  *   2. for Kids only, an age band;
- *   3. the budget, by the price each card shows (Under $25, $25 to $50, $50 to $100, $100 and up);
+ *   3. the budget, by the price each card shows (Under $25, $25–$50, $50–$75, $75–$100, $100+);
  *   4. what they are into: only the chips with at least QUIZ_MIN matches for the answers so far, plus "Anything".
  * The result is QUIZ_FIRST picks (QUIZ_MAX with "Show me more"), ranked: the owner's Top 10 first, then the click
  * order (src/content/giftGuideEarnRank.json), then the price that sits best in the budget; at most two of a brand.
@@ -37,10 +37,10 @@ export const QUIZ_AGES: { id: QuizAge; label: string }[] = [
 /** Budget bands by the dollars a card shows (rounded, at least $1), the same edges as the guides' price sections. */
 export const QUIZ_BUDGETS: { id: QuizBudget; label: string; min: number; max: number }[] = [
   { id: "under-25", label: "Under $25", min: 0, max: 24 },
-  { id: "25-50", label: "$25 to $50", min: 25, max: 49 },
-  { id: "50-75", label: "$50 to $75", min: 50, max: 74 },
-  { id: "75-100", label: "$75 to $100", min: 75, max: 99 },
-  { id: "100-plus", label: "$100 and up", min: 100, max: Infinity },
+  { id: "25-50", label: "$25–$50", min: 25, max: 49 },
+  { id: "50-75", label: "$50–$75", min: 50, max: 74 },
+  { id: "75-100", label: "$75–$100", min: 75, max: 99 },
+  { id: "100-plus", label: "$100+", min: 100, max: Infinity },
 ];
 const ADULT_INTO: { id: QuizInto; label: string }[] = [
   { id: "cozy", label: "Cozy & home" },

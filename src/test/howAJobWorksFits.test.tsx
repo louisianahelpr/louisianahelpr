@@ -2,7 +2,7 @@
  * LEAD-HOWJOB-GUARANTEE (owner, 2026-10-31): the home page's "How a job works"
  * shows no "Covered by the Helpr Guarantee" box ("it doesn't fit there"), on
  * either side of the toggle, and its pieces cannot push past the column: the
- * owner's 1440 capture had step 3 ("Pay when it's done") and the toggle's
+ * owner's 1440 capture had step 3 ("Pay when it’s done") and the toggle's
  * "I need help" past the right edge.
  *
  * Layout is checked on the rendered classes jsdom can see: the steps grid is
@@ -35,17 +35,17 @@ const classes = (el: Element | null) => (el?.getAttribute("class") ?? "").split(
 describe("How a job works: no Guarantee box, nothing past the column (LEAD-HOWJOB-GUARANTEE)", () => {
   it("shows no Helpr Guarantee box on either side", () => {
     renderSection();
-    expect(screen.getByText("Pay when it's done")).toBeTruthy();
+    expect(screen.getByText("Pay when it’s done")).toBeTruthy();
     expect(screen.queryByText(/Covered by the Helpr Guarantee/)).toBeNull();
     expect(document.querySelector('[data-testid="guarantee-promise"]')).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "I want to work" }));
-    expect(screen.getByText("Get paid when it's done")).toBeTruthy();
+    expect(screen.getByText("Get paid when it’s done")).toBeTruthy();
     expect(document.querySelector('[data-testid="guarantee-promise"]')).toBeNull();
   });
 
   it("keeps the three steps and the toggle inside the column", () => {
     renderSection();
-    const card3 = screen.getByText("Pay when it's done").closest(".landing-card");
+    const card3 = screen.getByText("Pay when it’s done").closest(".landing-card");
     const grid = card3?.parentElement ?? null;
     const cards = grid ? [...grid.children] : [];
     expect(cards).toHaveLength(3);

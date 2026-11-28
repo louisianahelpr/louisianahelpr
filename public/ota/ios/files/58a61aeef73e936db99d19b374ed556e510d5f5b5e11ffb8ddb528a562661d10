@@ -1,0 +1,1 @@
+import{yr as e}from"./app-shared-Dgs5RvYM.js";function t(t){let n=encodeURIComponent(t.trim());return n?e?/iPad|iPhone|iPod/.test(navigator.userAgent)?`maps://?q=${n}`:`geo:0,0?q=${n}`:`https://maps.apple.com/?q=${n}`:``}export{t};

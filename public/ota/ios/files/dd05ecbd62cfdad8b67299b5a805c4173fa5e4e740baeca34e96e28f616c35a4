@@ -1,0 +1,1 @@
+import{t as e}from"./EmptyState-CqwDkTbB.js";import{r as t}from"./react-vendor-DBuF32qy.js";var n=t();function r({icon:t,title:r,children:i,action:a,...o}){return(0,n.jsx)(`div`,{"data-empty-card":``,...o,children:(0,n.jsx)(e,{variant:`compact`,icon:t,title:r,body:i,action:a})})}export{r as t};

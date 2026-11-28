@@ -40,7 +40,7 @@
  * P26: guest Post a job showed the full marketing footer under every step, and no step indicator at 1440 on its first
  * screen (the desktop rail is not on that screen; the phone bar was lg:hidden).
  * @mutate src/components/marketing/GuestPublicFrame.tsx |   const footerReady = contentShown && !focused; |   const footerReady = contentShown;
- * @mutate src/pages/post-job/PostJob.tsx | onBack={form.handlePostJobBack} focusedFlow> | onBack={form.handlePostJobBack}>
+ * @mutate src/pages/post-job/PostJob.tsx | onBack={form.handlePostJobBack} focusedFlow stickyHeader> | onBack={form.handlePostJobBack} stickyHeader>
  * @mutate src/components/postjob/PostJobStepHeader.tsx | className={`flex items-center gap-3${barAtEveryWidth ? "" : " lg:hidden"}`} | className="flex items-center gap-3 lg:hidden"
  * @mutate src/pages/post-job/EntryChoice.tsx | helper={head.h} barAtEveryWidth /> | helper={head.h} />
  *
@@ -249,7 +249,7 @@ describe("P26: guest Post a job is a focused flow with a step indicator at every
   it("the guest frame drops the footer for a focused flow, and Post a job is one", () => {
     expect(src("src/components/marketing/GuestPublicFrame.tsx")).toContain("const footerReady = contentShown && !focused;");
     expect(src("src/components/AppPage.tsx")).toContain("<GuestPublicFrame focused={focusedFlow}>");
-    expect(src("src/pages/post-job/PostJob.tsx")).toMatch(/<AppPage title=\{header\.title\} onBack=\{form\.handlePostJobBack\} focusedFlow>/);
+    expect(src("src/pages/post-job/PostJob.tsx")).toMatch(/<AppPage title=\{header\.title\} onBack=\{form\.handlePostJobBack\} focusedFlow( stickyHeader)?>/);
   });
   it("the first screen (no desktop rail) keeps the step bar at every width; form screens keep it phone-only", () => {
     const groups = render(<MemoryRouter><PostJobStepHeader screen="groups" question="Q" helper="H" barAtEveryWidth /></MemoryRouter>);

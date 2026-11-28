@@ -14,7 +14,7 @@
  * @mutate src/components/profile/YourPageLink.tsx |         {line && <span>{t("yp.lineLead")}</span>} | {null}
  * @mutate src/components/profile/YourPageLink.tsx | if (await copyToClipboard(profileLinkUrl(handle))) | if (await copyToClipboard(handle))
  * @mutate src/components/profile/YourPageLink.tsx |   if (forSale > 0) { |   if (forSale < 0) {
- * @mutate src/components/declutter/DeclutterShareCard.tsx | data-listing-share="" onClick={() => shareListing(item, "listings")} | data-listing-share="" onClick={() => undefined}
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | <ListRow variant="flush" onClick={() => shareListing(item, "listings")} data-manage-share="" | <ListRow variant="flush" onClick={() => undefined} data-manage-share=""
  * @mutate src/components/profile/YourPageLink.tsx |     enabled: !knownHandle, |     enabled: true,
  * @mutate src/components/profile/YourPageLink.tsx |   if (publicPage === null) { |   if (publicPage === undefined && false) {
  * @mutate src/components/profile/YourPageLink.tsx |   queryFn: () => fetchPublicProfile(handle), |   queryFn: async () => fetchPublicProfile(handle).catch(() => null),

@@ -4,7 +4,7 @@
  * Spanish, the same placeholders, and none of the row words is written into the screen in English any more.
  *
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       toast(t("decl.sl.takenDown"));\n |       toast("Taken down.");\n
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                     {t("decl.sl.manage")}\n |                     Manage\n
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={t("decl.sl.manageAria", { title: item.title })} onClick={() => { setSuggestDrop(false); setManagingId(item.id); }}> | aria-label="Manage" onClick={() => { setSuggestDrop(false); setManagingId(item.id); }}>
  * @mutate src/components/declutter/DeclutterHomeView.tsx | title={asking?.status === "draft" ? t("decl.sl.deleteQ") : t("decl.sl.takeDownQ")} | title={asking?.status === "draft" ? t("decl.sl.deleteQ") : "Take this item off sale?"}
  * @mutate src/lib/i18n/esDeclutter.ts |   "decl.sl.takenDown": "Retirado.",\n |
  */

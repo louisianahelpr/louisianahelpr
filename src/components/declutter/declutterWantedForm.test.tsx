@@ -36,7 +36,7 @@
  * Audit 10-30, one registration per finding:
  * @mutate src/lib/declutter/wanted.ts |   if (!f.category) out.category = "Pick a category."; |   if (!f.category && what === null) out.category = "Pick a category.";
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <FieldProblem id="wanted-what-problem" text={problems.what} /> |
- * @mutate src/components/declutter/DeclutterWantedViews.tsx | {feeLine(form.maxPrice)} |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const fee = feeLine(form.maxPrice); |   const fee = null;
  * Q2578 (audit 1102a), then polish audit 11-27 #2 (owner): with nothing typed there is no fee line at all (the
  * "For example, a $30 item costs $32.20" line is deleted).
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (!valid) return null; |   if (!valid) return t("dsl.w.feeTyped", { price: "$30", total: "$32.20" });

@@ -88,7 +88,10 @@ const PostJob = () => {
        `onBack` rather than `backTo`: back here steps the multi-step form
        backwards and only leaves the route from the first step. */
     // Audit 11-21 (P26): a focused flow; a guest gets the public header without the marketing footer under each step.
-    <AppPage title={header.title} onBack={form.handlePostJobBack} focusedFlow>
+    // Polish audit 11-27 #113: mid-scroll the title-only compact bar replaced the header and its back arrow; the
+    // title row (back, title, help) stays pinned instead, as on Find a Helpr and the Declutter item page.
+    // Guard: src/test/compactHeaderKeepsBack1127.test.ts.
+    <AppPage title={header.title} onBack={form.handlePostJobBack} focusedFlow stickyHeader>
       {form.redirecting && <RedirectingOverlay />}
       {form.step === "entry" ? (
         <div className="space-y-section">

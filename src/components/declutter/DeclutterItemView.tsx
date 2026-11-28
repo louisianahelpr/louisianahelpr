@@ -291,6 +291,16 @@ export default function ItemView({ itemId }: { itemId: string }) {
       // Owner 11-14 (Depop/Vinted audit item 9): the photo runs edge to edge on a phone.
       phoneBleed
     >
+      {/* Polish audit 11-27 #124: the buyer-preview banner is the page's first row, one line (its words + the 44px way
+          back, audit 1110 F333), not a card mid-page under the price where a seller missed it. */}
+      {preview && (
+        <div data-item-preview="" className="mb-3 flex min-h-11 items-center justify-between gap-3 border-b border-border pb-2">
+          <p className="min-w-0 text-ds-14 font-semibold text-foreground">{t("decl.item.previewTitle")}</p>
+          <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
+            <Link to={`/declutter/item/${it.id}`} data-preview-back="">{t("decl.item.previewBack")}</Link>
+          </Button>
+        </div>
+      )}
       <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
         {/* Owner 11-20 #2: on a computer the photos stay in view while the details scroll (it was the other way round,
             and the left side sat empty under a short gallery). */}
@@ -417,16 +427,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
             )}
           </section>
 
-          {preview && (
-            <div data-item-preview="">
-              <DeclutterNotice title={t("decl.item.previewTitle")}>
-                {/* A 44px button, not a 16px text link (audit 1110 F333). */}
-                <Button asChild variant="outline" size="sm" className="mt-1 rounded-full">
-                  <Link to={`/declutter/item/${it.id}`} data-preview-back="">{t("decl.item.previewBack")}</Link>
-                </Button>
-                {previewPressed && <p role="status" className="mt-1 font-semibold text-foreground" data-preview-note="">{PREVIEW_ACTION_NOTE}</p>}
-              </DeclutterNotice>
-            </div>
+          {/* The banner's note after a buyer action is pressed stays here, beside the actions it answers. */}
+          {preview && previewPressed && (
+            <p role="status" className="text-ds-14 font-semibold text-foreground" data-preview-note="">{PREVIEW_ACTION_NOTE}</p>
           )}
 
           {/* The Free change (Q2487): the giver sees who asked and picks one. */}

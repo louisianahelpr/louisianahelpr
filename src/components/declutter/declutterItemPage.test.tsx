@@ -827,6 +827,13 @@ describe("the photo-first Declutter item page", () => {
     const back = screen.getByRole("link", { name: "Back to your listing" });
     expect(back.className).toMatch(/\bh-11\b/);
     expect(back.className).not.toMatch(/\bunderline\b/);
+    // Polish audit 11-27 #124: the banner is the page's first row, before the photos, one line (no notice card).
+    // @mutate src/components/declutter/DeclutterItemView.tsx |       {preview && (\n        <div data-item-preview="" | {false && (\n        <div data-item-preview=""
+    const banner = document.querySelector("[data-item-preview]") as HTMLElement;
+    expect(banner?.contains(back)).toBe(true);
+    const gallery = document.querySelector("[data-item-gallery-column]") as HTMLElement;
+    expect(banner.compareDocumentPosition(gallery) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(banner.querySelector("[data-notice], [role=note]")).toBeNull();
     // The buyer's words and the buyer's actions.
     expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Exact address after you pay");
     expect(await screen.findByText(/until it reaches a price the seller chose/)).toBeInTheDocument();

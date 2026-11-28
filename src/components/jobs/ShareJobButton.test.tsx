@@ -215,6 +215,18 @@ describe("ShareJobButton", () => {
     expect(screen.getByText("Copy link")).toBeTruthy();
   });
 
+  // Polish audit 11-27 #114: one "Copy link" look, the outline 44px button (it was a filled pill on the job page).
+  // @mutate src/components/jobs/ShareJobButton.tsx |       variant={style ? "ghost" : "outline"} |       variant={style ? "ghost" : "default"}
+  it("with no host style the button is the outline 44px button, not a filled pill", () => {
+    isNativePlatformMock.mockReturnValue(false);
+    setNavigator({ share: undefined as unknown as Navigator["share"] });
+    render(<ShareJobButton job={job} />);
+    const b = screen.getByRole("button", { name: /Copy link|Share/ });
+    expect(b.className).toMatch(/\bborder-\[1\.5px\]/);
+    expect(b.className).toMatch(/\bh-11\b/);
+    expect(b.className).not.toMatch(/bg-\[hsl\(var\(--bark\)\/0\.10\)\]/);
+  });
+
   it("falls back to navigator.share when not native but Web Share API exists", async () => {
     const navigatorShare = vi.fn().mockResolvedValue(undefined);
     setNavigator({ share: navigatorShare });

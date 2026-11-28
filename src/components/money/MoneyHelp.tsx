@@ -23,7 +23,8 @@ export function MoneyHelp() {
 
   if (!open) {
     return (
-      <Button type="button" variant="outline" className="rounded-full" onClick={() => setOpen(true)} data-money-help-open="">
+      // Polish audit 11-27 #72: a 15px text link, not a 60px outline pill under the tax note.
+      <Button type="button" variant="link" size="sm" className="px-0 text-ds-15 font-semibold" onClick={() => setOpen(true)} data-money-help-open="">
         How does this work?
       </Button>
     );

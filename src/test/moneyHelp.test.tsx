@@ -6,6 +6,8 @@
  * @mutate src/components/money/MoneyHelp.tsx |         setAnswer(outcome.answer); |         setAnswer(null);
  * @mutate src/components/money/MoneyHelp.tsx |         setUnreachable(outcome.unreachable); |         setUnreachable(false);
  * @mutate src/components/money/MoneyHelp.tsx |       {answer === null && !unreachable && ( |       {answer === "never" && (
+ * Polish audit 11-27 #72: the closed helper is a 15px text link, not a 60px outline pill.
+ * @mutate src/components/money/MoneyHelp.tsx |       <Button type="button" variant="link" size="sm" className="px-0 text-ds-15 font-semibold" | <Button type="button" variant="outline" className="rounded-full"
  * @mutate src/pages/profile/ProfileTabPanels.tsx |           <div className="mt-4"><MoneyHelp /></div> |
  */
 import { readFileSync } from "node:fs";
@@ -52,6 +54,12 @@ describe("MoneyHelp", () => {
     fireEvent.click(screen.getByRole("button", { name: "How does this work?" }));
     fireEvent.change(screen.getByLabelText(/Ask how payments/), { target: { value: "fees?" } });
     expect((screen.getByRole("button", { name: "Ask" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+  it("closed, it is a text link, not an outline pill (polish audit 11-27 #72)", () => {
+    render(<MemoryRouter><MoneyHelp /></MemoryRouter>);
+    const open = screen.getByRole("button", { name: "How does this work?" });
+    expect(open.className).toMatch(/\blink-standard\b/);
+    expect(open.className).not.toMatch(/\bborder-/);
   });
   it("the money tab mounts it", () => {
     const src = blankComments(readFileSync(join(__dirname, "..", "pages", "profile", "ProfileTabPanels.tsx"), "utf8"));

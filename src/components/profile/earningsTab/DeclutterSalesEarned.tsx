@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { payoutAccountReady } from "@/lib/payoutAccountReady";
@@ -29,8 +30,13 @@ export function DeclutterSalesEarned({ rows, failed, onRetry }: { rows: SalePayo
           <li key={r.order_id} data-sale-payout={r.order_id} className="py-2 flex flex-col gap-0.5">
             {/* Area 06b M8 (design audit 11-18, display only): each row opens its sale on Selling, and a payout that did
                 not go out says why, with the one place to fix it. The payout run and its rules are untouched. */}
+            {/* Polish audit 11-27 #72: a 15px/600 row title with a chevron, no underline, its text centred in the 44px
+                target so the amount sits right under it (the title sat at the top of the box with ~40px blank below). */}
             <Link to={`/declutter?tab=selling&order=${encodeURIComponent(r.order_id)}`} data-sale-payout-link=""
-              className="min-h-11 min-w-0 text-ds-14 font-semibold underline underline-offset-2 [overflow-wrap:anywhere]" style={{ color: "hsl(var(--ink-deep))" }}>Sold: {r.title}</Link>
+              className="flex min-h-11 min-w-0 items-center justify-between gap-2 text-ds-15 font-semibold no-underline [overflow-wrap:anywhere]" style={{ color: "hsl(var(--ink-deep))" }}>
+              <span className="min-w-0">Sold: {r.title}</span>
+              <ChevronRight className="h-5 w-5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden data-sale-payout-chevron="" />
+            </Link>
             <span className="tabular-nums text-ds-13" style={{ color: r.status === "failed" ? "hsl(var(--burnt-sienna))" : "hsl(var(--olivewood) / 0.9)" }}>
               {formatCents(r.amount_cents)} · {salePayoutWords(r)}
             </span>

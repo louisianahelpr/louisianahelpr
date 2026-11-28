@@ -8,6 +8,8 @@
  * @mutate src/components/profile/earningsTab/DeclutterSalesEarned.tsx |   if (failed) return <ErrorState | if (false) return <ErrorState
  * @mutate src/components/profile/earningsTab/DeclutterSalesEarned.tsx | {(r.status === "failed" \|\| (r.status === "pending" && !payoutReady)) && ( | {(r.status === "failed") && (
  * @mutate src/components/profile/earningsTab/EarningsSummaryCard.tsx | {saleCount > 0 ? <> | {saleCount >= 0 ? <>
+ * Polish audit 11-27 #72: the row title is a 15px/600 link with a chevron, no underline, centred in its 44px target.
+ * @mutate src/components/profile/earningsTab/DeclutterSalesEarned.tsx | className="flex min-h-11 min-w-0 items-center justify-between gap-2 text-ds-15 font-semibold no-underline | className="min-h-11 min-w-0 text-ds-14 font-semibold underline underline-offset-2
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -83,5 +85,15 @@ describe("Declutter sales in Money > Earned (A3-56)", () => {
     expect(src).toContain("<DeclutterSalesEarned rows={salePayouts ?? []}");
     const hook = blankComments(readFileSync("src/components/profile/earningsTab/useEarningsData.ts", "utf8")).replace(/\s+/g, " ");
     expect(hook).toContain("queryFn: () => fetchMySalePayouts(helperId)");
+  });
+
+  it("polish audit 11-27 #72: a row's title is a 15px link with a chevron, no underline, centred in its 44px target", () => {
+    render(<DeclutterSalesEarned rows={[row("o-1", "Bar stools", "paid", 4000, "2026-11-07T12:00:00Z")]} failed={false} onRetry={() => {}} />);
+    const link = document.querySelector("[data-sale-payout-link]") as HTMLElement;
+    expect(link.textContent).toBe("Sold: Bar stools");
+    expect(link.className).toMatch(/\btext-ds-15\b/);
+    expect(link.className).toMatch(/\bitems-center\b/);
+    expect(link.className).not.toMatch(/(^|\s)underline(\s|$)/);
+    expect(link.querySelector("[data-sale-payout-chevron]")).not.toBeNull();
   });
 });

@@ -13,7 +13,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AutoLikerOfferRow, SaverOfferLine, useSaverOfferData } from "./SaverOffer";
-import { BulkBar, BulkHeading, BulkPick, useBulkSelect } from "./BulkActions";
+import { BulkBar, BulkHeading, BulkPick, bulkPickable, useBulkSelect } from "./BulkActions";
 import "@/lib/i18n/enDeclTop5";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -261,6 +261,9 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
           // Polish audit 11-27 #11: a live or paused row has one control (the Manage chevron), so it sits on the row's
           // right at every width; drafts and listings in review keep their labelled buttons under the row on a phone.
           const oneControl = (item.status === "live" || item.status === "paused") && !haulById.get(item.id);
+          // Polish audit 11-27 #129: in Select mode a tickable row shows only its checkbox, photo, title and price (the
+          // bulk bar acts on it); its own Manage chevron, haul actions and saver-offer line wait until Done.
+          const picking = bulk.selecting && bulkPickable(item);
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
             <div className={oneControl ? "flex items-center gap-2" : "flex flex-col gap-3 sm:flex-row sm:items-center"}>
@@ -289,6 +292,7 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                 </div>
                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} agreed={agreed.get(item.id)} />
               </Link></BulkPick>
+              {!picking && (
               <div className={oneControl ? "flex shrink-0" : "flex flex-wrap gap-2 sm:shrink-0 sm:justify-end"} data-listing-actions="">
                 {item.status === "draft" ? (
                   <Button type="button" size="sm" aria-label={t("decl.sl.finishAria", { title: item.title })} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
@@ -334,9 +338,10 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                   />
                 )}
               </div>
+              )}
             </div>
-            {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} optedIn={!!haul.data?.optedIn.has(item.id)} />}
-            <SaverOfferLine item={item} saves={saverOffers.saves?.get(item.id) ?? 0} lastSend={saverOffers.sends?.get(item.id)} />
+            {haulOn && !picking && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} optedIn={!!haul.data?.optedIn.has(item.id)} />}
+            {!picking && <SaverOfferLine item={item} saves={saverOffers.saves?.get(item.id) ?? 0} lastSend={saverOffers.sends?.get(item.id)} />}
           </li>
           );
         })}

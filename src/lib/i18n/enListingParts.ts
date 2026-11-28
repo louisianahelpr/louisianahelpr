@@ -212,6 +212,8 @@ export const enListingParts = {
   "lp.m.tMenu": "Manage listing",
   "lp.m.preview": "Preview",
   "lp.m.previewBody": "See your listing as buyers do",
+  "lp.m.share": "Share",
+  "lp.m.shareBody": "Send the link or post it to Facebook",
   "lp.m.editBody": "Title, description, category, condition, size, how buyers get it",
   "lp.m.gPrice": "Price",
   "lp.m.gWays": "How it gets to buyers",

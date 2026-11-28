@@ -96,13 +96,13 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     await waitFor(() => expect(copy).toHaveBeenCalledWith("https://www.louisianahelpr.com/u/eli-b"));
   });
 
-  it("Selling leads with it, and each live listing row has its own Share", () => {
+  it("Selling leads with it, and each live listing's Manage sheet has its own Share", () => {
     const home = code("src/components/declutter/DeclutterHomeView.tsx");
     const view = home.slice(home.indexOf("function SellingView"), home.indexOf("<SellingDash", home.indexOf("function SellingView")));
     expect(view.indexOf("<YourPageLink")).toBeLessThan(view.indexOf("<ListedWhatNext"));
-    expect(home).toMatch(/\{item\.status === "live" && <ListingShareButton item=\{item\} \/>\}/);
-    const card = code("src/components/declutter/DeclutterShareCard.tsx");
-    expect(card).toMatch(/<Button[^>]*aria-label=\{`Share \$\{item\.title\}`\}[^>]*onClick=\{\(\) => shareListing\(item, "listings"\)\}/);
+    // Polish audit 11-27 #11: Share moved from an icon button on every Selling row into the listing's Manage sheet.
+    const manage = code("src/components/declutter/DeclutterManageListing.tsx");
+    expect(manage).toMatch(/\{item\.status === "live" && \(\s*<li>\s*<ListRow variant="flush" onClick=\{\(\) => shareListing\(item, "listings"\)\} data-manage-share=""/);
   });
 
   it("Home shows it from the profile row it already has: no extra read (owner request 11-05)", async () => {

@@ -67,15 +67,6 @@ export function shareListing(it: Pick<ShareableListing, "id" | "title" | "curren
   void shareNative({ title: it.title, text: shareText(it), url: listingLink(it.id) });
 }
 
-/** Owner request 11-05: the Share button on each of the seller's live listings (Selling → Your listings). */
-export function ListingShareButton({ item }: { item: Pick<ShareableListing, "id" | "title" | "current_price_cents"> }) {
-  return (
-    // Design audit 11-17 #20: a 44px icon button beside the row's one labelled button (Manage).
-    <Button type="button" variant="outline" size="iconCompact" className="rounded-full" aria-label={`Share ${item.title}`} data-listing-share="" onClick={() => shareListing(item, "listings")}>
-      <Share2 aria-hidden /><span className="sr-only">Share</span>
-    </Button>
-  );
-}
 
 /**
  * One tap on "Share to Facebook" (selling boost, owner 11-20). On a phone (the app, or a touch browser with a share

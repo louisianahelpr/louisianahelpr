@@ -1,12 +1,11 @@
 /**
  * LEAD-ONE-PREVIEW (owner 2026-10-31, asked twice): the seller's "View" and "See what buyers see" opened the same thing.
- * They are one action, "Preview", everywhere the seller meets it: the Selling rows (sellingDash.test.tsx), the Manage
- * listing sheet's first row ("Preview / See your listing as buyers do") and the sheet after posting. Each opens the
- * listing as buyers read it (?preview=buyer).
+ * They are one action, "Preview", everywhere the seller meets it: the Manage listing sheet's first row ("Preview / See
+ * your listing as buyers do", which the Selling row's chevron opens since polish audit 11-27 #11) and the sheet after
+ * posting. Each opens the listing as buyers read it (?preview=buyer).
  *
  * @mutate src/components/declutter/DeclutterManageListing.tsx | <RowText title={t("lp.m.preview")}>{t("lp.m.previewBody")}</RowText> | <RowText title="See what buyers see">Your listing as a buyer reads it</RowText>
  * @mutate src/components/declutter/ListedWhatNext.tsx | primary={{ label: t("decl.lwn.preview"), onClick: () => navigate(`/declutter/item/${it.id}?preview=buyer`) }} | primary={{ label: "See my listing", onClick: () => navigate(`/declutter/item/${it.id}`) }}
- * @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={t("decl.sl.previewAria", { title: item.title })}><Eye aria-hidden /><span className="sr-only">{t("decl.sl.preview")}</span></Link> | aria-label={`See what buyers see of ${item.title}`}>See what buyers see</Link>
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -38,8 +37,10 @@ describe("LEAD-ONE-PREVIEW: one Preview for the seller", () => {
     // F260q: the words live in enListingParts (Spanish in esListingParts).
     expect(readFileSync(join(process.cwd(), "src/lib/i18n/enListingParts.ts"), "utf8")).toContain('"lp.m.preview": "Preview",\n  "lp.m.previewBody": "See your listing as buyers do",');
     expect(read("ListedWhatNext.tsx")).toMatch(/primary=\{\{ label: t\("decl\.lwn\.preview"\), onClick: \(\) => navigate\(`\/declutter\/item\/\$\{it\.id\}\?preview=buyer`\) \}\}/);
-    // Design audit 11-17 #20: the Selling row's Preview is a 44px icon button; the word stays as its hidden text.
-    expect(read("DeclutterHomeView.tsx")).toMatch(/\?preview=buyer`\} aria-label=\{t\("decl\.sl\.previewAria", \{ title: item\.title \}\)\}><Eye aria-hidden \/><span className="sr-only">\{t\("decl\.sl\.preview"\)\}<\/span><\/Link>/);
-    expect(readFileSync(join(process.cwd(), "src/lib/i18n/enDeclutter.ts"), "utf8")).toContain('"decl.sl.preview": "Preview",');
+    // Polish audit 11-27 #11: a live or paused Selling row has no Preview icon of its own (Manage holds Preview); only a
+    // listing in review, which has no Manage sheet, keeps one.
+    const home = read("DeclutterHomeView.tsx");
+    expect(home.match(/\?preview=buyer/g)).toHaveLength(1);
+    expect(home).toMatch(/\{item\.status === "pending_review" && \(\s*<Button asChild[^>]*data-listing-preview="">\s*<Link to=\{`\/declutter\/item\/\$\{item\.id\}\?preview=buyer`\}/);
   });
 });

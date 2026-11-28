@@ -676,11 +676,13 @@ describe("Selling tab: Taken down, with Relist", () => {
   // line while View, See what buyers see and Manage wrapped to two rows. The title takes two lines and the row opens
   // the item (a draft's opens Finish listing). LEAD-ONE-PREVIEW (owner 2026-10-31): View and See what buyers see are
   // one button, Preview (the listing as buyers read it), on every listed row and at every width; a draft has none.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}> | <p className="truncate text-ds-15 font-semibold" title={item.title}>
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}><Eye aria-hidden /><span className="sr-only">{t("decl.sl.preview")}</span></Link> | <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | {item.status !== "draft" && ( | {item.status === "live" && (
+  // Polish audit 11-27 #11 (rows were ~250px with 5 controls): a live or paused row is ONE line of title (15px/600,
+  // ellipsis), its status, and one control, a chevron that opens Manage, on the row's right at 375 too. Preview and
+  // Share are rows inside Manage; the drop-the-price nudge is one line above the list.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <p className="truncate text-ds-15 font-semibold" title={item.title}> | <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}>
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |           const oneControl = (item.status === "live" \|\| item.status === "paused") && !haulById.get(item.id); |           const oneControl = false;
   // @mutate src/components/declutter/DeclutterHomeView.tsx | to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`} | to="/declutter"
-  it("a listing row: the title takes two lines, the row opens the item, one Preview (Sellinglist-4, LEAD-ONE-PREVIEW)", async () => {
+  it("a listing row: one title line, the row opens the item, one Manage chevron on the right (polish audit 11-27 #11)", async () => {
     state.mine = [ITEM, { ...ITEM, id: "p1", status: "paused", title: "Paused desk" }, { ...ITEM, id: "d1", status: "draft", title: "Half-done lamp" }];
     const { container } = at("/declutter?tab=selling");
     await screen.findByText("Half-done lamp");
@@ -688,15 +690,19 @@ describe("Selling tab: Taken down, with Relist", () => {
     expect(rows).toHaveLength(3);
     for (const r of rows) {
       const title = r.querySelector("[data-listing-open] p") as HTMLElement;
-      expect(title.className).toContain("line-clamp-2");
-      expect(title.className).not.toContain("truncate");
+      expect(title.className.split(/\s+/)).toEqual(expect.arrayContaining(["truncate", "text-ds-15", "font-semibold"]));
     }
+    // Live and paused rows: one control, the chevron, beside the row (flex-row), never Preview or Share icon buttons.
+    for (const r of rows.slice(0, 2)) {
+      expect((r.firstElementChild as HTMLElement).className.split(/\s+/)).toEqual(expect.arrayContaining(["flex", "items-center"]));
+      expect((r.firstElementChild as HTMLElement).className).not.toMatch(/\bflex-col\b/);
+      expect(r.querySelectorAll("[data-listing-actions] button, [data-listing-actions] a")).toHaveLength(1);
+      expect(r.querySelector("[data-listing-manage]")).not.toBeNull();
+    }
+    expect(container.querySelector("[data-listing-preview], [data-listing-share]")).toBeNull();
     const open = (title: string) => (screen.getByText(title).closest("[data-listing-open]") as HTMLAnchorElement).getAttribute("href");
     expect(open("Oak rocking chair")).toBe(`/declutter/item/${ITEM.id}`);
     expect(open("Half-done lamp")).toBe("/declutter/sell?item=d1");
-    const previews = Array.from(container.querySelectorAll("[data-listing-preview]")) as HTMLAnchorElement[];
-    expect(previews.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([["Preview", `/declutter/item/${ITEM.id}?preview=buyer`], ["Preview", "/declutter/item/p1?preview=buyer"]]);
-    expect(previews.every((a) => !a.className.split(/\s+/).includes("hidden"))).toBe(true);
     expect(screen.queryByRole("link", { name: /^(?:View\b|See what buyers see)/ })).toBeNull();
   });
 

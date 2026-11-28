@@ -321,6 +321,7 @@ describe("Declutter screens", () => {
     // D4-12: every Selling row's actions name their item, so a list of rows is not "Preview, Manage, Preview, Manage".
     // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={t("decl.sl.finishAria", { title: item.title })} | aria-label="Finish listing"
     // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={t("decl.sl.previewAria", { title: item.title })} | aria-label="Preview"
+    // Polish audit 11-27 #11: a live row's Preview moved into Manage; a listing in review (no Manage) keeps its own.
     expect(screen.getByRole("button", { name: "Finish listing Lamp" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: `Preview ${ITEM.title}` }).length).toBeGreaterThan(0);
     expect(screen.queryByText("pending_review")).toBeNull();

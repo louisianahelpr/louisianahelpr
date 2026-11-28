@@ -143,7 +143,7 @@ describe("NIGHT-SELL-soldstates-3: the seller's open sale leads with the next ac
     expect(card.querySelector("[data-order-body]")!.lastElementChild!.contains(talk)).toBe(true);
   });
 
-  // Polish audit 11-27 #12 (Selling sale cards stacked 5 pill buttons of different widths): the seller's next step
+  // Polish audit 2026-11-27 #12 (Selling sale cards stacked 5 pill buttons of different widths): the seller's next step
   // ("Picked up") is the card's ONE full-width 48px filled button; Message the buyer, They didn't show and Report a
   // problem are one row of 14px text buttons (each keeps its own rules for when it shows); the date is said once.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | variant="primary" size="md" className="w-full" disabled={pickedUp.isPending} | variant="primary" size="sm" disabled={pickedUp.isPending}

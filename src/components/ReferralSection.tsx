@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
-import { Gift, Copy, Users, DollarSign, Check, Banknote, Loader2, Share2, MessageSquare } from "lucide-react";
+import { Copy, Check, Banknote, Loader2, Share2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useReferralData } from "@/hooks/useReferralData";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -263,21 +263,22 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           a duplicate-counting bug before the first cash-out. */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { icon: Users, label: "Signed up", value: String(referralCount), money: false },
+          // Polish audit 11-27 #73: plain labels, no small icon on each tile; "Earned" (not "Total earned") so no label
+          // wraps at 375. Guard: src/test/referralTilesPlain1127.test.ts.
+          { label: "Signed up", value: String(referralCount), money: false },
           // formatPriceExact, NOT raw interpolation. `$${totalCredits}` printed
           // the JS number verbatim, so a $12.50 balance rendered "$12.5" in this
           // tile while the cash-out button beside it (which already used
           // formatPriceExact) rendered "$12.50" and the rank card below it used
           // formatPrice and rendered "$13". Three spellings of one balance on
           // one screen. Credits are money: they use the exact formatter.
-          { icon: DollarSign, label: "Total earned", value: `$${formatPriceExact(totalCredits)}`, money: true },
-          { icon: Gift, label: "To cash out", value: `$${formatPriceExact(unredeemedCredits)}`, money: true },
-        ].map(({ icon: Icon, label, value, money }) => (
+          { label: "Earned", value: `$${formatPriceExact(totalCredits)}`, money: true },
+          { label: "To cash out", value: `$${formatPriceExact(unredeemedCredits)}`, money: true },
+        ].map(({ label, value, money }) => (
           <div key={label} className="rounded-[20px] liquid-glass p-3 text-center">
             <div className="flex items-center justify-center gap-1 mb-1 min-h-[1.5rem]">
-              <Icon className="w-3 h-3 text-primary shrink-0" />
               {/* min-h + items-center keeps the three numbers on ONE baseline.
-                  "Total earned" wraps to two lines at 320/375 while its two
+                  A label that wraps (the old "Total earned" at 320/375) while its two
                   siblings stay on one, which pushed the middle tile's figure a
                   line lower than the numbers either side of it. */}
               <span className="text-ds-12 font-sans text-muted-foreground">

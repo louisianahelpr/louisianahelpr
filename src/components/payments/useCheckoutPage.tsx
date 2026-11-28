@@ -10,12 +10,13 @@
  */
 import { lazy, Suspense, useCallback, useState, type ReactNode } from "react";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { loadModule } from "@/lib/loadModule";
 import type { CheckoutPage } from "@/lib/payments/checkoutPage";
 
 // Lazy: Stripe.js and React Stripe load only when an embedded page opens (vite.config.ts names the chunk "stripe";
 // scripts/check-deferred-vendors.mjs keeps it off every page's boot).
-const loadSheet = () => import("./EmbeddedCheckoutSheet");
-const EmbeddedCheckoutSheet = lazy(loadSheet);
+const EmbeddedCheckoutSheet = lazy(() => import("./EmbeddedCheckoutSheet"));
+const loadSheet = () => loadModule(() => import("./EmbeddedCheckoutSheet"));
 
 type EmbeddedPage = Extract<CheckoutPage, { kind: "embedded" }>;
 
@@ -28,7 +29,8 @@ export function useCheckoutPage(): { open: (page: CheckoutPage, onClose?: () => 
     }
     // The chunk is fetched BEFORE the sheet mounts, so a failed download (offline, a deploy replaced the chunk) rejects
     // here, into the caller's own catch (its error toast, Pay pressable again), instead of throwing inside Suspense.
-    await loadSheet();
+    // null: a stale chunk's recovery reload is already on its way (loadModule), so nothing opens.
+    if (!(await loadSheet())) return;
     setEmbedded({ page, onClose });
   }, []);
   const sheet = embedded ? (

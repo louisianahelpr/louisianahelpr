@@ -8,6 +8,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import { Dialog, DialogContent, DialogDescription, DialogHero } from "@/components/ui/dialog";
 import { report } from "@/lib/errorLogger";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 /** One Stripe.js instance per publishable key (test accounts pay on the test key). */
 const stripeByKey = new Map<string, ReturnType<typeof loadStripe>>();
@@ -27,7 +28,9 @@ export default function EmbeddedCheckoutSheet({ clientSecret, publishableKey, on
   publishableKey: string;
   onClose: () => void;
 }) {
-  const stripe = useMemo(() => stripeFor(publishableKey), [publishableKey]);
+  // Bumped by "Try again": a failed load is already out of stripeByKey, so this loads Stripe.js afresh.
+  const [attempt, setAttempt] = useState(0);
+  const stripe = useMemo(() => stripeFor(publishableKey), [publishableKey, attempt]);
   const options = useMemo(() => ({ clientSecret }), [clientSecret]);
   // Stripe.js comes from js.stripe.com: a blocker, a network drop or a CSP refusal makes it reject (or resolve null).
   // Then the sheet says so instead of staying blank, and the failure is reported.
@@ -53,9 +56,8 @@ export default function EmbeddedCheckoutSheet({ clientSecret, publishableKey, on
         <DialogHero title="Pay securely" />
         <DialogDescription>Your card is handled by Stripe. You stay on Louisiana Helpr.</DialogDescription>
         {failed ? (
-          <p className="text-ds-14 text-foreground" role="alert" data-embedded-checkout-failed="">
-            We couldn't load the payment form. Close this and tap Pay again. You have not been charged.
-          </p>
+          <ErrorState variant="inline" title="We couldn't load the payment form."
+            body="You have not been charged." onRetry={() => { setFailed(false); setAttempt((a) => a + 1); }} />
         ) : (
           <div className="min-h-[420px]">
             <EmbeddedCheckoutProvider stripe={stripe} options={options}>

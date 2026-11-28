@@ -26,6 +26,7 @@ type Kind =
   | { kind: "not-user-data"; why: string };
 
 const CLASSIFIED: Record<string, Kind> = {
+  "src/components/payments/EmbeddedCheckoutSheet.tsx:stripeByKey": { kind: "not-user-data", why: "one Stripe.js loader per PUBLIC publishable key (test or live mode, phase W 11-27); the same for every member, holds no session, card or account data" },
   "src/components/ui/stickyActionHeight.ts:heights": { kind: "not-user-data", why: "the painted height of each mounted phone StickyActionBar, by a throwaway key per bar (deep audit 11-22 #13), so a toast clears the tallest; pixel sizes, emptied as each bar unmounts, nothing about the account" },
   "src/components/mobileNav/useShopTalksInBadge.ts:reads": { kind: "keyed-by-user-id" },
   "src/components/mobileNav/useShopTalksInBadge.ts:frontSubs": { kind: "not-user-data", why: "subscriber callbacks for 'the app came back to the front' (shared shop chat badge read, 11-15): a counter of visibility changes, nothing about the account" },

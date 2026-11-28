@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/BoughtWhatNext.tsx | justPaidOrder(lines, params.get("order")) | justPaidOrder(lines)
  * @mutate src/components/declutter/BoughtWhatNext.tsx | l.my_side === "buyer" && | true &&
  * @mutate src/components/declutter/BoughtWhatNext.tsx |     return named.length ? named : null; |     return mine.length ? mine : null;
- * @mutate supabase/functions/declutter-checkout/index.ts | `/declutter?view=cart&paid=1&order=${order.order_id}` | "/declutter?view=cart&paid=1"
+ * @mutate supabase/functions/declutter-checkout/index.ts | success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native), | success_url: buildRedirectUrl("/declutter?view=cart&paid=1", native),
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></> | <Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense>
  * Audit 1028 D1-3 (1a-b-pay-after-p1-375, 1a-b-meetpay-after-p1-1440): "Pick it up from the porch · Now" before any day
  * was booked, while the card behind said "Pick the day you'll come for it". The Now step is the buyer's real next move.

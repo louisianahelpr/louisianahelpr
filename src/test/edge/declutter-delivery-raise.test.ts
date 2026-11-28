@@ -343,7 +343,7 @@ describe("declutter-checkout: raise_pay", () => {
   });
 
   // Phase W (owner 11-27): the website's raise opens Stripe's form in our own sheet; the app keeps the hosted page.
-  // @mutate supabase/functions/declutter-checkout/index.ts |       ...surfaceRedirects(surface, "/declutter?view=cart&raised=1", "/declutter?view=cart", isNativeRequest(body)), |       ...surfaceRedirects("hosted", "/declutter?view=cart&raised=1", "/declutter?view=cart", isNativeRequest(body)),
+  // @mutate supabase/functions/declutter-checkout/index.ts |       ...surfaceRedirects(surface, {\n        success_url: buildRedirectUrl("/declutter?view=cart&raised=1", isNativeRequest(body)), |       ...surfaceRedirects("hosted", {\n        success_url: buildRedirectUrl("/declutter?view=cart&raised=1", isNativeRequest(body)),
   it("phase W: a website raise with the switch on gets an embedded page on the same raise session; the app gets {url}", async () => {
     for (const native of [false, true]) {
       resetSupabaseMock();

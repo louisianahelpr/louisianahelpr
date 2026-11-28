@@ -1212,9 +1212,9 @@ describe("Declutter slice 3 screens", () => {
     expect(state.opened).toEqual([]);
     expect(screen.getByRole("button", { name: "Opening…" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Close payment" }));
-    await waitFor(() => expect(screen.queryByTestId("embedded-sheet")).toBeNull());
     expect(state.sheetsClosed).toBe(1);
     await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+    expect(screen.queryByTestId("embedded-sheet")).toBeNull();
   });
 
   // lh-silent-failure review 11-27: an answer with neither paid nor a page we can show is an error, never "paid".

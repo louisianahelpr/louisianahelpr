@@ -15,7 +15,9 @@
  *
  * @mutate src/lib/jobCategoryGroups.ts |   skills: g.items.filter((it) => it.value !== "other").map | skills: g.items.filter((it) => it.value !== "other" && it.value !== "fencing").map
  * @mutate src/lib/jobCategoryGroups.ts |   skills: g.items.filter((it) => it.value !== "other").map((it) => ({ value: it.value, label: skillChipLabel(it.value) })), |   skills: g.items.filter((it) => it.value !== "other").map((it) => ({ value: it.value, label: it.label })),
- * @mutate src/lib/jobCategoryGroups.ts |   label: groupTileLabel(g), |   label: g.label,
+ * (The heading mutation below once swapped in g.label, which since design audit area 04 #27 (11-18) IS the
+ * tile's words, "Moving & errands", so it stayed green: rewritten to drop the tile label for the group id.)
+ * @mutate src/lib/jobCategoryGroups.ts |   label: groupTileLabel(g), |   label: g.id,
  * @mutate src/components/profile/ProfileEditForm.tsx | {SKILL_GROUPS.map((g) => ( | {[{ id: "all", label: "Skills", skills: SKILL_PRESETS }].map((g) => (
  * @mutate src/components/profile/ProfileEditForm.tsx | {g.skills.length > 0 ? ( | {true ? (
  * @mutate src/components/profile/ProfileEditForm.tsx |                     <Label htmlFor="skillsOther" className="sr-only"> |                     <Label htmlFor="skillsOther" className="text-ds-11 mb-1.5 block text-muted-foreground">

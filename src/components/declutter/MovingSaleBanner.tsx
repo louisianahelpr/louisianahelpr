@@ -18,8 +18,7 @@ import { shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPhotos, fetchWatching, photoPublicUrl, setWatch } from "@/lib/declutter/api";
-import { itemPriceLabel } from "@/lib/declutter/distance";
-import { PriceInclFee } from "./PriceInclFee";
+import { buyerPriceLabel } from "./BuyerPrice";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { fetchSellerMovingSale, louisianaToday, movingSaleWhen } from "@/lib/declutter/movingSale";
@@ -109,9 +108,8 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
                 )}
               </div>
               <div className="px-1 pt-2 min-w-0">
-                {/* Owner 11-09 (reverses pick 2 of 11-08): the list price is the bold one; "$X.XX incl. fee" small under it. */}
-                <p className="text-ds-15 font-bold tabular-nums text-foreground">{itemPriceLabel(it.current_price_cents)}</p>
-                <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-12 font-medium tabular-nums text-muted-foreground" />
+                {/* Owner 11-27 (polish audit #2, "One price, fee included"): ONE price, the buyer's total with the fee in it. */}
+                <p className="text-ds-15 font-bold tabular-nums text-foreground">{buyerPriceLabel(it.current_price_cents)}</p>
                 <p className="text-ds-13 font-semibold truncate" title={it.title}>{it.title}</p>
               </div>
             </Link>

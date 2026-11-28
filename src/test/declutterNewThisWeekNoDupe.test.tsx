@@ -5,7 +5,7 @@
  *
  * The rule now: the row is cut from the page's own list, it shows only with NEW_THIS_WEEK_MIN or more listings, its
  * cards leave the grid below (so no listing is on the page twice, and the count stays the whole list), and its cards
- * are the grid's own card (same render: heart, photo tag, price and "incl. fee"), at the grid's column width.
+ * are the grid's own card (same render: heart, photo tag, price), at the grid's column width.
  *
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const gridRows = rows.filter((r) => !freshIds.has(r.item.id)); |   const gridRows = rows;
  * @mutate src/lib/declutter/newThisWeek.ts |   return fresh.length < NEW_THIS_WEEK_MIN \|\| fresh.length >= others ? [] : fresh; |   return fresh.length >= others ? [] : fresh;
@@ -102,7 +102,7 @@ describe("New this week never lists an item twice (owner 11-21)", () => {
   }
 
   for (const [who, userId] of [["a member (map beside the list)", "me"], ["a guest (no map, full-width grid)", null]] as const) {
-    it(`${who}: the row's cards are the grid's card, a heart, the price and the incl. fee line on each, at the grid's column width`, async () => {
+    it(`${who}: the row's cards are the grid's card, a heart and the one price (fee included) on each, at the grid's column width`, async () => {
       state.live = LIST();
       state.desktop = true;
       browse(userId);
@@ -115,8 +115,9 @@ describe("New this week never lists an item twice (owner 11-21)", () => {
       expect(gridCards.length).toBe(6);
       for (const li of [...rowCards, ...gridCards]) {
         expect(li.querySelector("[data-card-heart]")).not.toBeNull();
-        expect(li.querySelector("[data-card-base-price]")?.textContent).toContain("$85");
-        expect(li.querySelector("[data-card-price]")?.textContent).toMatch(/incl\. fee/);
+        // Owner 11-27 ("One price, fee included"): $85 shows as $89.95, with no second incl.-fee line.
+        expect(li.querySelector("[data-card-base-price]")?.textContent).toContain("$89.95");
+        expect(li.querySelector("[data-card-price]")?.textContent).not.toMatch(/incl\. fee/);
       }
       // Same markup shape: one row card and one grid card differ only in their words and link.
       const shape = (li: Element) => li.innerHTML.replace(/Thing \d+/g, "T").replace(/i\d+/g, "x");

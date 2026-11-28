@@ -1,9 +1,8 @@
 import { Link } from "react-router-dom";
-import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
-import { PriceInclFee } from "@/components/declutter/PriceInclFee";
+import { buyerPriceLabel } from "@/components/declutter/BuyerPrice";
 import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
 import { PRICE_DEAL } from "@/components/ui/designScale";
-import { FRESH_DECLUTTER_LIMIT, FRESH_GRID, FRESH_INCL, FRESH_PRICE, FRESH_TITLE, FRESH_TOWN, type FreshItem } from "./FreshDeclutterSection";
+import { FRESH_DECLUTTER_LIMIT, FRESH_GRID, FRESH_PRICE, FRESH_TITLE, FRESH_TOWN, type FreshItem } from "./FreshDeclutterSection";
 import { LANDING_CARD_PHOTO } from "@/lib/declutter/landingCardPhoto";
 import { DECLUTTER_SHELL, LandingBrowseShell, type BrowseShellCopy } from "./LandingBrowseShell";
 
@@ -31,7 +30,7 @@ export function FreshDeclutterFailed({ shell = DECLUTTER_SHELL }: { shell?: Brow
  *
  * D006 (landing design audit 11-10): every card said "Porch pickup" and "Like new", so neither told the cards apart.
  * The Porch pickup tag shows only when the grid mixes porch and non-porch items (porchTagTellsApart), and the town
- * takes the condition's line. Type sizes: FRESH_TITLE / FRESH_TOWN / FRESH_PRICE / FRESH_INCL.
+ * takes the condition's line. Type sizes: FRESH_TITLE / FRESH_TOWN / FRESH_PRICE.
  */
 function FreshCard({ it, showPorch }: { it: FreshItem; showPorch: boolean }) {
   return (
@@ -63,22 +62,19 @@ function FreshCard({ it, showPorch }: { it: FreshItem; showPorch: boolean }) {
         <span data-card-town="" className={`block truncate ${FRESH_TOWN}`} style={{ color: "var(--lp-body)" }}>{it.area_label || "\u00a0"}</span>
         <span data-card-price="" className="mt-0.5 flex min-w-0 flex-col leading-tight">
           {it.current_price_cents > 0 ? (
-            <>
-              {/* Owner 11-09 (10:35 PM, reverses pick 2 of 11-08): the LIST price is the big bold one; "$X.XX incl. fee"
-                  sits under it, smaller, in the landing's body ink (--lp-body, #4F4C45 / #D6D2C8 dark). */}
-              <span data-card-base-price="" className={`${FRESH_PRICE} font-bold tabular-nums text-foreground`}>
-                {itemPriceLabel(it.current_price_cents)}
-                {it.current_price_cents < it.price_cents && (
-                  <span className="ml-1 text-ds-11 font-medium text-[color:var(--lp-body)]">
-                    <span className="sr-only">Price dropped, was </span>
-                    <s aria-hidden>{formatPrice(it.price_cents)}</s>
-                  </span>
-                )}
-              </span>
-              <PriceInclFee priceCents={it.current_price_cents} className={`${FRESH_INCL} font-medium tabular-nums text-[color:var(--lp-body)]`} />
-            </>
+            // Owner 11-27 (polish audit #2, "One price, fee included"): ONE bold price, the buyer's total with the fee
+            // in it, as on the /declutter cards; a price drop strikes the old total beside it in the body ink.
+            <span data-card-base-price="" className={`${FRESH_PRICE} font-bold tabular-nums text-foreground`}>
+              {buyerPriceLabel(it.current_price_cents)}
+              {it.current_price_cents < it.price_cents && (
+                <span className="ml-1 text-ds-11 font-medium text-[color:var(--lp-body)]">
+                  <span className="sr-only">Price dropped, was </span>
+                  <s aria-hidden>{buyerPriceLabel(it.price_cents)}</s>
+                </span>
+              )}
+            </span>
           ) : (
-            <span data-card-free="" className={`${FRESH_PRICE} ${PRICE_DEAL}`}>{itemPriceLabel(it.current_price_cents)}</span>
+            <span data-card-free="" className={`${FRESH_PRICE} ${PRICE_DEAL}`}>{buyerPriceLabel(it.current_price_cents)}</span>
           )}
         </span>
       </span>
@@ -93,7 +89,8 @@ export function porchTagTellsApart(items: Pick<FreshItem, "porch_ok">[]): boolea
 
 /**
  * The Shop Declutter grid (owner 11-08): up to FRESH_DECLUTTER_LIMIT items in the /declutter browse card style (FreshCard
- * above), three across on a phone, four from sm, six from lg (owner 11-18: "Make these smaller"), then "See everything".
+ * above), two across on a phone, three from sm, six from lg (polish audit 11-27 #2: six cards, 2 columns, 15px titles
+ * up to 2 lines; the 11-18 three-across cut every title off at 375), then "See everything".
  */
 export default function FreshDeclutterStrip({ items, shell = DECLUTTER_SHELL }: { items: FreshItem[]; shell?: BrowseShellCopy }) {
   const shown = items.slice(0, FRESH_DECLUTTER_LIMIT);

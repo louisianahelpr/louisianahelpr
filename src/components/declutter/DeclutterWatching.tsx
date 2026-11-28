@@ -9,12 +9,13 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchMyCart, fetchWatchedItems, fetchWatching, type DeclutterItem } from "@/lib/declutter/api";
 import { myHoldOn } from "./DeclutterYourOffer";
-import { formatPrice } from "@/lib/declutter/distance";
+import { buyerPriceLabel } from "./BuyerPrice";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 
 /** What a watched item's row says under its title. */
 export function watchedLine(item: Pick<DeclutterItem, "status" | "current_price_cents">, heldByMe = false): string {
-  if (item.status === "live") return item.current_price_cents > 0 ? formatPrice(item.current_price_cents) : "Free";
+  // Owner 11-27 (polish audit #2): the same one price as the card, fee included.
+  if (item.status === "live") return buyerPriceLabel(item.current_price_cents);
   // Audit 11-20 night #12: the buyer's own hold (Buy now or an accepted offer) is not "another buyer".
   if (item.status === "reserved" && heldByMe) return "On hold for you. Check out";
   if (item.status === "reserved") return "On hold for another buyer";

@@ -505,9 +505,9 @@ describe("offers off = Buy only (smart offers)", () => {
 // @mutate src/lib/declutter/money.ts |   return cents >= minOfferCents(currentPriceCents) && cents < currentPriceCents ? cents : null; |   return cents;
 // @mutate src/components/declutter/DeclutterOfferPanel.tsx | onClick={() => setAmount(centsToDollars(chip))} | onClick={() => setAmount(centsToDollars(item.current_price_cents))}
 // @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-chip="custom" className="justify-center rounded-2xl px-2" onClick={() => { setAmount(""); offerBox.current?.focus(); }}> | data-offer-chip="custom" className="justify-center rounded-2xl px-2" onClick={() => undefined}>
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx | <PriceInclFee priceCents={chip} className="block text-ds-11 font-normal tabular-nums text-muted-foreground" /> | <span className="tabular-nums">{formatPrice(chip)}</span>
-// Owner 11-11 F358: the offer is the big figure, incl. fee small under it.
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx | <span className="block text-ds-13 font-bold tabular-nums" data-offer-chip-amount="">{formatPrice(chip)}</span> | <span className="block text-ds-11 tabular-nums" data-offer-chip-amount="">{formatPrice(chip)}</span>
+// Owner 11-27 (polish audit #2, "One price, fee included"): the tile shows ONE figure, what the buyer pays with the fee.
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-chip-amount="">{oneItemTotalDollars(chip)}</span> | data-offer-chip-amount="">{formatPrice(chip)}</span>
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx | <span className="block text-ds-13 font-bold tabular-nums" data-offer-chip-amount=""> | <span className="block text-ds-11 tabular-nums" data-offer-chip-amount="">
 describe("owner 11-07: offer chips, the total incl. fee, one Send offer", () => {
   it("offerChipCents: N% off to the cent, only inside the offer rule", () => {
     expect(offerChipCents(4000, 10)).toBe(3600);
@@ -531,11 +531,10 @@ describe("owner 11-07: offer chips, the total incl. fee, one Send offer", () => 
     const box = screen.getByLabelText("Your offer") as HTMLInputElement;
     expect(box.value).toBe("36");
     expect(within(chips).getByRole("radio", { name: "10% off, an offer of $36 ($38.50 incl. fee)" })).toHaveAttribute("aria-checked", "true");
-    // F117 (UI audit 11-09): the chip itself shows what the buyer pays, incl. fee, and the offer under it.
-    expect(within(chips).getByRole("radio", { name: /^10% off/ }).textContent).toBe("10% off$36$38.50 incl. fee");
-    // Owner 11-11 F358: the offer is the big figure; incl. fee is the small line.
+    // Owner 11-27 (polish audit #2): the chip shows ONE price, what the buyer pays with the fee in it; no second line.
+    expect(within(chips).getByRole("radio", { name: /^10% off/ }).textContent).toBe("10% off$38.50");
     const amt = within(chips).getByRole("radio", { name: /^10% off/ }).querySelector("[data-offer-chip-amount]")!;
-    expect(amt.textContent).toBe("$36");
+    expect(amt.textContent).toBe("$38.50");
     expect(amt.className).toContain("text-ds-13 font-bold");
     // $36 + round($36 x 5%) + 70c = $38.50, from the same rule as checkout.
     expect(region.querySelector("[data-offer-bill]")?.textContent).toMatch(/You pay if the seller says yes\$38\.50incl\. fee/);

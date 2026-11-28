@@ -97,13 +97,13 @@ function FieldProblem({ id, text }: { id: string; text?: string }) {
 }
 
 /** What the most you'd pay comes to for the buyer (audit 10-30 #10): the fee is 5% + 70 cents, money.ts's own sum. */
-function feeLine(maxPrice: string): string {
+function feeLine(maxPrice: string): string | null {
   const typed = dollarsToCents(maxPrice);
   const valid = typed !== null && typed >= 100 && typed <= 100_000 && typed % 100 === 0;
-  const cents = valid ? typed : 3000;
-  // Q2578 (audit 1102a): with nothing typed the field shows a grey "30" and this line used to say "A $30 item costs...",
-  // so the empty field read as filled in. Until a price is typed the line says it is an example.
-  return t(valid ? "dsl.w.feeTyped" : "dsl.w.feeExample", { price: formatPrice(cents), total: formatMoneyExact(checkoutAmounts([cents]).totalCents) });
+  // Polish audit 11-27 #2 (owner: "One price, fee included"; delete the Wanted example): until a price is typed there is
+  // no line at all (it was "For example, a $30 item costs $32.20 with our fee.", Q2578's example).
+  if (!valid) return null;
+  return t("dsl.w.feeTyped", { price: formatPrice(typed), total: formatMoneyExact(checkoutAmounts([typed]).totalCents) });
 }
 
 function formatMoneyExact(cents: number): string {
@@ -113,6 +113,7 @@ function formatMoneyExact(cents: number): string {
 /** The form's fields; the sheet's footer holds Cancel and "Post wanted" (it submits this form). */
 function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: FieldsProps) {
   const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
+  const fee = feeLine(form.maxPrice);
   return (
     // Board 116 "Post a Wanted", kept to what the server stores (declutter_create_wanted: words, category, highest price,
     // distance). Not built: how you'd get it and details (no fields).
@@ -149,10 +150,10 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
           <span aria-hidden className={`font-semibold ${form.maxPrice ? "text-[hsl(var(--burnt-sienna))]" : "text-muted-foreground"}`} data-wanted-dollar="">$</span>
           <input id="wanted-max" className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring placeholder:font-normal placeholder:text-muted-foreground"
             inputMode="numeric" value={form.maxPrice} enterKeyHint="done" aria-required="true"
-            aria-invalid={problems.maxPrice ? true : undefined} aria-describedby={problems.maxPrice ? "wanted-max-problem wanted-max-fee" : "wanted-max-fee"}
+            aria-invalid={problems.maxPrice ? true : undefined} aria-describedby={[problems.maxPrice && "wanted-max-problem", fee && "wanted-max-fee"].filter(Boolean).join(" ") || undefined}
             onChange={(e) => setForm((f) => ({ ...f, maxPrice: e.target.value }))} />
         </div>
-        <p id="wanted-max-fee" className="text-ds-13 text-muted-foreground" data-wanted-fee="">{feeLine(form.maxPrice)}</p>
+        {fee && <p id="wanted-max-fee" className="text-ds-13 text-muted-foreground" data-wanted-fee="">{fee}</p>}
         <FieldProblem id="wanted-max-problem" text={problems.maxPrice} />
       </div>
       <div className="space-y-1">

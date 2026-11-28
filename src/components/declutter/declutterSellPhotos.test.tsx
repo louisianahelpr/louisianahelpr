@@ -741,7 +741,6 @@ describe("photo-first selling, one screen", () => {
     // F328 (owner 11-11): the sell form shows "You get $Y" only, so the preview carries no buyers-pay
     // ("incl. fee") figure (it replaced audit 1110 F333's line). The form's "You get" line waits for the setup-fee
     // answer, so it is proven in src/test/sellYouGetIsThePayout.test.tsx, not here.
-    expect(preview.querySelector("[data-price-incl-fee]")).toBeNull();
     expect(preview.textContent).not.toMatch(/incl\. fee/);
   });
 

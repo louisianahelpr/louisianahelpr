@@ -25,7 +25,7 @@ import { SEARCH_PARAM } from "@/components/landing/heroSearch";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { firstPhotos } from "@/components/declutter/DeclutterItemCard";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
-import { itemPriceLabel } from "@/lib/declutter/distance";
+import { buyerPriceLabel } from "@/components/declutter/BuyerPrice";
 import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
 import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
 import { FallbackImg } from "@/components/declutter/FallbackImg";
@@ -396,7 +396,7 @@ export default function SearchPage() {
       {items.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((it) => {
         const cents = it.current_price_cents ?? it.price_cents;
         return (
-          <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? itemPriceLabel(cents) : null} />
+          <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? buyerPriceLabel(cents) : null} />
         );
       })}
     </Group>

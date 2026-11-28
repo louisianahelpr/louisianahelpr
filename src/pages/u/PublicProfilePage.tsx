@@ -37,7 +37,7 @@ import { t } from "@/lib/i18n/language";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { itemPriceLabel } from "@/lib/declutter/distance";
-import { PriceInclFee } from "@/components/declutter/PriceInclFee";
+import { buyerPriceLabel } from "@/components/declutter/BuyerPrice";
 import {
   fetchPublicProfile,
   handleFromPath,
@@ -351,11 +351,10 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null, guestShell 
                     </div>
                     <div className="p-2 max-lg:pointer-events-none max-lg:absolute max-lg:inset-x-0 max-lg:bottom-0 max-lg:bg-gradient-to-t max-lg:from-black/75 max-lg:to-transparent max-lg:px-1 max-lg:pb-1 max-lg:pt-5" data-pp-tile-text="">
                       <p className="truncate text-ds-14 font-semibold text-foreground max-lg:sr-only" title={l.title}>{l.title}</p>
-                      {/* Owner 11-09 (10:35 PM): the list price is the bold one; "$X.XX incl. fee" small under it. */}
+                      {/* Owner 11-27 (polish audit #2, "One price, fee included"): ONE price, the buyer's total with the fee in it. */}
                       <p className="text-ds-13 text-muted-foreground max-lg:leading-tight">
-                        <span data-pp-list-price="" className="text-ds-14 font-bold tabular-nums text-foreground max-lg:text-white">{itemPriceLabel(l.current_price_cents)}</span><span className="max-lg:hidden">{l.area_label ? ` · ${l.area_label}` : ""}</span>
+                        <span data-pp-list-price="" className="text-ds-14 font-bold tabular-nums text-foreground max-lg:text-white">{buyerPriceLabel(l.current_price_cents)}</span><span className="max-lg:hidden">{l.area_label ? ` · ${l.area_label}` : ""}</span>
                       </p>
-                      <PriceInclFee priceCents={l.current_price_cents} className="block text-ds-12 font-medium leading-snug tabular-nums text-muted-foreground max-lg:leading-tight max-lg:text-white/90" />
                     </div>
                   </Link>
                 </li>

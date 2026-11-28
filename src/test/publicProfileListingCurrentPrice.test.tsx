@@ -1,15 +1,16 @@
 /**
  * Lead 11-07 (Builder 5): the listing rows on a seller's public profile (/u/:handle, "For sale · N") show the item's
- * CURRENT price, the one a buyer pays after a price drop, with the "$X.XX incl. fee" line every other Declutter price
- * has (PriceInclFee, owner 11-07 Vinted review).
+ * CURRENT price, the one a buyer pays after a price drop, as the one buyer price every other Declutter card shows
+ * (owner 11-27, "One price, fee included": buyerPriceLabel, the total with the fee in it; it was a second "$X.XX incl.
+ * fee" line from owner 11-07).
  *
  * public_profile_by_handle sends each listing's current price under the ambiguous key `price_cents` (it is built from
  * declutter_items.current_price_cents, not the listed price_cents). fetchPublicProfile renames it to
- * current_price_cents, so the page reads one unambiguous name and the repo-wide incl.-fee class guard
- * (src/test/declutterPriceInclFee.test.tsx, which keys on `.current_price_cents`) sees this row too.
+ * current_price_cents, so the page reads one unambiguous name and the repo-wide one-price class guard
+ * (src/test/declutterOnePriceFeeIncluded.test.tsx, which keys on `.current_price_cents`) sees this row too.
  *
  * @mutate src/lib/profileLink/api.ts | ({ ...l, current_price_cents: price_cents }) | ({ ...l, current_price_cents: 0, price_cents })
- * @mutate src/pages/u/PublicProfilePage.tsx | <PriceInclFee priceCents={l.current_price_cents} className="block text-ds-12 | {null && <PriceInclFee priceCents={l.current_price_cents} className="block text-ds-12
+ * @mutate src/pages/u/PublicProfilePage.tsx | {buyerPriceLabel(l.current_price_cents)}</span><span className="max-lg:hidden"> | {formatPrice(l.current_price_cents)}</span><span className="max-lg:hidden">
  */
 import { describe, expect, it, vi } from "vitest";
 import { resolve } from "node:path";
@@ -64,7 +65,7 @@ describe("the public profile's listing rows show the current price, with the inc
     expect((await fetchPublicProfile("eli-b"))?.listings).toEqual([]);
   });
 
-  it("the row says $5 and the buyer's total incl. fee; a free item says Free and nothing more", async () => {
+  it("the row says the buyer's one price for $5, fee included, and no second line; a free item says Free", async () => {
     rpc.mockResolvedValue({ data: PAGE, error: null });
     const { container } = render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -77,11 +78,12 @@ describe("the public profile's listing rows show the current price, with the inc
     const grid = container.querySelector("[data-testid='pp-listings-grid']")!;
     const rows = [...grid.querySelectorAll("li")];
     expect(rows).toHaveLength(2);
-    expect(rows[0].textContent).toContain("$5 · Mid City");
+    const total = `$${(buyNowTotalCents(500) / 100).toFixed(2)}`;
+    expect(total).toBe("$5.95");
+    expect(rows[0].querySelector("[data-pp-list-price]")?.textContent).toBe(total);
+    expect(rows[0].textContent).toContain(`${total} · Mid City`);
     expect(rows[0].textContent).not.toContain("$8");
-    const fee = rows[0].querySelector("[data-price-incl-fee]");
-    expect(fee?.textContent).toBe(`$${(buyNowTotalCents(500) / 100).toFixed(2)} incl. fee`);
+    expect(rows[0].textContent).not.toMatch(/incl\. fee/);
     expect(rows[1].textContent).toContain("Free");
-    expect(rows[1].querySelector("[data-price-incl-fee]")).toBeNull();
   });
 });

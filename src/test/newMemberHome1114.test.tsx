@@ -206,7 +206,8 @@ describe("1. a new member's Home leads with real things near them (owner 11-14)"
     expect(await screen.findByText("For sale near you")).toBeTruthy();
     expect(screen.getByText("Oak rocking chair")).toBeTruthy();
     expect(document.querySelector('a[href="/declutter/item/i1"]')).not.toBeNull();
-    expect(screen.getByText("$40")).toBeTruthy();
+    // Owner 11-27 ("One price, fee included"): $40 shows as the buyer's total, $42.70.
+    expect(screen.getByText("$42.70")).toBeTruthy();
     expect(screen.queryByText("Photo not known yet")).toBeNull();
     expect(screen.queryByText("From someone blocked")).toBeNull();
     expect(document.querySelector('a[href="/declutter/item/i1"] img')?.getAttribute("src")).toContain("s1/i1/a.jpg");

@@ -14,8 +14,8 @@ import { CARD_PHOTO_PX, photoCardUrl, photoPublicUrl, type DeclutterItem, type D
 import { cardPhotoSrcSet, CARD_PHOTO_SIZES } from "@/lib/declutter/photoSizes";
 import { useLoadPhotoAhead } from "./useLoadPhotoAhead";
 import { holdForFirstRowPhoto, useLaterPhotosOpen } from "./firstRowPhotoGate";
-import { formatPrice, milesLabelShort, itemPriceLabel as englishPriceLabel } from "@/lib/declutter/distance";
-import { PriceInclFee } from "./PriceInclFee";
+import { milesLabelShort } from "@/lib/declutter/distance";
+import { buyerPriceLabel } from "./BuyerPrice";
 import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
 import { PRICE_BASE, PRICE_DEAL, PRICE_PAID } from "@/components/ui/designScale";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
@@ -108,7 +108,6 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
   const guestSaveTo = mine ? undefined : guestSaveToProp;
   // Audit 11-10 F321: the short form ("3 mi", "About 1 mi"), so the condition beside it is not cut to "Lightly u...".
   const { t } = useLanguage();
-  const itemPriceLabel = (cents: number) => (cents === 0 ? t("decl.chip.free") : englishPriceLabel(cents));
   const away = milesLabelShort(miles, approximate)?.replace(/^Under /, `${t("decl.card.under")} `).replace(/^About /, `${t("decl.card.about")} `) ?? null;
   const condition = CONDITION_LABEL[item.condition_stars] ? t(`decl.cond.${item.condition_stars}` as MsgKey) : null;
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile). The card-sized thumbnail
@@ -185,7 +184,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
         )}
       </span>
       {/* Owner 11-14 (Depop/Vinted audit item 8): TWO text lines under the photo below lg: the title, then the bold
-          price (with "$X incl. fee" beside it, the 11-07 rule). "Condition · distance" shows from lg only (owner pick 4,
+          price (fee included, owner 11-27). "Condition · distance" shows from lg only (owner pick 4,
           11-08, still the desktop card). Porch pickup stays a photo tag at every width. */}
       <span className="block min-w-0 px-0.5 pt-2">
         {/* Owner 11-20 #7: the title shows in smart title case (display only). Site polish A5: two lines, then an ellipsis. */}
@@ -199,25 +198,22 @@ export function ItemCard({ item, photoPath, miles, approximate, save: saveProp, 
             {away && <span data-card-away className="shrink-0 whitespace-nowrap">{away}</span>}
           </span>
         )}
-        {/* Owner 11-09 (10:35 PM, reverses pick 2 of 11-08): the LIST price is the big bold one, and "$X.XX incl. fee"
-            sits under it, smaller (11-07 rule: the card keeps both numbers). Free stays in burnt sienna. */}
-        {/* Below lg the price and "incl. fee" share the second line (wrapping only on a card too narrow for both). */}
-        <span data-card-price="" className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 leading-tight lg:flex-col lg:items-start lg:gap-x-0">
+        {/* Owner 11-27 (polish audit #2, "One price, fee included"): ONE bold price, the buyer's total with the fee in
+            it ("$26.95"), no second "incl. fee" line; a price drop strikes the old total beside it. Free stays burnt
+            sienna. Checkout still itemizes. */}
+        <span data-card-price="" className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 leading-tight">
           {item.current_price_cents > 0 ? (
-            <>
-              <span data-card-base-price="" className={`text-ds-16 ${PRICE_PAID}`}>
-                {itemPriceLabel(item.current_price_cents)}
-                {item.current_price_cents < item.price_cents && (
-                  <span className={`ml-1.5 text-ds-11 ${PRICE_BASE}`}>
-                    <span className="sr-only">{t("decl.card.wasPrice")}</span>
-                    <s aria-hidden>{formatPrice(item.price_cents)}</s>
-                  </span>
-                )}
-              </span>
-              <PriceInclFee priceCents={item.current_price_cents} className={`text-ds-11 ${PRICE_BASE}`} />
-            </>
+            <span data-card-base-price="" className={`text-ds-16 ${PRICE_PAID}`}>
+              {buyerPriceLabel(item.current_price_cents)}
+              {item.current_price_cents < item.price_cents && (
+                <span className={`ml-1.5 text-ds-11 ${PRICE_BASE}`}>
+                  <span className="sr-only">{t("decl.card.wasPrice")}</span>
+                  <s aria-hidden>{buyerPriceLabel(item.price_cents)}</s>
+                </span>
+              )}
+            </span>
           ) : (
-            <span data-card-free="" className={`text-ds-16 ${PRICE_DEAL}`}>{itemPriceLabel(item.current_price_cents)}</span>
+            <span data-card-free="" className={`text-ds-16 ${PRICE_DEAL}`}>{buyerPriceLabel(item.current_price_cents, t("decl.chip.free"))}</span>
           )}
           {/* Deep audit 11-22 #17: phone cards never showed distance, though Free promises "Miles from 70501" and Near
               you says "see how far each item is". Below lg the short distance ends the price line (still two lines

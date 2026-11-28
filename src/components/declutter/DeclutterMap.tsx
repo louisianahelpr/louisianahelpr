@@ -18,8 +18,8 @@ import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { report } from "@/lib/errorLogger";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { photoPublicUrl, type DeclutterItem, type DeclutterMapPin } from "@/lib/declutter/api";
-import { itemPriceLabel, milesLabel } from "@/lib/declutter/distance";
-import { PriceInclFee } from "./PriceInclFee";
+import { milesLabel } from "@/lib/declutter/distance";
+import { buyerPriceLabel } from "./BuyerPrice";
 import { LA_BOUNDS, readIsDark } from "@/components/browseMap/config";
 import { clusterElement, pinElement, PIN_HEIGHT } from "@/components/browseMap/mapMarkers";
 import { fitToPins, laRegion } from "@/components/browseMap/MapLayers";
@@ -143,7 +143,7 @@ export default function DeclutterMap({
           category: p.item.category,
           isUrgent: false,
           jobId: p.item.id,
-          label: `${p.item.title} — ${itemPriceLabel(p.item.current_price_cents)} — near ${p.item.area_label}`,
+          label: `${p.item.title} — ${buyerPriceLabel(p.item.current_price_cents)} — near ${p.item.area_label}`,
           onActivate: () => setSelectedId(p.item.id),
         }),
         {
@@ -231,9 +231,8 @@ export default function DeclutterMap({
                 {cover.get(selected.item.id) && <FallbackImg src={photoPublicUrl(cover.get(selected.item.id)!)} alt="" className="relative h-full w-full object-cover" />}
               </span>
               <span className="min-w-0 flex-1">
-                {/* Owner 11-09 (reverses pick 2 of 11-08): the list price is the bold one; "$X.XX incl. fee" small under it. */}
-                <span className="block text-ds-15 font-bold tabular-nums text-foreground">{itemPriceLabel(selected.item.current_price_cents)}</span>
-                <PriceInclFee priceCents={selected.item.current_price_cents} className="block text-ds-12 font-medium tabular-nums text-muted-foreground" />
+                {/* Owner 11-27 (polish audit #2, "One price, fee included"): ONE price, the buyer's total with the fee in it. */}
+                <span className="block text-ds-15 font-bold tabular-nums text-foreground">{buyerPriceLabel(selected.item.current_price_cents)}</span>
                 <span className="block truncate text-ds-15 font-semibold text-foreground" title={selected.item.title}>{selected.item.title}</span>
                 {/* NIGHT-BUYINGrealma-2: "Mid-City, Baton Rouge · 2 ..." cut the miles, the one number that matters on a map.
                     The place may be cut; the miles have their own line and never are. */}

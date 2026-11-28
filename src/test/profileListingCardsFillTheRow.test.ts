@@ -5,8 +5,9 @@
  * the priced card beside it: the grid cell stretched, the link inside did not. Each listing card link on the profile
  * screens now fills its grid cell (h-full), so cards in one row are one height whatever their lines.
  *
- * Inventory: every profile-screen listing grid whose card can lose the incl. fee line (SellingNowRow on /user/<id>,
- * PublicProfilePage on /u/<handle>).
+ * Inventory: every profile-screen listing grid of priced cards (SellingNowRow on /user/<id>, PublicProfilePage on
+ * /u/<handle>). Owner 11-27 dropped the incl. fee line (one price, fee included), but titles and free items still
+ * change a card's lines, so the cards keep filling their cells.
  *
  * @mutate src/components/declutter/SellingNowRow.tsx | className="flex h-full items-center gap-2.5 rounded-2xl liquid-glass p-3 | className="flex items-center gap-2.5 rounded-2xl liquid-glass p-3
  * @mutate src/pages/u/PublicProfilePage.tsx | className="relative block h-full overflow-hidden bg-background | className="relative block overflow-hidden bg-background
@@ -19,11 +20,11 @@ import { blankComments } from "./helpers/blankNonCode";
 const REPO = resolve(__dirname, "..", "..");
 const code = (p: string) => blankComments(readFileSync(resolve(REPO, p), "utf8"));
 
-/** The card link opened inside each `<li>` of a grid `<ul>` that also renders <PriceInclFee> (a line a free item drops). */
+/** The card link opened inside each `<li>` of a grid `<ul>` of priced listing cards (each draws buyerPriceLabel). */
 function gridCardLinks(src: string): string[] {
   const out: string[] = [];
   for (const ul of src.matchAll(/<ul className="grid[^"]*"[\s\S]*?<\/ul>/g)) {
-    if (!/<PriceInclFee\b/.test(ul[0])) continue;
+    if (!/\bbuyerPriceLabel\(/.test(ul[0])) continue;
     const link = ul[0].match(/<li\b[^>]*>[\s\S]*?<Link\b[\s\S]*?className="([^"]*)"/);
     if (link) out.push(link[1]);
   }

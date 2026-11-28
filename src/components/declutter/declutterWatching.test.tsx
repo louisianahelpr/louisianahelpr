@@ -58,7 +58,8 @@ describe("Watching under Buying (SS-5)", () => {
     const rows = within(section).getAllByRole("link");
     expect(rows.length).toBeGreaterThan(2);
     expect(rows.map((r) => r.getAttribute("href"))).toEqual(["/declutter/item/a", "/declutter/item/c", "/declutter/item/b"]);
-    expect(rows[0]).toHaveTextContent("Blue lamp$19.99");
+    // Owner 11-27 ("One price, fee included"): $19.99 shows as the buyer total, $21.69.
+    expect(rows[0]).toHaveTextContent("Blue lamp$21.69");
     expect(rows[1]).toHaveTextContent("Free crib" + "Free");
     expect(rows[2]).toHaveTextContent("Oak dresserOn hold for another buyer");
     expect(within(section).getByText("1 item you saved is no longer listed.")).toBeInTheDocument();

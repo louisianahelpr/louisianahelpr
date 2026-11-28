@@ -356,18 +356,14 @@ describe("Declutter location ask", () => {
     // Owner 11-20 (site polish A5): two lines, then an ellipsis.
     // @mutate src/components/declutter/DeclutterItemCard.tsx | className="line-clamp-2 break-words text-ds-13 font-semibold leading-snug" title={displayTitle(item.title)} | className="block truncate text-ds-13 font-semibold leading-snug" title={displayTitle(item.title)}
     expect(first.querySelector("[data-card-title]")!.className).toMatch(/\bline-clamp-2\b/);
-    // Owner 11-09 (reverses pick 2 of 11-08): the LIST price is the bold one, in ink; "incl. fee" small and grey under it.
+    // Owner 11-27 ("One price, fee included"): ONE bold price in ink, the buyer's total; no incl.-fee line.
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-base-price="" className={`text-ds-16 ${PRICE_PAID}`}> | <span data-card-base-price="" className={`text-ds-11 ${PRICE_BASE}`}>
     const list = first.querySelector("[data-card-price] [data-card-base-price]")!;
     expect(list.className).toMatch(/\bfont-bold\b/);
     expect(list.className).toMatch(/\btext-foreground\b/);
     expect(list.className).not.toMatch(/burnt-sienna/);
-    expect(list.textContent).toBe("$40");
-    const incl = first.querySelector("[data-card-price] [data-price-incl-fee]")!;
-    expect(incl.className).toMatch(/\btext-muted-foreground\b/);
-    expect(incl.className).not.toMatch(/\bfont-bold\b/);
-    // The list price comes first, the incl.-fee line after it.
-    expect(list.compareDocumentPosition(incl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(list.textContent).toBe("$42.70");
+    expect(first.querySelector("[data-card-price]")!.textContent).not.toMatch(/incl\. fee/);
     // Owner 11-14: the meta line is there from lg only; a phone shows the title and the price.
     expect(first.querySelectorAll("[data-card-title], [data-card-place], [data-card-price]")).toHaveLength(3);
     expect(first.querySelector("[data-card-place]")!.className).toMatch(/(^|\s)hidden(\s|$)/);

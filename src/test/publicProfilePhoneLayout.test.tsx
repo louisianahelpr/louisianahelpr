@@ -114,7 +114,8 @@ describe("/u/<handle> on a phone: compact header, pinned tabs, 3-across grid (ow
     expect(classes(text)).toEqual(expect.arrayContaining(["max-lg:absolute", "max-lg:bottom-0", "max-lg:bg-gradient-to-t"]));
     expect(classes(within(first as HTMLElement).getByText("Oak dresser"))).toContain("max-lg:sr-only");
     expect(classes(first.querySelector("[data-pp-list-price]"))).toContain("max-lg:text-white");
-    expect(first.querySelector("[data-price-incl-fee]")).not.toBeNull();
+    // Owner 11-27: one price on the tile, fee included; no second line.
+    expect(first.textContent).not.toMatch(/incl\. fee/);
   });
 
   it("the header is compact below lg: 64px photo beside the lines, plain (no card), bio clamped, actions in one row", async () => {

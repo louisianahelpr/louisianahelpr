@@ -63,7 +63,7 @@ import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
 import { recordItemView } from "@/lib/declutter/itemViews";
 import { ItemViewsCount } from "./ItemViewsCount";
-import { oneItemTotalDollars, PriceInclFee } from "./PriceInclFee";
+import { buyerPriceLabel, oneItemTotalDollars } from "./BuyerPrice";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
 import { SellerTrustBadges } from "./SellerTrustBadges";
@@ -326,24 +326,22 @@ export default function ItemView({ itemId }: { itemId: string }) {
                 audit 11-17 #17: price, chip and "Listed 1 week ago" shared one line and "Trades OK" wrapped alone, so the
                 price stands alone, the chips (condition, Trades OK) are a row under it, and the age joins the place line. */}
             <div className="space-y-2">
-              {/* Owner 11-09 (10:35 PM, reverses pick 2 of 11-08): the LIST price is the big one (ink, the item page's
-                  one t-xl), and "$3.85 incl. fee" sits under it, smaller; Free stays burnt sienna. */}
+              {/* Owner 11-27 (polish audit #2, "One price, fee included"): a buyer sees ONE price, the total with the fee
+                  in it (the item page's one t-xl, ink), the same figure as the card; no "incl. fee" line. The seller
+                  still reads their own list price, with who pays the total under it. Free stays burnt sienna. */}
               <p data-item-price="" className="flex flex-col leading-tight">
                 {it.current_price_cents > 0 ? (
                   <span data-item-base-price="" className={`${TYPE.xl} ${PRICE_PAID}`}>
-                    {itemPriceLabel(it.current_price_cents)}
+                    {isSeller ? itemPriceLabel(it.current_price_cents) : buyerPriceLabel(it.current_price_cents)}
                     {dropped && (
                       <span className="ml-2 text-ds-13 font-medium tabular-nums text-muted-foreground">
                         <span className="sr-only">{t("decl.card.wasPrice")}</span>
-                        <s aria-hidden>{formatPrice(it.price_cents)}</s>
+                        <s aria-hidden>{isSeller ? formatPrice(it.price_cents) : buyerPriceLabel(it.price_cents)}</s>
                       </span>
                     )}
                   </span>
                 ) : (
-                  <span className="text-ds-28 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</span>
-                )}
-                {it.current_price_cents > 0 && !isSeller && (
-                  <PriceInclFee priceCents={it.current_price_cents} className="mt-0.5 text-ds-13 font-medium tabular-nums text-muted-foreground" />
+                  <span className="text-ds-28 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{buyerPriceLabel(it.current_price_cents)}</span>
                 )}
                 {/* Area 06b M9: the seller reads who pays the total ("Buyers pay $26.95 with the fee"), not a bare "incl. fee". */}
                 {it.current_price_cents > 0 && isSeller && (

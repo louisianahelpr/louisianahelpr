@@ -306,7 +306,6 @@ describe("design audit r2 #35/#36: Declutter item words in Spanish, one section 
     const { setLang, ensureLangLoaded } = await import("@/lib/i18n/language");
     const { listedAgo, sellerBadges } = await import("@/lib/declutter/sellerBadges");
     const { milesLabel } = await import("@/lib/declutter/distance");
-    const { inclFeeText } = await import("@/components/declutter/PriceInclFee");
     const now = new Date("2026-11-17T12:00:00Z");
     const weekAgo = new Date(now.getTime() - 8 * 24 * 3600 * 1000).toISOString();
     try {
@@ -314,7 +313,6 @@ describe("design audit r2 #35/#36: Declutter item words in Spanish, one section 
       await ensureLangLoaded();
       expect(listedAgo(weekAgo, now)).toBe("Publicado hace 1 semana");
       expect(milesLabel(1.2, true)).toBe("A unos 1 mi");
-      expect(inclFeeText(300)).toMatch(/ con tarifa$/);
       expect(sellerBadges({ othersForSale: 9, onTime: true, activeBand: "today" }).map((b) => b.label)).toEqual(["Publica seguido", "Entregas a tiempo", "Activo hoy"]);
       expect(es["decl.card.porch"]).toBe("En el porche");
     } finally {

@@ -942,7 +942,8 @@ describe("the photo-first Declutter item page", () => {
     state.item = { ...ITEM, live_at: new Date(Date.now() - 60_000).toISOString() };
     const first = open();
     expect(await screen.findByRole("heading", { name: "Oak Rocking Chair", level: 2 })).toBeInTheDocument();
-    expect(document.querySelector("[data-item-price]")?.textContent).toContain("$40");
+    // Owner 11-27 ("One price, fee included"): a buyer reads the total with the fee in it ($40 -> $42.70).
+    expect(document.querySelector("[data-item-price]")?.textContent).toBe("$42.70");
     const join = document.querySelector("[data-guest-join]") as HTMLElement;
     expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
     const back = encodeURIComponent(`/declutter/item/${ID}`);
@@ -1029,7 +1030,7 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByText("No longer available.")).toBeInTheDocument();
     const row = await screen.findByRole("region", { name: "New on Declutter" });
     // L008: a card is named by its own text (title and price), not an aria-label.
-    expect(within(row).getAllByRole("link").map((a) => a.textContent)).toEqual([expect.stringMatching(/Desk Lamp.*\$40/)]);
+    expect(within(row).getAllByRole("link").map((a) => a.textContent)).toEqual([expect.stringMatching(/Desk Lamp.*\$42\.70/)]);
     // Not sold (withdrawn, removed, ...): nothing of the listing.
     expect(document.querySelector("[data-sold-item]")).toBeNull();
   });

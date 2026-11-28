@@ -2,7 +2,6 @@
 import type { enItemPage } from "./enItemPage";
 
 export const esItemPage: Record<keyof typeof enItemPage, string> = {
-  "ip.inclFee": "con tarifa",
   "ip.protected": "Protegido: pague en la app, 24 horas para reportar un problema.",
   "ip.protectedPorch": "Protegido: pague en la app, recoja en el porche, 24 horas para reportar un problema.",
   "ip.demand.offers": "{n} ofertas esta semana",

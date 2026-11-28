@@ -21,27 +21,27 @@ const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m)
  * chunk) until the spot nears the screen after the page has loaded, the LiveJobsSection rule. A failed read says so
  * and keeps the link to Declutter.
  */
-/** Owner 11-18 ("Make these smaller"): 12 small cards, so every row is full at 3, 4 and 6 across. */
-export const FRESH_DECLUTTER_LIMIT = 12;
+/** Polish audit 11-27 #2 (was 12, owner 11-18): 6 cards, so every row is full at 2, 3 and 6 across. */
+export const FRESH_DECLUTTER_LIMIT = 6;
 /** How many of declutter_popular_items' best to ask for (the function caps p_limit at 24). */
 const FRESH_POPULAR_LIMIT = 24;
 /** The live pool the cute picks come from (225 live listings on prod 11-18; the read is below the fold, after load). */
 const FRESH_POOL_LIMIT = 300;
 /**
- * The card grid, shared by the strip and its placeholder so they are the same size. Owner 11-18 ("Make these
- * smaller"): 3 across on a phone, 4 from sm, 6 from lg (it was 2 / 3 / 4). Each whole card is the link, far over 44px.
+ * The card grid, shared by the strip and its placeholder so they are the same size. Polish audit 11-27 #2: 2 across
+ * on a phone, 3 from sm, 6 from lg (owner 11-18 made it 3 / 4 / 6, and every title was cut off at 375). Each whole card
+ * is the link, far over 44px.
  */
-export const FRESH_GRID = "grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 lg:grid-cols-6 lg:gap-x-4 lg:gap-y-6";
+export const FRESH_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-6 lg:gap-x-4 lg:gap-y-6";
 /**
  * D006 (landing design audit 11-10): the card's type, shared with the placeholder so both are the same height: a two-line
- * title, the town, the LIST price first, "$X.XX incl. fee" smaller under it. Owner 11-18 ("Make these smaller"): one
- * step down each on the five-size scale, for the 3-across phone card: title 13px (was 15), town 11 (was 13), price 16
- * (was 20), incl. fee 11 (was 13).
+ * title, the town, then ONE price, the buyer's total with the fee in it (owner 11-27, "One price, fee included").
+ * Polish audit 11-27 #2: title 15px up to two lines on the 2-across phone card (owner 11-18 had cut it to 13px for 3
+ * across); town 11, price 16.
  */
-export const FRESH_TITLE = "text-ds-13 font-semibold leading-snug min-h-[2.75em]";
+export const FRESH_TITLE = "text-ds-15 font-semibold leading-snug min-h-[2.75em]";
 export const FRESH_TOWN = "text-ds-11 leading-snug";
 export const FRESH_PRICE = "text-ds-16 leading-tight";
-export const FRESH_INCL = "text-ds-11 leading-tight";
 /** What the browse card draws, all within the anon column grant on declutter_items (accepts_trades is not, yet). */
 const FRESH_SELECT = "id, title, category, condition_stars, porch_ok, price_cents, current_price_cents, area_label, live_at";
 /** The pause before the one quiet retry of a failed read (the LiveJobsSection rule, Q2735). */
@@ -90,7 +90,6 @@ export function FreshDeclutterSkeleton({ shell = DECLUTTER_SHELL }: { shell?: Br
               <span className={`block ${FRESH_TITLE}`}>&nbsp;<br />&nbsp;</span>
               <span className={`block ${FRESH_TOWN}`}>&nbsp;</span>
               <span className={`mt-0.5 block ${FRESH_PRICE}`}>&nbsp;</span>
-              <span className={`block ${FRESH_INCL}`}>&nbsp;</span>
             </span>
           </li>
         ))}

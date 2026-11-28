@@ -364,6 +364,8 @@ export const giftGuides = {
   searchGuidesTitle: "Guides",
   searchItemsTitle: "Gifts",
   searchItemIn: (guide: string) => `In ${guide}`,
+  /** Polish audit 11-27 #148: a 25 Days sponsor business in the results (it has no price): what it is, not its page. */
+  searchLocalShop: "Louisiana shop",
   /** A store page's live deal sections (follow-up batch 2026-11-18), after its picks. */
   dealsTitle: "Deals and holiday shops",
   /** A deal's end date, "2026-11-22" -> "Ends Nov 22". */

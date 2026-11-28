@@ -696,6 +696,13 @@ describe("photo-first selling, one screen", () => {
     expect(screen.queryByText("Photos that sell")).toBeNull();
     expect(screen.queryByText(/Sell it for me/)).toBeNull();
     expect(screen.getByText("Good photos")).toBeInTheDocument();
+    // Polish audit 11-27 #62: the tips are one grey 13px paragraph, not a bordered card with a 15px heading.
+    // @mutate src/components/declutter/DeclutterSellPhotos.tsx |         <p className="text-ds-13 text-muted-foreground" data-photo-tips=""> |         <p className="rounded-[20px] border border-border bg-card p-4 text-ds-14 text-muted-foreground" data-photo-tips="">
+    const tips = document.querySelector("[data-photo-tips]") as HTMLElement;
+    expect(tips.tagName).toBe("P");
+    expect(tips.className).toMatch(/\btext-ds-13\b/);
+    expect(tips.className).not.toMatch(/\bborder\b|\bbg-card\b/);
+    expect(tips.textContent).toMatch(/^Good photos: Daylight/);
     addPhotos("a.jpg");
     await screen.findByText("We wrote your listing. Check it before you post");
     expect(document.querySelector("[data-ai-price]")).toBeNull();

@@ -157,3 +157,25 @@ describe("change email: the same address is refused, a waiting change is said on
     expect(userReads).toBe(1);
   });
 });
+
+/**
+ * Polish audit 11-27 #70 (home-account/tab-security--in-390--1.png): the address split "helpr-e2e-poster- / 0902@…"
+ * beside a big outline "Change" pill. "Change" is now a text link on the title's line, so the address has the card's
+ * whole width under it (the AUD31-72 wrap rule, memberEmailsNeverSplitMidWord, still applies).
+ * @mutate src/components/profile/SecurityTab.tsx |                 variant="link"\n                data-security-email-change="" |                 variant="outline"\n                data-security-email-change=""
+ */
+describe("Account and security: Change is a text link on the title line (polish audit 11-27 #70)", () => {
+  it("the Change control shares the title's row, and the address sits below that row, not beside the control", async () => {
+    renderTab();
+    const btn = await screen.findByRole("button", { name: "Change email address" });
+    expect(btn.hasAttribute("data-security-email-change")).toBe(true);
+    const row = btn.parentElement as HTMLElement;
+    expect(row.querySelector("h2")?.textContent?.trim()).toBe("Email address");
+    expect(row.textContent).not.toContain("helper@example.com");
+    const address = screen.getByText("helper@example.com");
+    expect(address.parentElement).toBe(row.parentElement);
+    // A text link, not the outline pill (no border class on it).
+    expect(btn.className).not.toMatch(/\bborder-/);
+    expect(btn.className).toMatch(/\blink-standard\b/);
+  });
+});

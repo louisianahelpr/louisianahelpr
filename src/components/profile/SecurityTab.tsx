@@ -346,24 +346,30 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Mail className="w-4 h-4 text-primary" />
           </div>
+          {/* Polish audit 11-27 #70: "Change" is a 15px text link on the title's line, so the address has the card's
+              whole width under it and moves to a second line only when it is longer than that line (AUD31-72 wrap
+              rule kept). It sat beside a big outline pill and split "helpr-e2e-poster- / 0902@…" at 390. */}
           <div className="min-w-0 flex-1">
-            <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Email address
-            </h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+                Email address
+              </h2>
+              <Button
+                size="sm"
+                variant="link"
+                data-security-email-change=""
+                className="shrink-0 px-0 text-ds-15 font-semibold text-[hsl(var(--bark))]"
+                aria-label="Change email address"
+                onClick={handleOpenEmailDialog}
+              >
+                Change
+              </Button>
+            </div>
             {email && (
               <p className="text-ds-12 font-medium text-foreground [overflow-wrap:anywhere] mt-0.5">{email}</p>
             )}
             <EmailWaitingLine waitingFor={waitingFor} email={email} />
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0"
-            aria-label="Change email address"
-            onClick={handleOpenEmailDialog}
-          >
-            Change
-          </Button>
         </div>
       </div>
 

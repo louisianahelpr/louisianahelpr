@@ -2,8 +2,8 @@
  * Polish audit 11-27 #147 (~/.lh-shots/polish-audit-1127/FINDINGS.md, guides/her--sec-out-375--07.png): the guides'
  * "Common questions" read machine-made, run-on lists of five full product names per answer, 6-9 lines each. An answer
  * now names at most 3 gifts (QA_NAMED), and the Louisiana answer says how many there are before "A few:". The crawler
- * copy (api/share.ts) reads the same functions. Inventory: every answer of Her, Him and Kids built from 12 picks per
- * price band, plus the 25 Days sponsors page.
+ * copy (api/share.ts) reads the same functions. Inventory: every answer of Her, Him and Kids built from a dozen picks per
+ * price band, plus the sponsors page.
  *
  * @mutate src/lib/guideQa.mjs | export const QA_NAMED = 3; | export const QA_NAMED = 5;
  * @mutate src/lib/guideQa.mjs | ${la.length > NAMED ? "A few: " : ""}${list(la.slice(0, NAMED) | ${list(la.slice(0, 5)

@@ -10491,7 +10491,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 147,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10501,7 +10501,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 240,
+      "line": 229,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11041,7 +11041,7 @@
     },
     {
       "file": "src/components/quotes/PostJobQuoteChoice.tsx",
-      "line": 203,
+      "line": 209,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11055,7 +11055,7 @@
     },
     {
       "file": "src/components/quotes/PostJobQuoteChoice.tsx",
-      "line": 206,
+      "line": 212,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

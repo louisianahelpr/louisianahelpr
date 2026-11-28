@@ -96,7 +96,7 @@ async function open({ behindGate = false } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const flow = behindGate ? <AfterSavedPickup><BunchFlow /></AfterSavedPickup> : <BunchFlow />;
   render(<QueryClientProvider client={qc}><MemoryRouter>{flow}</MemoryRouter></QueryClientProvider>);
-  if (behindGate) await screen.findByRole("heading", { name: /^\d\. Add photos/ });
+  if (behindGate) await screen.findByRole("heading", { name: /^(\d\. )?Add photos$/ });
   const files = ["a", "b"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" }));
   fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
   await screen.findByRole("heading", { name: /^\d\. Check each item/ });

@@ -32,7 +32,7 @@
  * @mutate src/components/declutter/FreeAskSheet.tsx | text-base font-semibold">{t("fask.when")}</h2> | text-base font-semibold">When can you pick it up?</h2>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | text-muted-foreground">{t("dq.none")}</p> | text-muted-foreground">No questions yet.</p>
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx | label={t("dp.tradeListLabel")} | label="Your listing to trade"
- * @mutate src/components/declutter/SellSummaryCard.tsx | placeholder={t("sell.detailsPlaceholder")} | placeholder="e.g. Works great. Small scuff on the base."
+ * @mutate src/components/declutter/SellSummaryCard.tsx | placeholder={t("sell.detailsPlaceholder")} | placeholder="Anything else buyers should know (optional)"
  * @mutate src/components/messages/ConversationListBody.tsx |                 {t("msg.noneMatch")}\n |                 No conversations match\n
  */
 import { describe, it, expect } from "vitest";

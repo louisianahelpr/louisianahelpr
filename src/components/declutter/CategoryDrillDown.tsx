@@ -37,6 +37,8 @@ interface Props {
   groups: { heading: CategoryGroupHeading; values: string[] }[];
   value: string;
   onChange: (category: string) => void;
+  /** Polish audit 11-27 #121: the label stays the group's name but is not drawn (Sell's row heading already says it). */
+  labelHidden?: boolean;
 }
 
 /** Lower-case, no accents or punctuation, so "toys & games" finds "Toys and games" and "jardin" finds "jardín". */
@@ -44,7 +46,7 @@ function words(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export function CategoryDrillDown({ label, groups, value, onChange }: Props) {
+export function CategoryDrillDown({ label, groups, value, onChange, labelHidden = false }: Props) {
   const searchId = useId();
   const lang = useLanguage();
   const [query, setQuery] = useState("");
@@ -89,7 +91,7 @@ export function CategoryDrillDown({ label, groups, value, onChange }: Props) {
 
   return (
     <div className="space-y-2" role="group" aria-label={label} data-category-drilldown={q ? "search" : openGroup ? openGroup.heading : "top"}>
-      <p className="text-ds-14 font-semibold text-foreground">{label}</p>
+      {!labelHidden && <p className="text-ds-14 font-semibold text-foreground">{label}</p>}
       <div className="relative">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
         <Input

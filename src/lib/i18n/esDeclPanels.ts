@@ -107,9 +107,7 @@ export const esDeclPanels: Record<keyof typeof enDeclPanels | keyof typeof enSel
   "sell.condition": "Estado",
   "sell.size": "Tamaño",
   "sell.details": "Detalles",
-  "sell.anythingElse": "¿Algo más?",
-  "sell.optional": "(opcional)",
-  "sell.detailsPlaceholder": "p. ej. Funciona muy bien. Un pequeño raspón en la base.",
+  "sell.detailsPlaceholder": "Algo más que los compradores deban saber (opcional)",
   // Area 05 #1 (design audit 11-18).
   "dbuy.next.free": "Elija cómo lo recibe y luego confirme",
   "dbuy.next.pay": "Elija cómo lo recibe y luego pague",

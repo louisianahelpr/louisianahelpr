@@ -43,10 +43,11 @@ export function PickupAddresses({ lines }: { lines: CartLine[] }) {
   );
 }
 
-/** A pickup at the door (big items): short safety tips for both sides (owner 2026-10-18). */
+/** A pickup at the door (big items): short safety tips for both sides (owner 2026-10-18). Polish audit 11-27 #12:
+ *  plain 14px lines on the card, not a bordered box inside it (owner rule: no cards in cards). */
 export function DoorPickupTips({ side }: { side: "buyer" | "seller" }) {
   return (
-    <div className="rounded-xl border border-border p-3 text-xs text-muted-foreground">
+    <div className="text-ds-14 text-muted-foreground" data-door-tips="">
       <p className="font-medium text-foreground">Pickup at the door</p>
       <ul className="mt-1 list-disc space-y-0.5 pl-4">
         {/* Night audit sold states #3: the buyer picks the slot; the seller is never told to. */}

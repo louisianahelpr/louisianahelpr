@@ -94,8 +94,9 @@ export default function DeclutterSellChooser() {
             <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Several at once" line="Photos of everything; we write each one." />
             <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give away free" line="Someone nearby picks it up." />
             <nav aria-label="More ways" data-sell-other="" className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card divide-y divide-border">
-              {/* Area 06b L8: the label heads a short list of rows (was a row of 13px links). */}
-              <span className="w-full px-4 pb-1 pt-3 text-ds-13 font-semibold text-muted-foreground">More ways:</span>
+              {/* Area 06b L8: the label heads a short list of rows (was a row of 13px links). Polish audit 11-27 #64: a
+                  heading, so no colon. */}
+              <span className="w-full px-4 pb-1 pt-3 text-ds-13 font-semibold text-muted-foreground">More ways</span>
               {movingOut && <Link data-sell-choice="move" to={SELL_MOVE_PATH} className={MORE_LINK}>Moving sale</Link>}
               <button type="button" data-sell-choice="helpr" onClick={() => setExplaining(true)} className={MORE_LINK}>A Helpr lists it</button>
               {wanted && <Link data-sell-choice="wanted" to={WANTED_POST_PATH} className={MORE_LINK}>Post a Wanted</Link>}

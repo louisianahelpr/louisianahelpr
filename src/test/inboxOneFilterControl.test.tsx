@@ -24,7 +24,8 @@ const tabs = code("src/components/inbox/InboxTabs.tsx");
 
 describe("the Inbox has one filter control, All first (M6)", () => {
   it("the Notifications tab's row draws the shared FilterChips, not the segmented control", () => {
-    const inline = view.slice(view.indexOf("{inline ? ("), view.indexOf("<AnchoredPanelHeader", view.indexOf("{inline ? (")));
+    // Polish audit 11-27 #13: the Inbox's row is `inlineHeader`, drawn at the top of the list's one scroll.
+    const inline = view.slice(view.indexOf("const inlineHeader = inline ? ("), view.indexOf(") : undefined;", view.indexOf("const inlineHeader = inline ? (")));
     expect(inline.length).toBeGreaterThan(50); // vacuity floor: the inline branch was found
     expect(inline).toContain("{inboxChips}");
     expect(inline).not.toContain("{segmented}");

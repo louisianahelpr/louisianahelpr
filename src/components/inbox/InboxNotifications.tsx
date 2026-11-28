@@ -39,15 +39,15 @@ export default function InboxNotifications() {
           <div className="w-full max-w-2xl mx-auto">{tabs}</div>
         </>
       )}
-      {/* The list stops above the floating dock where it is painted (as ConversationListBody's does; the dock is hidden on the
-          desktop website), so its last row and its footer never sit under it. */}
+      {/* Polish audit 11-27 #13: the panel runs to the bottom of the screen and the list is its one scroll; the room for
+          the floating dock is the END of that scroll (NotificationPanelView inline), so the last row and the page note
+          still clear the dock but no blank band sits under a short list box. */}
       <div
         role="tabpanel"
         id={INBOX_PANEL_ID}
         aria-labelledby="inbox-tab-notifications"
         data-testid="inbox-notifications"
         className="flex-1 min-h-0 flex flex-col"
-        style={{ paddingBottom: isWebDesktop ? "calc(var(--safe-area-bottom, 0px) + 1rem)" : "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))" }}
       >
         <NotificationPanel inline />
       </div>

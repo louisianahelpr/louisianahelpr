@@ -6,7 +6,7 @@
  *
  * The progress states come from the real jobProgress(), so a change to what a cancelled job's tone is shows here.
  *
- * @mutate src/components/job-card/MineJobFace.tsx |       {progress && progress.stage !== null && progress.tone !== "cancelled" && ( |       {progress && progress.stage !== null && (
+ * @mutate src/components/job-card/MineJobFace.tsx |       {progress && progress.stage !== null && progress.tone !== "cancelled" && progress.stage < 8 && ( |       {progress && progress.stage !== null && progress.stage < 8 && (
  */
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";

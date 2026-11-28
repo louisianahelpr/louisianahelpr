@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 2048,
-  "latest": "20261121035500",
+  "count": 2063,
+  "latest": "20261128005905",
   "versions": [
    "20260311000404",
    "20260311001514",
@@ -2050,7 +2050,22 @@
    "20261120220306",
    "20261120221545",
    "20261121011706",
-   "20261121035500"
+   "20261121035500",
+   "20261121204723",
+   "20261121210818",
+   "20261121221514",
+   "20261121233442",
+   "20261122012526",
+   "20261122024017",
+   "20261122034304",
+   "20261122134941",
+   "20261123090716",
+   "20261123090717",
+   "20261123161157",
+   "20261124192812",
+   "20261125164443",
+   "20261126002822",
+   "20261128005905"
   ]
  },
  "functions": {
@@ -2765,6 +2780,38 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "admin_wish_link_request_dismiss": [
+   {
+    "anon": false,
+    "args": [
+     "p_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "admin_wish_link_request_fill": [
+   {
+    "anon": false,
+    "args": [
+     "p_id",
+     "p_url"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "admin_wish_link_requests": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "answer_job_continue_day": [
@@ -4721,6 +4768,15 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "declutter_auto_offer_new_saver": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "declutter_away_return": [
@@ -9529,6 +9585,18 @@
     "nargs": 2
    }
   ],
+  "declutter_set_auto_liker_offer": [
+   {
+    "anon": false,
+    "args": [
+     "p_item_id",
+     "p_percent_off"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "declutter_set_bundle_discount": [
    {
     "anon": false,
@@ -12366,6 +12434,58 @@
     "nargs": 1
    }
   ],
+  "gift_cards_never_expire": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "gift_price_alert_subscribe": [
+   {
+    "anon": true,
+    "args": [
+     "p_email",
+     "p_items",
+     "p_consent"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
+  "gift_price_alerts_expire": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "gift_wish_list_claim": [
+   {
+    "anon": true,
+    "args": [
+     "p_code",
+     "p_token"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "gift_wish_list_delete": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "gift_wish_list_get": [
    {
     "anon": true,
@@ -12424,6 +12544,30 @@
     "authenticated": true,
     "nargdefaults": 1,
     "nargs": 3
+   }
+  ],
+  "gift_wish_list_unshare": [
+   {
+    "anon": true,
+    "args": [
+     "p_code",
+     "p_token"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "gift_wish_lists_share": [
+   {
+    "anon": true,
+    "args": [
+     "p_lists",
+     "p_test"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 2
    }
   ],
   "give_up_series_dates": [
@@ -15950,6 +16094,17 @@
      "p_user_id"
     ],
     "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "proof_photo_object_attached": [
+   {
+    "anon": false,
+    "args": [
+     "p_name"
+    ],
+    "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
    }
@@ -23755,6 +23910,81 @@
     "nargs": 1
    }
   ],
+  "wish_link_page_save": [
+   {
+    "anon": false,
+    "args": [
+     "p_id",
+     "p_status",
+     "p_title",
+     "p_image",
+     "p_price"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 5
+   }
+  ],
+  "wish_link_pages_due": [
+   {
+    "anon": false,
+    "args": [
+     "p_limit"
+    ],
+    "authenticated": false,
+    "nargdefaults": 1,
+    "nargs": 1
+   }
+  ],
+  "wish_link_request_add": [
+   {
+    "anon": true,
+    "args": [
+     "p_kind",
+     "p_words",
+     "p_url",
+     "p_list_key",
+     "p_list_name",
+     "p_test"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 6
+   }
+  ],
+  "wish_link_requests_get": [
+   {
+    "anon": true,
+    "args": [
+     "p_ids"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "wish_link_url_key": [
+   {
+    "anon": false,
+    "args": [
+     "p_url"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "wish_link_url_ok": [
+   {
+    "anon": false,
+    "args": [
+     "p_url"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "withdraw_job_quote": [
    {
     "anon": false,
@@ -26661,6 +26891,69 @@
    "grants": {},
    "kind": "table",
    "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "declutter_auto_liker_offers": {
+   "checks": [
+    "CHECK (((percent_off >= 5) AND (percent_off <= 50)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "item_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "percent_off": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "smallint"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter auto liker offers: seller reads own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"
@@ -30457,6 +30750,13 @@
      "hasDefault": false,
      "notNull": true,
      "type": "integer"
+    },
+    "auto_liker": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
     },
     "awaiting": {
      "enum": null,
@@ -34878,6 +35178,7 @@
    ],
    "rls": true,
    "triggers": [
+    "after:insert",
     "before:insert|update|delete"
    ]
   },
@@ -36120,7 +36421,7 @@
     "expires_at": {
      "enum": null,
      "generated": false,
-     "hasDefault": true,
+     "hasDefault": false,
      "notNull": false,
      "type": "timestamp with time zone"
     },
@@ -36284,6 +36585,7 @@
    ],
    "rls": true,
    "triggers": [
+    "before:insert|update",
     "before:insert|update|delete"
    ]
   },
@@ -36366,6 +36668,133 @@
     "before:update"
    ]
   },
+  "gift_price_alert_hits": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "bucket": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "hit_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "bigint"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "gift_price_alerts": {
+   "checks": [
+    "CHECK (((email = lower(btrim(email))) AND ((length(email) >= 3) AND (length(email) <= 254)) AND (email ~ '^[^@[:space:]]+@[^@[:space:]]+\\.[a-z]{2,}$'::text)))",
+    "CHECK (((jsonb_typeof(items) = 'array'::text) AND ((jsonb_array_length(items) >= 1) AND (jsonb_array_length(items) <= 60)) AND (pg_column_size(items) <= 65536)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "consent_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "email": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "is_seed": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "items": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "jsonb"
+    },
+    "last_alert_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "reminder_sent_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "send_claimed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "unsubscribed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "gift_wish_list_hits": {
    "checks": [],
    "columnGrants": {},
@@ -36407,10 +36836,47 @@
     "before:insert|update|delete"
    ]
   },
+  "gift_wish_list_owners": {
+   "checks": [
+    "CHECK ((token_hash ~ '^[0-9a-f]{64}$'::text))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "code": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "token_hash": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "gift_wish_lists": {
    "checks": [
     "CHECK ((code ~ '^[a-z0-9]{12}$'::text))",
     "CHECK (((jsonb_typeof(items) = 'array'::text) AND (jsonb_array_length(items) <= 100)))",
+    "CHECK (((lists IS NULL) OR ((jsonb_typeof(lists) = 'array'::text) AND ((jsonb_array_length(lists) >= 1) AND (jsonb_array_length(lists) <= 50)) AND (pg_column_size(lists) <= 32768))))",
     "CHECK (((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 60)))"
    ],
    "columnGrants": {},
@@ -36441,6 +36907,13 @@
      "generated": false,
      "hasDefault": true,
      "notNull": true,
+     "type": "jsonb"
+    },
+    "lists": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
      "type": "jsonb"
     },
     "name": {
@@ -60264,6 +60737,13 @@
    "checks": [],
    "columnGrants": {},
    "columns": {
+    "completed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "event_id": {
      "enum": null,
      "generated": false,
@@ -61871,6 +62351,150 @@
      "hasDefault": false,
      "notNull": true,
      "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "wish_link_requests": {
+   "checks": [
+    "CHECK (((affiliate_url IS NULL) OR ((affiliate_url ~ '^https://'::text) AND (length(affiliate_url) <= 500))))",
+    "CHECK (((kind = 'link'::text) = (url IS NOT NULL)))",
+    "CHECK (((status = 'filled'::text) = (affiliate_url IS NOT NULL)))",
+    "CHECK ((kind = ANY (ARRAY['link'::text, 'idea'::text])))",
+    "CHECK ((list_key ~ '^[a-z0-9]{1,16}$'::text))",
+    "CHECK (((length(list_name) >= 1) AND (length(list_name) <= 40)))",
+    "CHECK ((((page_title IS NULL) OR ((length(page_title) >= 1) AND (length(page_title) <= 200))) AND ((page_image IS NULL) OR ((page_image ~ '^https://'::text) AND (length(page_image) <= 500))) AND ((page_price IS NULL) OR ((page_price > (0)::numeric) AND (page_price < (100000)::numeric))) AND ((page_status IS NULL) OR (page_status = ANY (ARRAY['ok'::text, 'none'::text, 'skipped'::text, 'blocked'::text, 'failed'::text]))) AND ((page_status IS NULL) = (page_checked_at IS NULL)) AND ((page_status = ANY (ARRAY['ok'::text, 'none'::text])) OR ((page_title IS NULL) AND (page_image IS NULL) AND (page_price IS NULL)))))",
+    "CHECK ((status = ANY (ARRAY['open'::text, 'filled'::text, 'dismissed'::text])))",
+    "CHECK (((url IS NULL) OR ((url ~ '^https://'::text) AND (length(url) <= 500))))",
+    "CHECK (((url_key IS NULL) OR (length(url_key) <= 600)))",
+    "CHECK (((length(words) >= 1) AND (length(words) <= 120)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "affiliate_url": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "filled_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "is_seed": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "kind": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "list_key": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "list_name": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "page_checked_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "page_image": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "page_price": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "numeric(10,2)"
+    },
+    "page_status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "page_title": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "url": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "url_key": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "words": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
     }
    },
    "grants": {},

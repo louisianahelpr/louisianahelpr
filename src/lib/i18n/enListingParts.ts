@@ -296,7 +296,6 @@ export const enListingParts = {
   "lp.sh.offToast": "Shipping is off for this item.",
   "lp.sh.onToast": "Saved. Buyers in Louisiana can have it shipped.",
   "lp.sh.loadFail": "We couldn't load this setting.",
-  "lp.sh.tickFirst": "First confirm nothing in it is on the USPS restricted list.",
   "lp.sh.restricted": "Nothing in it is on the USPS restricted list: no sprays, perfume, nail polish, batteries, matches or lighters.",
   "lp.sh.label": "Ship it",
   "lp.sh.p.envelope": "Envelope, up to 8 oz",

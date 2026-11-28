@@ -8,6 +8,8 @@
  * @mutate src/components/declutter/ShipItRow.tsx | const on = useFeature("declutter_shipping"); | const on = true;
  * @mutate src/components/declutter/ShipItRow.tsx | const allowed = small && !SHIP_PICKUP_ONLY_CATEGORIES.has(category); | const allowed = !SHIP_PICKUP_ONLY_CATEGORIES.has(category);
  * @mutate src/components/declutter/ShipItRow.tsx |     if (preset !== null && !confirmed) { |     if (false) {
+ * @mutate src/components/declutter/ShipItRow.tsx |         {cur.preset === null && pending !== null && ( |         {cur.preset === null && (
+ * @mutate src/components/declutter/ShipItRow.tsx |     if (v && pending && !save.isPending) { |     if (false) {
  * @mutate src/components/declutter/ShipItRow.tsx |     mutationFn: (preset: ShipPreset \| null) => setShipOptions(itemId, preset, preset !== null), |     mutationFn: (preset: ShipPreset \| null) => setShipOptions(itemId, preset, false),
  * @mutate src/lib/declutter/shipOptions.ts | new Set(["electronics", "appliances"]) | new Set(["appliances"])
  * @mutate src/components/declutter/ShipItRow.tsx | label: t(`lp.sh.p.${p.key}` as MsgKey) | label: p.key
@@ -95,12 +97,20 @@ describe("Ship it in Manage listing", () => {
 
   it("sends nothing until the restricted-items tick; then sends the box with the tick; Off sends no tick", async () => {
     show();
+    // Polish audit 11-27 #120: while Ship it is Off there is no restricted-items tick; it shows once a box is picked.
+    await screen.findByRole("radiogroup", { name: "Ship it" });
+    expect(screen.queryByRole("checkbox", { name: /USPS restricted list/ })).toBeNull();
     fireEvent.click(await screen.findByRole("radio", { name: "Small box, up to 1 lb" }));
     await new Promise((r) => setTimeout(r, 20));
     expect(state.sent).toEqual([]);
-    fireEvent.click(screen.getByRole("checkbox", { name: /USPS restricted list/ }));
-    fireEvent.click(screen.getByRole("radio", { name: "Small box, up to 1 lb" }));
+    // The tick sits under the chips and sends the picked box with it.
+    const box = screen.getByRole("checkbox", { name: /USPS restricted list/ });
+    expect(screen.getByRole("radiogroup", { name: "Ship it" }).compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(box);
     await waitFor(() => expect(state.sent).toEqual([{ preset: "small_box", nothingRestricted: true }]));
+    fireEvent.click(screen.getByRole("radio", { name: "Small box, up to 1 lb" }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(state.sent).toHaveLength(1);
     fireEvent.click(await screen.findByRole("radio", { name: "Off" }));
     await waitFor(() => expect(state.sent[state.sent.length - 1]).toEqual({ preset: null, nothingRestricted: false }));
   });

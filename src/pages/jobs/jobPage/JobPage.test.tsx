@@ -951,6 +951,27 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
   });
 
+  // Polish audit 11-27 #112: waiting for the poster's approval, the Helpr's page offered "Open in Jobs" as the second
+  // sticky button though the page IS the job (back covers it). Now Message is the only other action; no "Open in Jobs"
+  // in the bar or in More options.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | const waitingApproval = !!job.helper_completed_at && !job.poster_completed_at; | const waitingApproval = false;
+  it("waiting for approval: no Open in Jobs anywhere, Message stays (#112)", async () => {
+    state.job = row({ customer_id: POSTER, helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z",
+      poster_confirmed_arrival_at: "2026-10-21T12:00:00Z", helper_completed_at: new Date().toISOString() });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(document.querySelector("[data-job-row]")).toBeTruthy());
+    const labels = [...document.querySelectorAll("button")].map((b) => (b.getAttribute("aria-label") || b.textContent || "").trim());
+    expect(labels.some((l) => /^Message /.test(l))).toBe(true);
+    expect(labels).not.toContain("Open in Jobs");
+    const more = screen.queryByRole("button", { name: "More options" });
+    if (more) {
+      fireEvent.click(more);
+      const list = await screen.findByRole("dialog", { name: "More options" });
+      expect(within(list).queryByRole("button", { name: "Open in Jobs" })).toBeNull();
+    }
+  });
+
   // F26 (audit 2026-10-28, p4j-hired-hallie-p1-375.png): the hired Helpr's page had no address, no Message and no
   // next action, only "Open in working". Now: the street address, the Working card's own next-step button, Message.
   const TOMORROW = jobLocalDateISO(1);
@@ -1881,7 +1902,7 @@ describe("one row of buttons at every stage (B93)", () => {
 
   // F287 (audit 11-10): a paid job's Helpr page said only "Approved and paid out to you." beside Message and an
   // "Open in Jobs" that only went back to the list. Now it names what was sent and when, and drops Open in Jobs.
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | job.status === "cancelled" \|\| job.payment_status === "released" ? null : work] | job.status === "cancelled" ? null : work]
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | job.status === "cancelled" \|\| job.payment_status === "released" \|\| waitingApproval ? null : work] | job.status === "cancelled" ? null : work]
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       {paid && job.payment_status === "released" ? <PaidOutLine jobId={job.id} fallback={paid} /> |       {paid && false ? <PaidOutLine jobId={job.id} fallback={paid} />
   it("F287: a paid job says 'Paid out $X on <when>' and offers no Open in Jobs", async () => {
     state.paidOut = { cents: 8340, at: "2026-11-09T20:10:00Z" };
@@ -1913,7 +1934,7 @@ describe("one row of buttons at every stage (B93)", () => {
  * @mutate src/components/tracker/jobProgressState.ts |   if (status === "in_progress" && !job.is_group_job && (job.proof_after_urls |   if (false && status === "in_progress" && !job.is_group_job && (job.proof_after_urls
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const offerOut = isPoster && offerIsOut(job); |   const offerOut = false;
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |  && job.direct_offer_status !== "pending"; | ;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | msg, job.status === "cancelled" \|\| job.payment_status === "released" ? null : work] | msg, job.payment_status === "released" ? null : work]
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | msg, job.status === "cancelled" \|\| job.payment_status === "released" \|\| waitingApproval ? null : work] | msg, job.payment_status === "released" \|\| waitingApproval ? null : work]
  */
 describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
   const LONG = "Mow and weed eat an empty lot in New Iberia. The edge of the bank near the water has become overgrown and needs to be weed eaten.";

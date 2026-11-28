@@ -300,7 +300,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered; nor on
     // a paid job (F287, audit 11-10: it only went back to the list). "See the case" leads the others when a step is due.
-    const extras = [faceIs === "step" ? seeCase : null, msg, job.status === "cancelled" || job.payment_status === "released" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
+    // Polish audit 11-27 #112: nor while the Helpr waits for the poster's approval (marked done, not approved yet):
+    // "Open in Jobs" sat as the second sticky button though the page IS the job, and back covers it; Message stands alone.
+    const waitingApproval = !!job.helper_completed_at && !job.poster_completed_at;
+    const extras = [faceIs === "step" ? seeCase : null, msg, job.status === "cancelled" || job.payment_status === "released" || waitingApproval ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
     // Continue another day: a set day the Helpr has not confirmed leads; "Not finished? Set a day" sits with the others.
     // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
     const leaveAction: RowAction = { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true };

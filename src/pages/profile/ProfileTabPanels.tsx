@@ -394,8 +394,6 @@ export const ProfileTabPanels = ({
         <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <SettingsTab
             profile={profile}
-            seniorMode={seniorMode}
-            onToggleSeniorMode={onToggleSeniorMode}
             onSelectTab={onSelectTab ?? (() => {})}
             onRequestLogout={onRequestLogout ?? (() => {})}
             onRequestDelete={onRequestDelete}

@@ -44,7 +44,7 @@ const renderIt = (profile: Partial<Profile> | null, onRequestDelete = vi.fn()) =
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter>
-        <SettingsTab profile={profile as Profile | null} seniorMode={false} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onRequestDelete={onRequestDelete} onBack={() => {}} />
+        <SettingsTab profile={profile as Profile | null} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onRequestDelete={onRequestDelete} onBack={() => {}} />
       </MemoryRouter>
     </QueryClientProvider>,
   );

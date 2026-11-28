@@ -43,7 +43,7 @@ afterEach(() => {
 function renderSettings() {
   render(
     <MemoryRouter>
-      <SettingsTab profile={null} seniorMode={false} onToggleSeniorMode={() => {}} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onRequestDelete={vi.fn()} onBack={() => {}} />
+      <SettingsTab profile={null} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onRequestDelete={vi.fn()} onBack={() => {}} />
     </MemoryRouter>,
   );
 }
@@ -77,7 +77,7 @@ describe("You › Settings in Spanish (F410c)", () => {
   it("in English the screen is unchanged", () => {
     renderSettings();
     expect(screen.getByRole("region", { name: "Look" })).toBeTruthy();
-    expect(drawnWords()).toContain(BIGGER_TEXT_LABEL);
+    expect(drawnWords()).toContain("Color and text");
     expect(drawnWords()).toContain("Log out");
   });
 
@@ -94,7 +94,7 @@ describe("You › Settings in Spanish (F410c)", () => {
     expect(left).toEqual([]);
     expect(screen.getByRole("region", { name: "Apariencia" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "Su cuenta" })).toBeTruthy();
-    expect(words).toContain("Texto y botones más grandes");
+    expect(words).toContain("Color y texto");
     expect(words).toContain("Cerrar sesión");
     expect(words).toContain("Eliminar la cuenta");
   });

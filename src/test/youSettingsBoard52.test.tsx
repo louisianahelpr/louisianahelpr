@@ -41,7 +41,7 @@ afterEach(() => { cleanup(); sw.on = new Set(["declutter"]); });
 function renderSettings(onSelectTab = vi.fn(), onRequestLogout = vi.fn()) {
   render(
     <MemoryRouter>
-      <SettingsTab profile={null} seniorMode={false} onToggleSeniorMode={() => {}} onSelectTab={onSelectTab} onRequestLogout={onRequestLogout} onBack={() => {}} />
+      <SettingsTab profile={null} onSelectTab={onSelectTab} onRequestLogout={onRequestLogout} onBack={() => {}} />
     </MemoryRouter>,
   );
   return { onSelectTab, onRequestLogout };

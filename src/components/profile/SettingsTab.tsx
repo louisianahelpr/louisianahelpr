@@ -1,4 +1,3 @@
-import { BIGGER_TEXT_LABEL, BIGGER_TEXT_SUB } from "@/components/profile/biggerTextWords";
 import { ListRow } from "@/components/ui/ListRow";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useEffect, useState, type ReactNode } from "react";
@@ -59,7 +58,7 @@ const SETTINGS_KEY_BY_ENGLISH: ReadonlyMap<string, MsgKey> = new Map(
 
 /**
  * The screen's words in the member's language: each row, heading and line is looked up by the English it already
- * draws (enSettings.ts), so the English sources (TAB_TITLES, BIGGER_TEXT_LABEL...) stay the one place they are
+ * draws (enSettings.ts), so the English sources (TAB_TITLES...) stay the one place they are
  * written. Words that are not listed (an email, a membership plan line) stay as they are.
  */
 function useSettingsWord(): (english: string) => string {
@@ -168,16 +167,12 @@ function ShareJobPhotosRow({ profile }: { profile: Profile | null }) {
  */
 export function SettingsTab({
   profile,
-  seniorMode,
-  onToggleSeniorMode,
   onSelectTab,
   onRequestLogout,
   onRequestDelete,
   onBack,
 }: {
   profile: Profile | null;
-  seniorMode: boolean;
-  onToggleSeniorMode?: (enabled: boolean) => void;
   onSelectTab: (key: string) => void;
   onRequestLogout: () => void;
   /** Board 120: Delete account sits at the foot of Your account (its dialog does the warning). */
@@ -205,14 +200,8 @@ export function SettingsTab({
 
       <Group title="Look">
         <Row testId="color-mode" label="Color and text" sub={COLOR_MODE_LABEL[theme]} onClick={() => onSelectTab("accessibility")} />
-        {onToggleSeniorMode && (
-          <Row
-            testId="bigger-text"
-            label={BIGGER_TEXT_LABEL}
-            sub={BIGGER_TEXT_SUB}
-            right={<Switch checked={seniorMode} onCheckedChange={onToggleSeniorMode} aria-label={word(BIGGER_TEXT_LABEL)} />}
-          />
-        )}
+        {/* Polish audit 11-27 #134: "Bigger text and buttons" lives only on the Color and text screen this row opens (it
+            was a second switch here). Guard: src/test/biggerTextOnePlace1127.test.tsx. */}
         {/* Spanish language option (2026-10-29): the ONE shared switch, remembered on this device. Guard: src/test/settingsLanguageSwitch.test.tsx. */}
         <Row testId="language" label={t("lang.label")} right={<LanguageToggle />} />
       </Group>

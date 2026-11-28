@@ -9,7 +9,7 @@
  * @mutate src/components/notificationPreferences/constants.tsx |  description: "Money held for a job, payout setup, payouts and tips.", |
  * @mutate src/components/notificationPreferences/constants.tsx | label: "Buying & selling", | label: "Sales",
  * @mutate src/components/notificationPreferences/constants.tsx | label: "Pickups", description: "Pickup and delivery times, reminders and updates.", | label: "Pickups",
- * @mutate src/components/notificationPreferences/constants.tsx | label: "Messages", description: "New messages, plus a reminder at 15 min and 2 h if a job message is still unread. Texts follow Text alerts.", | label: "Messages",
+ * @mutate src/components/notificationPreferences/constants.tsx | label: "New messages", description: "New messages, plus a reminder at 15\u00a0min and 2\u00a0h if a job message is still unread. Texts follow Text alerts.", | label: "New messages",
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -69,7 +69,7 @@ describe("the money rows' descriptions", () => {
   // row now says they exist and what controls their texts.
   it("Messages names the unread reminders and says texts follow Text alerts", () => {
     show("messages");
-    expect(screen.getByText(/reminder at 15 min and 2 h if a job message is still unread\. Texts follow Text alerts\./)).toBeInTheDocument();
+    expect(screen.getByText(/reminder at 15\u00a0min and 2\u00a0h if a job message is still unread\. Texts follow Text alerts\./, { normalizer: (x) => x })).toBeInTheDocument();
   });
 });
 

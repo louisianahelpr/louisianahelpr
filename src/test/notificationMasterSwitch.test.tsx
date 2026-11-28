@@ -279,7 +279,7 @@ describe("when the saved settings cannot be read", () => {
     expect(prefsReads).toBe(2);
     expect(screen.queryByText("We couldn't load your notification settings.")).toBeNull();
     // The real row is shown now, not the defaults: the member's opt-out stands.
-    expect(screen.getByLabelText("Messages email").getAttribute("data-state")).toBe("unchecked");
+    expect(screen.getByLabelText("New messages email").getAttribute("data-state")).toBe("unchecked");
 
     fireEvent.click(emailMaster());
     await waitFor(() => expect(writes.length).toBe(1));
@@ -296,7 +296,7 @@ describe("the signed-in account changes while the screen is open (Q2320)", () =>
     const { rerender } = render(<NotificationPreferences />);
     await waitFor(() => expect(screen.getByLabelText("Job offers push").hasAttribute("disabled")).toBe(false));
     // u1's opt-out is on screen.
-    expect(screen.getByLabelText("Messages email").getAttribute("data-state")).toBe("unchecked");
+    expect(screen.getByLabelText("New messages email").getAttribute("data-state")).toBe("unchecked");
     authId = "u2";
     hangingReadsFor.add("u2");
     rerender(<NotificationPreferences />);
@@ -318,7 +318,7 @@ describe("the signed-in account changes while the screen is open (Q2320)", () =>
     authId = "u2";
     storedRow = null as unknown as Record<string, unknown>; // u2 has no saved row: defaults apply
     rerender(<NotificationPreferences />);
-    await waitFor(() => expect(screen.getByLabelText("Messages email").getAttribute("data-state")).toBe("checked"));
+    await waitFor(() => expect(screen.getByLabelText("New messages email").getAttribute("data-state")).toBe("checked"));
     fireEvent.click(pushMaster());
     await waitFor(() => expect(writes.length).toBe(1));
     expect(writes[0].user_id).toBe("u2");

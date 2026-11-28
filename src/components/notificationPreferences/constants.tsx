@@ -108,7 +108,7 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // (Messages, Jobs, Money, Account), each group contiguous; NotificationPreferences draws a header where the group
 // changes. Keys, columns and switches are unchanged; only the order moved Messages to the top.
 export const rows: Row[] = [
-  { key: "messages", emailKey: "email_messages", label: "Messages", description: "New messages, plus a reminder at 15 min and 2 h if a job message is still unread. Texts follow Text alerts.", icon: <MessageSquare className="w-3.5 h-3.5" />, group: "Messages" },
+  { key: "messages", emailKey: "email_messages", label: "New messages", description: "New messages, plus a reminder at 15\u00a0min and 2\u00a0h if a job message is still unread. Texts follow Text alerts.", icon: <MessageSquare className="w-3.5 h-3.5" />, group: "Messages" },
   { key: "new_offers", emailKey: "email_new_offers", label: "Job offers", icon: <Briefcase className="w-3.5 h-3.5" />, group: "Jobs" },
   { key: "job_applications", emailKey: "email_job_applications", label: "Applications", icon: <Users className="w-3.5 h-3.5" />, group: "Jobs" },
   { key: "job_updates", emailKey: "email_job_updates", label: "Changes to my jobs", icon: <RefreshCw className="w-3.5 h-3.5" />, group: "Jobs" },

@@ -49,9 +49,12 @@ export function RecentMessagesRows({ user }: { user: User | null | undefined }) 
                   : <MessageCircle className="w-5 h-5 text-primary" />}
               </span>
             }
-            title={<span className={c.unread > 0 ? "font-bold" : undefined}>{c.otherUserName}</span>}
+            // Polish audit 11-27 #131: every row ends in the same chevron; an unread thread's dot sits left of the name.
+            title={<>
+              {c.unread > 0 && <span data-home-message-unread="" role="img" aria-label={t("home.more.unread")} className="mr-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-primary align-middle" />}
+              <span className={c.unread > 0 ? "font-bold" : undefined}>{c.otherUserName}</span>
+            </>}
             meta={c.lastMessage || c.jobTitle}
-            right={c.unread > 0 ? <span data-home-message-unread="" role="img" aria-label={t("home.more.unread")} className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" /> : undefined}
             onClick={() => navigate(conversationLink(c))}
             last={i === rows.length - 1}
           />

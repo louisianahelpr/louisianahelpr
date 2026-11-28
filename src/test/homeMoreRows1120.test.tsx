@@ -6,7 +6,8 @@
  * All of it is a lazy chunk asked only once the page has settled, never with Home's first screen.
  *
  * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |             onClick={() => navigate(conversationLink(c))} |             onClick={() => navigate("/messages")}
- * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |             right={c.unread > 0 ? | right={c.unread >= 0 ?
+ * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |               {c.unread > 0 && <span data-home-message-unread | {c.unread >= 0 && <span data-home-message-unread
+ * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |             meta={c.lastMessage \|\| c.jobTitle}\n | meta={c.lastMessage \|\| c.jobTitle} right={c.unread > 0 ? <span /> : undefined}\n
  * @mutate src/pages/home/homeDashboard/HomeMoreRows.tsx |   if (rows.length === 0) return null;\n  return (\n    <div data-home-recent-messages=""> |   return (\n    <div data-home-recent-messages="">
  * @mutate src/pages/home/homeDashboard/homeActive.ts |     .filter((j) => j.status === "open") |     .filter((j) => j.status !== "completed")
  * @mutate src/pages/home/homeDashboard/homeActive.ts |     .filter((i) => i.status === "live") |     .filter(() => true)
@@ -65,6 +66,12 @@ describe("Recent messages on Home (owner polish 11-20)", () => {
     expect(rows[0].textContent).toContain("Hello 1");
     // Only the unread thread wears the dot.
     expect(document.querySelectorAll("[data-home-message-unread]").length).toBe(1);
+    // Polish audit 11-27 #131: the dot sits left of the name, and every row (unread too) ends in the same chevron.
+    const dot = document.querySelector("[data-home-message-unread]")!;
+    expect(rows[0].contains(dot)).toBe(true);
+    expect(dot.compareDocumentPosition(screen.getByText("Person 1")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const chevrons = rows.map((r) => r.lastElementChild?.tagName.toLowerCase());
+    expect(chevrons).toEqual(["svg", "svg", "svg"]);
     fireEvent.click(rows[1]);
     expect(screen.getByTestId("where").textContent).toBe("/messages?jobId=j2&userId=u2");
     fireEvent.click(screen.getByText("See all"));

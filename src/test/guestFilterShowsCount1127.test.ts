@@ -1,6 +1,6 @@
 /**
  * Polish audit 11-27 #115 (filter half): signed out, the Jobs filter sheet's button read "Show jobs" while signed in it
- * read "Show 4 jobs". The guest page now hands the toolbar the same exact-only count (sheetResultCount, board 24): a
+ * read "Show N jobs" (a number, live 2026-11-27). The guest page now hands the toolbar the same exact-only count (sheetResultCount, board 24): a
  * number only when the guest read is complete (under GUEST_JOBS_LIMIT rows), the list is on screen and loaded.
  *
  * @mutate src/pages/home/DashboardGuest.tsx |       resultCount={sheetResultCount({ | data-was-result-count={sheetResultCount({

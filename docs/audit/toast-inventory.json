@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1263,
+    "calls": 1264,
     "files": 370,
-    "rendering": 1185,
+    "rendering": 1186,
     "suppressedByPolicy": 78,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 14,
       "successToast": 8,
       "toast": 255,
-      "toast.error": 840,
+      "toast.error": 841,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 84,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 457,
       "template": 101,
-      "dynamic": 762,
+      "dynamic": 763,
       "jsx": 0
     }
   },
@@ -6740,7 +6740,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 171,
+      "line": 176,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6750,7 +6750,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 407,
+      "line": 412,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6760,7 +6760,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 413,
+      "line": 418,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6770,7 +6770,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 430,
+      "line": 426,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(new Error(\"payment_unavailable\"))"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 450,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6815,7 +6825,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 436,
+      "line": 456,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -34,8 +34,9 @@ export const QA_BYLINE = {
 /** The catalog guides' person words. */
 const WHO = { her: "her", him: "him", kids: "kids" };
 
-/** How many rows an answer names at most. */
-const NAMED = 5;
+/** How many rows an answer names at most (polish audit 11-27 #147: at most 3 short names, so an answer is 1-2 sentences, not a run-on list). */
+export const QA_NAMED = 3;
+const NAMED = QA_NAMED;
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const LONG_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -244,7 +245,7 @@ export function catalogGuideQa(slug, picks, today) {
   if (la.length) {
     qa.push({
       q: `Are there Louisiana gifts for ${who} in this guide?`,
-      a: `Yes. These come from Louisiana makers or Louisiana shops: ${list(la.slice(0, NAMED).map((p) => named(p, today)))}.`,
+      a: `Yes, ${plural(la.length, "gift", "gifts")} from Louisiana makers or Louisiana shops. ${la.length > NAMED ? "A few: " : ""}${list(la.slice(0, NAMED).map((p) => named(p, today)))}.`,
     });
   }
   if (priced.length) {

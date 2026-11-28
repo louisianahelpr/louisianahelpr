@@ -1,1 +1,0 @@
-import"./jobs-late-DSJfi7FA.js";var e=[[28.92,-94.05],[33.02,-88.76]],t=[[28.5,-94.6],[33.3,-88.4]],n=`calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)`;function r(){return typeof document>`u`?!1:document.documentElement.getAttribute(`data-theme`)===`dark`}export{r as i,e as n,n as r,t};

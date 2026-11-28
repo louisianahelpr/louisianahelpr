@@ -1,0 +1,1 @@
+import{Ti as e,wr as t}from"./app-shared-BvGdO-ZX.js";import{r as n}from"./react-vendor-DBuF32qy.js";var r=n(),i=()=>{let{user:n,isLoading:i}=t();return i?(0,r.jsx)(`div`,{className:`min-h-screen bg-premium-page`}):(0,r.jsx)(e,{to:n?`/home`:`/browse`,replace:!0})};export{i as default};

@@ -1,0 +1,1 @@
+import{Hi as e}from"./app-shared-BvGdO-ZX.js";var t=class extends e{async show(e){}async hide(e){}};export{t as SplashScreenWeb};

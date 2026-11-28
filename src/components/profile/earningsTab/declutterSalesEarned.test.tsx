@@ -88,7 +88,7 @@ describe("Declutter sales in Money > Earned (A3-56)", () => {
   });
 
   it("polish audit 11-27 #72: a row's title is a 15px link with a chevron, no underline, centred in its 44px target", () => {
-    render(<DeclutterSalesEarned rows={[row("o-1", "Bar stools", "paid", 4000, "2026-11-07T12:00:00Z")]} failed={false} onRetry={() => {}} />);
+    render(<DeclutterSalesEarned rows={[row("o-1", "Bar stools", "succeeded", 4000, "2026-11-07T12:00:00Z")]} failed={false} onRetry={() => {}} />);
     const link = document.querySelector("[data-sale-payout-link]") as HTMLElement;
     expect(link.textContent).toBe("Sold: Bar stools");
     expect(link.className).toMatch(/\btext-ds-15\b/);

@@ -249,11 +249,11 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null, guestShell 
                 style={{ color: "hsl(var(--bark))", backgroundColor: "hsl(var(--bark) / 0.1)" }}>
                 <BadgeCheck className="h-3.5 w-3.5" aria-hidden />Louisiana Helpr team
               </p>
-            ) : (
+            ) : trust || !since ? (
               <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground max-lg:-order-2 max-lg:mt-0" data-testid="pp-trust">
                 {trust ? (<><Star className="h-3.5 w-3.5" aria-hidden />{trust}</>) : "New on Helpr"}
               </p>
-            )}
+            ) : null /* Polish audit 11-27 #48: no rating yet, "Member since Oct 2026" already says it; "New on Helpr" beside it said it twice. */}
           </div>
         </div>
         {p.bio && <PublicProfileBio bio={p.bio} />}

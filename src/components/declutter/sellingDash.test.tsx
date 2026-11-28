@@ -29,7 +29,7 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx | pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] | pb-1 px-3
  * @mutate src/components/declutter/DeclutterMineViews.tsx | pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] | pb-1 pl-3 pr-3 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]
  * @mutate src/components/declutter/DeclutterMineViews.tsx | -mx-3 flex items-center gap-2 overflow-x-auto pb-1 | -mx-3 flex flex-wrap items-center gap-2 pb-1
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb row path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | data-seller-empty="">{children}</DeclutterEmptyCard> | data-plain="">{children}</DeclutterEmptyCard>
  * @mutate src/components/declutter/SellChooserEntry.tsx |       data-sell-chooser-entry=""\n      className="flex min-h-14 | data-sell-chooser-entry=""\n      className="rounded-full flex min-h-14
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} search={search} onClearSearch={onClearSearch} />\n |             <MyListingsView userId={userId} haulOn={haulOn} search={search} onClearSearch={onClearSearch} />\n            <SellingSettingsEntry />\n
@@ -682,6 +682,8 @@ describe("Selling tab: Taken down, with Relist", () => {
   // @mutate src/components/declutter/DeclutterHomeView.tsx | <p className="truncate text-ds-15 font-semibold" title={item.title}> | <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}>
   // @mutate src/components/declutter/DeclutterHomeView.tsx |           const oneControl = (item.status === "live" \|\| item.status === "paused") && !haulById.get(item.id); |           const oneControl = false;
   // @mutate src/components/declutter/DeclutterHomeView.tsx | to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`} | to="/declutter"
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <ListingThumb row path={thumb} | <ListingThumb path={thumb}
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | ${oneControl ? "min-w-0 truncate" : "line-clamp-2"} text-ds-13 | line-clamp-2 text-ds-13
   it("a listing row: one title line, the row opens the item, one Manage chevron on the right (polish audit 11-27 #11)", async () => {
     state.mine = [ITEM, { ...ITEM, id: "p1", status: "paused", title: "Paused desk" }, { ...ITEM, id: "d1", status: "draft", title: "Half-done lamp" }];
     const { container } = at("/declutter?tab=selling");
@@ -700,6 +702,16 @@ describe("Selling tab: Taken down, with Relist", () => {
       expect(r.querySelector("[data-listing-manage]")).not.toBeNull();
     }
     expect(container.querySelector("[data-listing-preview], [data-listing-share]")).toBeNull();
+    // Polish audit 11-27 #11 (rest): a 56px thumbnail on every row; a live or paused row's status and views on ONE line
+    // (the status truncates, never a 2-line clamp); the draft's "Next:" line keeps two lines.
+    for (const r of rows) expect((r.querySelector("[data-listing-thumb]") as HTMLElement).className.split(/\s+/)).toEqual(expect.arrayContaining(["h-14", "w-14"]));
+    for (const r of rows.slice(0, 2)) {
+      const meta = r.querySelector("[data-listing-meta]") as HTMLElement;
+      expect(meta.className.split(/\s+/)).toEqual(expect.arrayContaining(["flex", "items-center"]));
+      expect((meta.querySelector("[data-listing-status]") as HTMLElement).className.split(/\s+/)).toEqual(expect.arrayContaining(["truncate"]));
+      expect((meta.querySelector("[data-listing-status]") as HTMLElement).className).not.toMatch(/line-clamp/);
+    }
+    expect((rows[2].querySelector("[data-listing-status]") as HTMLElement).className).toMatch(/\bline-clamp-2\b/);
     const open = (title: string) => (screen.getByText(title).closest("[data-listing-open]") as HTMLAnchorElement).getAttribute("href");
     expect(open("Oak rocking chair")).toBe(`/declutter/item/${ITEM.id}`);
     expect(open("Half-done lamp")).toBe("/declutter/sell?item=d1");

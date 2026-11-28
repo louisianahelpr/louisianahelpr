@@ -271,17 +271,21 @@ export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: {
                 to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`}
                 className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-listing-open=""
               >
-                <ListingThumb path={thumb} category={item.category} />
+                <ListingThumb row path={thumb} category={item.category} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-ds-15 font-semibold" title={item.title}>{item.title}</p>
+                  {/* Polish audit 11-27 #11: a live or paused row's status and views share ONE line (the status ends in an
+                      ellipsis, its full words stay on title); a row that asks the seller to act keeps two lines. */}
+                  <div className={oneControl ? "flex min-w-0 items-center gap-2" : undefined} data-listing-meta="">
                   <p data-listing-status={item.status} title={statusLine}
                     data-next-step={drop ? undefined : next.who}
-                    className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : next.who === "you" ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                    className={`${oneControl ? "min-w-0 truncate" : "line-clamp-2"} text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : next.who === "you" ? "font-medium text-foreground" : "text-muted-foreground"}`}
                   >
                     {statusLine}
                   </p>
                   {/* Owner request 11-05: how many people saw it (unique, the seller only). */}
-                  {item.status !== "draft" && <ItemViewsCount sellerId={userId} itemId={item.id} />}
+                  {item.status !== "draft" && <ItemViewsCount sellerId={userId} itemId={item.id} className={oneControl ? "shrink-0" : ""} />}
+                  </div>
                 </div>
                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} agreed={agreed.get(item.id)} />
               </Link></BulkPick>

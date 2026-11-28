@@ -113,7 +113,8 @@ describe("a member on someone else's /u page has the full set of member actions"
     signedIn = { id: "me-0000" };
     myHandle = "eli-b";
     show();
-    await screen.findByTestId("pp-trust");
+    // The page has painted (its card; "New on Helpr" is gone when "Member since" says it, polish audit 11-27 #48).
+    await screen.findByText(/^Member since /);
     expect(screen.queryByTestId("pp-member-actions")).toBeNull();
     expect(rpc).not.toHaveBeenCalledWith("rpc_hire_target_by_handle", expect.anything());
   });

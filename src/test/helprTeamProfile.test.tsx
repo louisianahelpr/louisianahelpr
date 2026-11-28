@@ -7,6 +7,8 @@
  *
  * @mutate src/lib/helprTeam.ts |   return handle === HELPR_TEAM_HANDLE; |   return false;
  * @mutate src/pages/u/PublicProfilePage.tsx | (team ? <MessageSupportButton /> : <HireMeButton | (false ? <MessageSupportButton /> : <HireMeButton
+ * Polish audit 11-27 #48: with no rating yet, "Member since" is the one line; "New on Helpr" only when that date is missing.
+ * @mutate src/pages/u/PublicProfilePage.tsx |             ) : trust \|\| !since ? ( |             ) : true ? (
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -66,9 +68,11 @@ describe("F067: the official support account's page says what it is", () => {
     });
   }
 
-  it("any other member: unchanged (New on Helpr, Hire me)", async () => {
+  it("any other member: Member since (no second \"New on Helpr\", polish audit 11-27 #48) and Hire me", async () => {
     show("eli-b");
-    expect(await screen.findByText("New on Helpr")).toBeInTheDocument();
+    expect(await screen.findByText(/^Member since /)).toBeInTheDocument();
+    expect(screen.queryByText("New on Helpr")).toBeNull();
+    expect(screen.queryByTestId("pp-trust")).toBeNull();
     expect(screen.getByText(/Hire me/)).toBeInTheDocument();
     expect(screen.queryByTestId("pp-team")).toBeNull();
     expect(screen.queryByRole("link", { name: /Message support/ })).toBeNull();

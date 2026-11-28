@@ -18,6 +18,8 @@ import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseFiltersButton } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { GuestBrowseHeaderRow, guestOpenJobsLabel } from "./GuestBrowseHeaderRow";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
+import { sheetResultCount } from "@/pages/home/headerJobCount";
+import { GUEST_JOBS_LIMIT } from "@/lib/guestJobsQuery";
 // Lazy-load the map so the map chunk (and Apple's MapKit JS script) only
 // loads when guests actually toggle to map view. List view stays cheap.
 const BrowseMap = lazy(() =>
@@ -299,6 +301,9 @@ const DashboardGuest = () => {
       // The app's guest Jobs has no map (owner 2026-08-19, below): the Filters icon it gained 11-25 opens the sheet
       // without the List / Map row.
       hideViewToggle={isNativePlatform}
+      // Polish audit 11-27 #115: the sheet's button reads "Show 4 jobs" as it does signed in (board 24's truth rule:
+      // a number only when it is exact, so not on a full guest read of GUEST_JOBS_LIMIT rows, the map or an error).
+      resultCount={sheetResultCount({ listedCount: filters.filteredJobs.length, listComplete: baseJobs.length < GUEST_JOBS_LIMIT, listOnScreen: view === "list" && feedReady && !isError && phase === "ready" })}
     />
     </>
   );

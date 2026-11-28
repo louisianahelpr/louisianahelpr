@@ -4,8 +4,9 @@ import type { NotificationFace } from "./useNotificationFaces";
 import type { Notification } from "./types";
 
 /**
- * The 40px circle at the start of a bell row. Q2037: a job notice caused by a member shows that member's photo
- * (or initials) in place of the type icon; every other notice keeps the type icon on its tint.
+ * The start of a bell row. Q2037: a job notice caused by a member shows that member's photo (or initials) in place of
+ * the type icon. Every other notice shows its type icon bare, in its tone's colour (polish audit 11-27 #13: no tinted
+ * circle behind it; owner rule, no icons in circles).
  */
 export function NotificationLeading({ n, face }: { n: Notification; face: NotificationFace | undefined }) {
   if (n.actor_id && face) {
@@ -27,14 +28,14 @@ export function NotificationLeading({ n, face }: { n: Notification; face: Notifi
   const tint = money ? "money" : warn ? "warn" : "plain";
   return (
     <div
-      className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+      className="shrink-0 w-5 h-5 mt-0.5 flex items-center justify-center [&>svg]:h-[18px] [&>svg]:w-[18px]"
       data-notif-tint={tint}
       style={
         money
-          ? { background: "hsl(var(--burnt-sienna) / 0.12)", color: "hsl(var(--burnt-sienna))" }
+          ? { color: "hsl(var(--burnt-sienna))" }
           : warn
-            ? { background: "hsl(var(--alert) / 0.10)", color: "hsl(var(--alert-ink))" }
-            : { background: "hsl(var(--bark) / 0.10)", color: "hsl(var(--bark))" }
+            ? { color: "hsl(var(--alert-ink))" }
+            : { color: "hsl(var(--bark))" }
       }
     >
       {typeIcons[n.type] || typeIcons.info}

@@ -277,13 +277,13 @@ export function NotificationPanelView({
                 <DaySection key={group.key} framer={framer} exit={collapseExit} transition={exitTransition}>
                   <div
                     className="sticky top-0 z-10 px-4 py-1.5 flex items-center justify-between font-sans uppercase tracking-[0.18em] text-ds-10"
+                    data-notif-day=""
                     style={{
+                      // Polish audit 11-27 #13: an opaque band (the rows showed through the see-through one: "5h ago"
+                      // under "TODAY"), the page's own white, with a 1px line under it.
                       color: "hsl(var(--muted-foreground))",
-                      background:
-                        "linear-gradient(to bottom, hsl(var(--surface-band) / 0.92), hsl(var(--surface-band) / 0.78))",
-                      backdropFilter: "blur(8px) saturate(140%)",
-                      WebkitBackdropFilter: "blur(8px) saturate(140%)",
-                      borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)",
+                      background: "hsl(var(--background))",
+                      borderBottom: "1px solid hsl(var(--border))",
                     }}
                   >
                     {/* Area 08 M8 (design audit 11-18): no count beside the day. It was a fourth number on the tab
@@ -343,6 +343,10 @@ export function NotificationPanelView({
                               >
                                 {say(n.title)}
                               </p>
+                              {/* Polish audit 11-27 #13: the time ends the title line (12px grey), not a line of its own. */}
+                              <span data-notif-time="" className="shrink-0 self-start font-sans text-ds-12 tabular-nums" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                                {timeAgo(n.created_at)}
+                              </span>
                               {/* Colour alone cannot carry "unread" — labelled
                                   the same way ConversationRow's dot is. */}
                               {!n.read && (
@@ -388,12 +392,6 @@ export function NotificationPanelView({
                                 </div>
                               );
                             })()}
-                            <p
-                              className="font-sans mt-1 text-ds-11"
-                              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                            >
-                              {timeAgo(n.created_at)}
-                            </p>
                             <JobFoldToggle more={more} open={openFolds.has(n.id)} onToggle={() => setOpenFolds((was) => { const next = new Set(was); if (!next.delete(n.id)) next.add(n.id); return next; })} />
                           </div>
                         </div>
@@ -431,25 +429,27 @@ export function NotificationPanelView({
                 sections
               );
               })()}
+              {/* The list is a page; the badge is a fact. When they differ, say so.
+                  The alternative — quietly shrinking the badge to match what was
+                  fetched — is what produced a bell reading 47 over a database
+                  holding 76. "Mark all read" clears every unread row, not only the
+                  ones on screen (F434), which is what this line tells the member.
+                  Polish audit 11-27 #13: a 13px line at the END of the list (it scrolls with the rows), not a fixed
+                  footer that left white space under a short list. */}
+              {hasMoreThanPage && (
+                <p
+                  data-notif-page-note=""
+                  className="px-4 py-4 text-ds-13 font-sans text-center"
+                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+                >
+                  {/* F434 (whole-app audit 2026-11-10): "Showing 100 · 723 unread in total" left a first-timer with no next
+                      step; Mark all read now clears every unread notice, so the footer says so. */}
+                  {t("notif.showingNewest", { count: notifications.length, unread: unreadTotal ?? 0 })}
+                </p>
+              )}
             </div>
           )}
         </PullToRefreshWrapper>
-
-        {/* The list is a page; the badge is a fact. When they differ, say so.
-            The alternative — quietly shrinking the badge to match what was
-            fetched — is what produced a bell reading 47 over a database
-            holding 76. "Mark all read" clears every unread row, not only the
-            ones on screen (F434), which is what this line tells the member. */}
-        {hasMoreThanPage && (
-          <p
-            className="shrink-0 px-4 py-2 text-ds-11 font-sans text-center border-t border-[hsl(var(--olivewood)/0.12)]"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
-            {/* F434 (whole-app audit 2026-11-10): "Showing 100 · 723 unread in total" left a first-timer with no next
-                step; Mark all read now clears every unread notice, so the footer says so. */}
-            {t("notif.showingNewest", { count: notifications.length, unread: unreadTotal ?? 0 })}
-          </p>
-        )}
 
         {/* Push opt-in lives in a footer row, outside the scroll area, rather
             than as a big button inside the empty state — it is relevant

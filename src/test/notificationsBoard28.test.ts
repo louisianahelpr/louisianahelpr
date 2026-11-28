@@ -1,8 +1,9 @@
 /**
  * Notifications sheet = board 28 (2026-10-20), restyle: "Mark all read" in
  * words; rust ONLY on money notices (spec v2 §1.1): the day label is muted, the
- * unread dot is olive, an unread row has no rust wash, and the icon circle
- * wears the money tint only for MONEY_TYPES; titles in Montserrat.
+ * unread dot is olive, an unread row has no rust wash, and the row's icon
+ * wears the money colour only for MONEY_TYPES (a bare icon since polish audit
+ * 11-27 #13, no tinted circle behind it); titles in Montserrat.
  *
  * @mutate src/components/NotificationPanelView.tsx |                                   style={{ background: "hsl(var(--bark))" }} |                                   style={{ background: "hsl(var(--burnt-sienna))" }}
  * @mutate src/components/NotificationPanelView.tsx |                       color: "hsl(var(--muted-foreground))",\n |                       color: "hsl(var(--burnt-sienna))",\n
@@ -38,10 +39,11 @@ describe("the notifications sheet matches board 28", () => {
     expect(panelRows).toMatch(/<NotificationLeading n=\{n\}/);
     const rows = `${panelRows}\n${leading}`;
     const sienna = (rows.match(/--burnt-sienna/g) ?? []).length;
-    // Exactly the two money-tint declarations (background + colour) in the row list.
-    expect(sienna).toBe(2);
+    // Exactly one money colour declaration in the row list, and no tinted circle behind any icon (polish audit 11-27 #13).
+    expect(sienna).toBe(1);
     expect(leading).toMatch(/const money = MONEY_TYPES\.has\(n\.type\);/);
-    expect(rows).toMatch(/money\s*\?\s*\{ background: "hsl\(var\(--burnt-sienna\) \/ 0\.12\)"/);
+    expect(rows).toMatch(/money\s*\?\s*\{ color: "hsl\(var\(--burnt-sienna\)\)" \}/);
+    expect(leading.slice(leading.indexOf("const money"))).not.toMatch(/background|rounded-full/);
     expect(rows).toMatch(/aria-label=\{t\("notif\.unreadDot"\)\}[\s\S]{0,200}background: "hsl\(var\(--bark\)\)"/);
     expect(rows).toMatch(/className="min-w-0 flex-1 font-sans font-bold/);
   });
